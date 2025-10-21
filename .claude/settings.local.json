@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\")",
+      "Bash(if [ -d node_modules ])",
+      "Bash(then echo \"✅ 依赖已安装\")",
+      "Bash(else echo \"❌ 需要安装依赖\")",
+      "Bash(fi)",
+      "Bash(npm install)",
+      "Bash(git add .)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
