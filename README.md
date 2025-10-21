@@ -12,14 +12,15 @@
 - **💰 费用预估** - 智能预算分析和费用估算
 - **🔐 用户认证** - Supabase 认证集成，支持邮箱/密码注册登录
 - **📊 行程管理** - 创建、保存和查看多个旅行计划
+- **🗺️ 地图集成** - 高德地图显示景点位置、路线规划（[查看文档](docs/MAP_INTEGRATION.md)）
 
 ### 计划功能
 
-- 地图集成（高德地图/百度地图）
 - 费用追踪系统（语音录入开销）
 - 数据可视化（预算对比图表）
 - 行程分享功能
 - 离线缓存支持
+- 百度地图支持
 
 ## 🚀 快速开始
 
@@ -52,9 +53,11 @@ BASE_URL=https://api.anthropic.com
 DEEPSEEK_API_KEY=your_deepseek_api_key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 
+# 高德地图 API（必需 - 用于行程地图显示）
+NEXT_PUBLIC_MAP_API_KEY=your_amap_api_key
+
 # 其他可选服务
 VOICE_API_KEY=your_voice_api_key
-NEXT_PUBLIC_MAP_API_KEY=your_map_api_key
 UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 ```
 
@@ -72,12 +75,24 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 1. 访问 [platform.deepseek.com](https://platform.deepseek.com)
 2. 创建 API Key
 
+**高德地图 (必需):**
+1. 访问 [lbs.amap.com](https://lbs.amap.com)
+2. 创建应用并获取 Web 端（JS API）Key
+3. 详细说明查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md)
+
 ### 3. 设置数据库
 
-在 Supabase SQL Editor 中依次运行：
+在 Supabase SQL Editor 中运行初始化脚本：
 
-1. `supabase-schema.sql` - 创建数据库表和策略
-2. `supabase-fix-profiles.sql` - 修复 profiles 表策略
+**新项目（推荐）：**
+```bash
+运行 supabase-init.sql - 一键完成所有表、策略、索引的创建
+```
+
+**旧项目升级：**
+```bash
+运行 supabase-add-origin.sql - 仅添加出发地字段
+```
 
 ### 4. 启动项目
 
@@ -94,14 +109,15 @@ npm run dev
 1. **注册/登录** - 首次使用需要注册账号
 2. **创建新行程** - 点击"创建新行程"按钮
 3. **填写信息**：
-   - 目的地（支持语音输入）
+   - **出发地**（支持语音输入）- 用于准确估算交通费用
+   - **目的地**（支持语音输入）
    - 出发和返回日期
    - 预算金额
    - 出行人数
    - 旅行偏好
    - 选择 AI 模型
 4. **生成行程** - 点击"生成旅行计划"，AI 将在几秒内生成详细行程
-5. **查看详情** - 自动跳转到行程详情页，查看完整计划
+5. **查看详情** - 自动跳转到行程详情页，查看完整计划和地图
 
 ### AI 模型选择
 
@@ -146,7 +162,8 @@ ai-travel-planner/
 ├── components/                   # React 组件
 │   ├── ui/                      # UI 基础组件
 │   ├── VoiceInput.tsx           # 语音输入组件
-│   └── ModelSelector.tsx        # 模型选择器
+│   ├── ModelSelector.tsx        # 模型选择器
+│   └── MapView.tsx              # 地图显示组件
 ├── lib/                         # 工具库
 │   ├── config.ts                # 配置管理
 │   ├── models.ts                # AI 模型配置
@@ -155,9 +172,12 @@ ai-travel-planner/
 ├── types/                       # TypeScript 类型
 ├── docs/                        # 文档
 │   ├── MODEL_SELECTION.md       # 模型选择说明
+│   ├── MAP_INTEGRATION.md       # 地图集成说明
+│   ├── DATABASE_SETUP.md        # 数据库设置指南
+│   ├── ORIGIN_FIELD_UPDATE.md   # 出发地功能说明
 │   └── Create_Prompt.md         # 原始需求文档
-├── supabase-schema.sql          # 数据库 Schema
-├── supabase-fix-profiles.sql    # 修复脚本
+├── supabase-init.sql            # 数据库初始化脚本（推荐）
+├── supabase-add-origin.sql      # 添加出发地字段（升级用）
 └── .env.example                 # 环境变量模板
 ```
 
@@ -202,6 +222,11 @@ ai-travel-planner/
 - 确保运行了 `supabase-fix-profiles.sql`
 - 检查 RLS 策略是否启用
 - 确认用户已登录
+
+### 地图无法显示？
+- 检查是否配置了 `NEXT_PUBLIC_MAP_API_KEY`
+- 确认 API Key 是否正确
+- 查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md) 获取详细配置说明
 
 ## 📝 更新日志
 

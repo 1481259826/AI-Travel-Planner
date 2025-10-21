@@ -8,7 +8,10 @@
       "Bash(else echo \"❌ 需要安装依赖\")",
       "Bash(fi)",
       "Bash(npm install)",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git commit -m \"chore: initial commit - AI Travel Planner with multi-model support\n\n✨ Features:\n- Multi AI model support (Claude Haiku 4.5, Claude 3.5 Sonnet, DeepSeek Chat)\n- Voice input for travel planning\n- Intelligent itinerary generation\n- User authentication with Supabase\n- Trip management and detailed view\n- Cost estimation\n\n🛠️ Tech Stack:\n- Next.js 15 + TypeScript\n- Tailwind CSS\n- Supabase (Auth + Database)\n- Anthropic Claude API + DeepSeek API\n- Web Speech API\n\n📝 Documentation:\n- Complete setup guide\n- Model selection documentation\n- Contributing guidelines\n- Security policy\")",
+      "Bash(git remote add origin git@github.com:1481259826/AI-Travel-Planner.git)",
+      "Bash(git push -u origin main)"
     ],
     "deny": [],
     "ask": []

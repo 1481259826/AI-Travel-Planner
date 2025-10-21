@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut } from 'lucide-react'
+import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { auth, db } from '@/lib/supabase'
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -45,6 +46,31 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await auth.signOut()
     router.push('/')
+  }
+
+  const handleDelete = async (e: React.MouseEvent, tripId: string, tripName: string) => {
+    e.preventDefault() // 阻止链接跳转
+    e.stopPropagation()
+
+    if (!confirm(`确定要删除行程"${tripName}"吗？此操作无法撤销。`)) {
+      return
+    }
+
+    setDeletingId(tripId)
+    try {
+      const { error } = await db.trips.delete(tripId)
+
+      if (error) throw error
+
+      // 从列表中移除已删除的行程
+      setTrips(trips.filter(trip => trip.id !== tripId))
+      alert('行程已删除')
+    } catch (error) {
+      console.error('Error deleting trip:', error)
+      alert('删除行程失败')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const getStatusText = (status: string) => {
@@ -132,38 +158,53 @@ export default function DashboardPage() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
-              <Link key={trip.id} href={`/dashboard/trips/${trip.id}`}>
-                <Card className="hover:shadow-lg transition cursor-pointer h-full">
-                  <CardHeader>
-                    <div className="flex justify-between items-start mb-2">
-                      <CardTitle className="text-xl">{trip.destination}</CardTitle>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
-                        {getStatusText(trip.status)}
-                      </span>
-                    </div>
-                    <CardDescription>
-                      {trip.preferences.join(', ') || '无特殊偏好'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {format(new Date(trip.start_date), 'yyyy-MM-dd')} 至{' '}
-                        {format(new Date(trip.end_date), 'yyyy-MM-dd')}
+              <div key={trip.id} className="relative group">
+                <Link href={`/dashboard/trips/${trip.id}`}>
+                  <Card className="hover:shadow-lg transition cursor-pointer h-full">
+                    <CardHeader>
+                      <div className="flex justify-between items-start mb-2">
+                        <CardTitle className="text-xl">{trip.destination}</CardTitle>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
+                          {getStatusText(trip.status)}
+                        </span>
                       </div>
-                      <div className="flex items-center text-gray-600">
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        预算: ¥{trip.budget.toLocaleString()}
+                      <CardDescription>
+                        {trip.preferences.join(', ') || '无特殊偏好'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center text-gray-600">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {format(new Date(trip.start_date), 'yyyy-MM-dd')} 至{' '}
+                          {format(new Date(trip.end_date), 'yyyy-MM-dd')}
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          预算: ¥{trip.budget.toLocaleString()}
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {trip.travelers} 人出行
+                        </div>
                       </div>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {trip.travelers} 人出行
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                    </CardContent>
+                  </Card>
+                </Link>
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => handleDelete(e, trip.id, trip.destination)}
+                  disabled={deletingId === trip.id}
+                  className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="删除行程"
+                >
+                  {deletingId === trip.id ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             ))}
           </div>
         )}

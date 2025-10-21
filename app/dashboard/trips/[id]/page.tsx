@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { Trip } from '@/types'
+import MapView, { extractLocationsFromItinerary } from '@/components/MapView'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -15,10 +16,30 @@ export default function TripDetailPage() {
 
   const [trip, setTrip] = useState<Trip | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showMap, setShowMap] = useState(true)
+  const [showRoute, setShowRoute] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  // 提取所有位置信息用于地图显示
+  const itinerary = trip?.itinerary
+  const allLocations = itinerary?.days
+    ? itinerary.days.flatMap(day =>
+        extractLocationsFromItinerary(day.activities || [], day.meals || [])
+      )
+    : []
 
   useEffect(() => {
     fetchTrip()
   }, [tripId])
+
+  // 调试：输出位置信息
+  useEffect(() => {
+    if (trip) {
+      console.log('行程数据:', itinerary)
+      console.log('提取的位置数量:', allLocations.length)
+      console.log('位置详情:', allLocations)
+    }
+  }, [trip, itinerary, allLocations])
 
   const fetchTrip = async () => {
     try {
@@ -35,6 +56,29 @@ export default function TripDetailPage() {
       alert('获取行程失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('确定要删除这个行程吗？此操作无法撤销。')) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('id', tripId)
+
+      if (error) throw error
+
+      alert('行程已删除')
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error deleting trip:', error)
+      alert('删除行程失败')
+      setDeleting(false)
     }
   }
 
@@ -60,8 +104,6 @@ export default function TripDetailPage() {
     )
   }
 
-  const itinerary = trip.itinerary
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -77,6 +119,24 @@ export default function TripDetailPage() {
                 {trip.start_date} 至 {trip.end_date}
               </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  删除行程
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </header>
@@ -145,22 +205,92 @@ export default function TripDetailPage() {
           </Card>
 
           {/* Itinerary Summary */}
-          {itinerary?.summary && (
+          {trip.itinerary?.summary && (
             <Card>
               <CardHeader>
                 <CardTitle>行程概述</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700">{itinerary.summary}</p>
+                <p className="text-gray-700">{trip.itinerary.summary}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Map View */}
+          {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Map className="w-5 h-5" />
+                    行程地图
+                  </CardTitle>
+                  {allLocations.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={showMap ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowMap(!showMap)}
+                      >
+                        {showMap ? '隐藏地图' : '显示地图'}
+                      </Button>
+                      {showMap && allLocations.length > 1 && (
+                        <Button
+                          variant={showRoute ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowRoute(!showRoute)}
+                        >
+                          {showRoute ? '隐藏路线' : '显示路线'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {allLocations.length > 0 ? (
+                  <>
+                    {showMap && (
+                      <>
+                        <MapView
+                          locations={allLocations}
+                          showRoute={showRoute}
+                          className="w-full"
+                        />
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            <strong>提示：</strong> 点击地图上的标记查看详细信息。
+                            {allLocations.length > 1 && '开启路线规划可查看推荐行进路线。'}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-amber-900 mb-1">地图数据不可用</h3>
+                        <p className="text-sm text-amber-800 mb-2">
+                          当前行程中没有包含地理位置信息（经纬度坐标）。
+                        </p>
+                        <p className="text-sm text-amber-700">
+                          建议：重新生成行程时，AI 可能会自动添加位置信息。如果问题持续存在，请检查 AI 模型配置。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
           {/* Daily Plans */}
-          {itinerary?.days && itinerary.days.length > 0 && (
+          {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-900">每日行程</h2>
-              {itinerary.days.map((day) => (
+              {trip.itinerary.days.map((day) => (
                 <Card key={day.day}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -232,7 +362,7 @@ export default function TripDetailPage() {
           )}
 
           {/* Cost Breakdown */}
-          {itinerary?.estimated_cost && (
+          {trip.itinerary?.estimated_cost && (
             <Card>
               <CardHeader>
                 <CardTitle>费用预估</CardTitle>
@@ -241,27 +371,27 @@ export default function TripDetailPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">住宿</span>
-                    <span className="font-semibold">¥{itinerary.estimated_cost.accommodation.toLocaleString()}</span>
+                    <span className="font-semibold">¥{trip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">交通</span>
-                    <span className="font-semibold">¥{itinerary.estimated_cost.transportation.toLocaleString()}</span>
+                    <span className="font-semibold">¥{trip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">餐饮</span>
-                    <span className="font-semibold">¥{itinerary.estimated_cost.food.toLocaleString()}</span>
+                    <span className="font-semibold">¥{trip.itinerary.estimated_cost.food.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">景点门票</span>
-                    <span className="font-semibold">¥{itinerary.estimated_cost.attractions.toLocaleString()}</span>
+                    <span className="font-semibold">¥{trip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">其他</span>
-                    <span className="font-semibold">¥{itinerary.estimated_cost.other.toLocaleString()}</span>
+                    <span className="font-semibold">¥{trip.itinerary.estimated_cost.other.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t font-bold text-lg">
                     <span>总计</span>
-                    <span className="text-blue-600">¥{itinerary.estimated_cost.total.toLocaleString()}</span>
+                    <span className="text-blue-600">¥{trip.itinerary.estimated_cost.total.toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>

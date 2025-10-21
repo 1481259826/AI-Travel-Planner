@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     // Create prompt for Claude
     const prompt = `你是一个专业的旅行规划师。根据以下信息生成详细的旅行计划：
 
+出发地：${formData.origin || '未指定'}
 目的地：${formData.destination}
 日期：${formData.start_date} 至 ${formData.end_date}（共 ${days} 天）
 预算：¥${formData.budget}
@@ -147,10 +148,16 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
 1. 确保每日行程安排合理，时间不要太紧张
 2. 考虑景点之间的距离和交通时间
 3. 推荐当地特色美食和知名餐厅
-4. 费用估算要尽量准确
+4. **费用估算要尽量准确，特别是交通费用：**
+   - 如果提供了出发地，请根据出发地到目的地的实际距离计算往返交通费用
+   - 飞机、高铁、汽车等交通方式要基于真实价格估算
+   - 目的地内部的交通费用也要准确计算
 5. 提供实用的旅行建议
 6. 所有价格都用人民币
-7. 请直接返回 JSON，不要包含任何其他文字说明`
+7. **非常重要：每个活动和餐厅的 location 必须包含真实准确的经纬度坐标（lat, lng）**
+8. 经纬度必须是数字类型，不能是字符串或 null
+9. 请使用真实存在的景点和餐厅，并提供准确的地理坐标
+10. 请直接返回 JSON，不要包含任何其他文字说明`
 
     // Call AI API (根据选择的模型)
     let responseText = ''
@@ -238,9 +245,7 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
     }
 
     // Save trip to database
-    const { data: trip, error: dbError } = await supabase
-      .from('trips')
-      .insert({
+    const tripData: any = {
         user_id: user.id,
         destination: formData.destination,
         start_date: formData.start_date,
@@ -252,7 +257,16 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
         preferences: formData.preferences,
         itinerary: itinerary,
         status: 'planned',
-      })
+    }
+
+    // 如果提供了 origin，则添加（需要先在数据库中添加该列）
+    if (formData.origin) {
+      tripData.origin = formData.origin
+    }
+
+    const { data: trip, error: dbError } = await supabase
+      .from('trips')
+      .insert(tripData)
       .select()
       .single()
 

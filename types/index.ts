@@ -117,6 +117,7 @@ export interface Expense {
 
 // Trip planning form types
 export interface TripFormData {
+  origin: string
   destination: string
   start_date: string
   end_date: string

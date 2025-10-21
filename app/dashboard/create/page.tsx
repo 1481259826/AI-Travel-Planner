@@ -16,6 +16,7 @@ export default function CreateTripPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<TripFormData>({
+    origin: '',
     destination: '',
     start_date: '',
     end_date: '',
@@ -124,19 +125,35 @@ export default function CreateTripPage() {
 
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
-                {/* Destination */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">目的地 *</label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="例如: 北京、东京、巴黎"
-                      value={formData.destination}
-                      onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                      required
-                    />
-                    <VoiceInput
-                      onTranscript={(text) => setFormData({ ...formData, destination: text })}
-                    />
+                {/* Origin and Destination */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">出发地 *</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="例如: 上海、深圳、广州"
+                        value={formData.origin}
+                        onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+                        required
+                      />
+                      <VoiceInput
+                        onTranscript={(text) => setFormData({ ...formData, origin: text })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">目的地 *</label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="例如: 北京、东京、巴黎"
+                        value={formData.destination}
+                        onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                        required
+                      />
+                      <VoiceInput
+                        onTranscript={(text) => setFormData({ ...formData, destination: text })}
+                      />
+                    </div>
                   </div>
                 </div>
 
