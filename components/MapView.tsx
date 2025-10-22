@@ -39,6 +39,10 @@ export default function MapView({
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markers = useRef<any[]>([])
+  const drivingInstance = useRef<any>(null)
+  const routePolylines = useRef<any[]>([])
+  const routePlanningCancelled = useRef(false) // 标记是否取消路线规划
+  const initialFitViewDone = useRef(false) // 标记是否已经完成初始视野调整
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null)
@@ -177,44 +181,143 @@ export default function MapView({
       markers.current.push(marker)
     })
 
-    // 自动调整视野以包含所有标记
-    if (locations.length > 1) {
+    // 只在初始加载时自动调整视野，之后保持用户的缩放级别
+    if (locations.length > 1 && !initialFitViewDone.current) {
       mapInstance.current.setFitView()
+      initialFitViewDone.current = true
     }
   }, [locations])
 
   // 绘制路线
   useEffect(() => {
-    if (!mapInstance.current || !window.AMap || !showRoute || locations.length < 2) return
+    if (!mapInstance.current || !window.AMap || locations.length < 2) {
+      return
+    }
+
+    // 清除现有路线和驾车实例
+    const clearRoutes = () => {
+      // 取消正在进行的路线规划
+      routePlanningCancelled.current = true
+
+      // 清除驾车实例
+      if (drivingInstance.current) {
+        drivingInstance.current.clear()
+        drivingInstance.current = null
+      }
+
+      // 清除所有路线
+      routePolylines.current.forEach(polyline => {
+        if (polyline && mapInstance.current) {
+          mapInstance.current.remove(polyline)
+        }
+      })
+      routePolylines.current = []
+    }
+
+    clearRoutes()
+
+    // 如果不显示路线，只清除
+    if (!showRoute) {
+      return
+    }
+
+    // 准备显示路线，重置取消标志
+    routePlanningCancelled.current = false
 
     const waypoints = locations.map(loc => [loc.lng, loc.lat])
 
     // 使用 plugin 加载驾车路线规划插件
     window.AMap.plugin('AMap.Driving', () => {
       try {
+        // 创建驾车路线规划实例（不自动在地图上显示）
         const driving = new window.AMap.Driving({
-          map: mapInstance.current,
           policy: window.AMap.DrivingPolicy.LEAST_TIME, // 最快捷路线
+          hideMarkers: true, // 隐藏起终点标记，使用我们自己的标记
         })
 
-        // 分段绘制路线（每次只能绘制起点到终点）
-        for (let i = 0; i < waypoints.length - 1; i++) {
+        drivingInstance.current = driving
+
+        // 依次规划每段路线（添加延迟避免并发限制）
+        let completedSegments = 0
+        const totalSegments = waypoints.length - 1
+
+        // 串行请求路线规划，避免并发超限
+        const planRoute = async (index: number) => {
+          // 检查是否已取消
+          if (routePlanningCancelled.current || index >= totalSegments) return
+
+          // 添加延迟避免 API 限流
+          if (index > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300)) // 每个请求间隔300ms
+          }
+
+          // 再次检查是否已取消（延迟期间可能被取消）
+          if (routePlanningCancelled.current) return
+
           driving.search(
-            new window.AMap.LngLat(waypoints[i][0], waypoints[i][1]),
-            new window.AMap.LngLat(waypoints[i + 1][0], waypoints[i + 1][1]),
-            (status: string, result: any) => {
-              if (status === 'complete') {
-                console.log(`路线 ${i + 1} 规划成功`)
+            new window.AMap.LngLat(waypoints[index][0], waypoints[index][1]),
+            new window.AMap.LngLat(waypoints[index + 1][0], waypoints[index + 1][1]),
+            async (status: string, result: any) => {
+              // 检查是否已取消
+              if (routePlanningCancelled.current) return
+
+              if (status === 'complete' && result.routes && result.routes.length > 0) {
+                console.log(`路线 ${index + 1}/${totalSegments} 规划成功`)
+
+                // 提取路径坐标
+                const route = result.routes[0]
+                const path: any[] = []
+
+                route.steps.forEach((step: any) => {
+                  step.path.forEach((point: any) => {
+                    path.push([point.lng, point.lat])
+                  })
+                })
+
+                // 创建折线显示路线
+                const polyline = new window.AMap.Polyline({
+                  path: path,
+                  strokeColor: '#3b82f6', // 亮蓝色
+                  strokeWeight: 8, // 增加线宽
+                  strokeOpacity: 0.95, // 提高不透明度
+                  lineJoin: 'round',
+                  lineCap: 'round',
+                  zIndex: 50,
+                  showDir: true, // 显示方向箭头
+                  borderWeight: 2, // 添加边框
+                  outlineColor: '#1e40af', // 深蓝色边框
+                })
+
+                polyline.setMap(mapInstance.current)
+                routePolylines.current.push(polyline)
+
+                completedSegments++
+
+                // 所有路段绘制完成
+                if (completedSegments === totalSegments) {
+                  console.log('所有路线绘制完成')
+                }
               } else {
-                console.warn(`路线 ${i + 1} 规划失败`)
+                console.warn(`路线 ${index + 1}/${totalSegments} 规划失败:`, status, result)
               }
+
+              // 继续规划下一段
+              await planRoute(index + 1)
             }
           )
         }
+
+        // 开始规划第一段路线
+        planRoute(0)
       } catch (err) {
         console.error('路线规划失败:', err)
       }
     })
+
+    // 清理函数
+    return () => {
+      clearRoutes()
+    }
   }, [showRoute, locations])
 
   // 计算所有位置的中心点
