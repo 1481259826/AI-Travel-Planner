@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -10,15 +10,8 @@ import { Trip } from '@/types'
 import MapView, { extractLocationsFromItinerary } from '@/components/MapView'
 import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
-
-interface Expense {
-  id: string
-  category: string
-  amount: number
-  description: string | null
-  date: string
-  created_at: string
-}
+import BudgetChart from '@/components/BudgetChart'
+import { Expense } from '@/types/expense'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -34,7 +27,7 @@ export default function TripDetailPage() {
   // 费用追踪相关状态
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingExpenses, setLoadingExpenses] = useState(false)
-  const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses'>('itinerary')
+  const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'analytics'>('itinerary')
 
   // 提取所有位置信息用于地图显示
   const itinerary = trip?.itinerary
@@ -255,6 +248,22 @@ export default function TripDetailPage() {
                 )}
               </div>
               {activeTab === 'expenses' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-6 py-3 font-medium transition-colors relative ${
+                activeTab === 'analytics'
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                数据分析
+              </div>
+              {activeTab === 'analytics' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
               )}
             </button>
@@ -516,7 +525,7 @@ export default function TripDetailPage() {
                 </Card>
               )}
             </>
-          ) : (
+          ) : activeTab === 'expenses' ? (
             <>
               {/* Expense Tracking Tab */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -547,6 +556,33 @@ export default function TripDetailPage() {
                   )}
                 </div>
               </div>
+            </>
+          ) : (
+            <>
+              {/* Analytics Tab */}
+              {loadingExpenses ? (
+                <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                  <p className="text-gray-600">加载数据中...</p>
+                </div>
+              ) : expenses.length > 0 ? (
+                <BudgetChart
+                  expenses={expenses}
+                  totalBudget={trip.budget}
+                  tripName={trip.destination}
+                />
+              ) : (
+                <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                  <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无费用数据</h3>
+                  <p className="text-gray-500 mb-6">
+                    请先在"费用追踪"标签页添加一些费用记录，才能查看数据分析
+                  </p>
+                  <Button onClick={() => setActiveTab('expenses')}>
+                    前往添加费用
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

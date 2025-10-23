@@ -174,6 +174,88 @@ ai-travel-planner/
    - 保持组件样式模块化
    - 支持暗色模式（如果需要）
 
+## Git 工作流程
+
+### 初次设置
+
+如果是第一次提交到 GitHub：
+
+```bash
+# 1. 初始化 Git 仓库
+git init
+git branch -M main
+
+# 2. 添加远程仓库
+git remote add origin https://github.com/YOUR_USERNAME/ai-travel-planner.git
+
+# 3. 首次提交
+git add .
+git commit -m "chore: initial commit"
+git push -u origin main
+```
+
+### 提交前检查清单
+
+在每次提交前，请确保：
+
+#### 安全检查
+- [ ] `.env.local` 已添加到 `.gitignore`
+- [ ] 代码中没有硬编码的 API 密钥
+- [ ] 运行 `git status` 确认没有敏感文件
+
+```bash
+# 快速检查敏感信息
+grep -r "sk-ant-" . --exclude-dir=node_modules --exclude=.env.local
+grep -r "API_KEY" . --exclude-dir=node_modules --exclude=.env.local
+```
+
+#### 代码质量
+- [ ] `npm run build` 成功无错误
+- [ ] `npm run lint` 通过
+- [ ] 删除了所有调试用的 `console.log`
+- [ ] TypeScript 没有类型错误
+
+```bash
+npm run build
+npm run lint
+```
+
+#### 文档
+- [ ] 更新了相关文档
+- [ ] README.md 反映了最新功能
+- [ ] 添加了必要的注释
+
+### 分支管理
+
+```bash
+# 创建功能分支
+git checkout -b feature/your-feature-name
+
+# 开发完成后合并
+git checkout main
+git merge feature/your-feature-name
+git push
+```
+
+### 有用的 Git 命令
+
+```bash
+# 查看提交历史
+git log --oneline
+
+# 撤销最后一次提交（保留修改）
+git reset --soft HEAD~1
+
+# 撤销暂存的文件
+git reset HEAD <file>
+
+# 查看文件差异
+git diff
+
+# 查看远程仓库
+git remote -v
+```
+
 ## 需要帮助？
 
 - 查看 [README.md](README.md) 了解项目概述

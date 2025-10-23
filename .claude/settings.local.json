@@ -11,7 +11,16 @@
       "Bash(git add .)",
       "Bash(git commit -m \"chore: initial commit - AI Travel Planner with multi-model support\n\n✨ Features:\n- Multi AI model support (Claude Haiku 4.5, Claude 3.5 Sonnet, DeepSeek Chat)\n- Voice input for travel planning\n- Intelligent itinerary generation\n- User authentication with Supabase\n- Trip management and detailed view\n- Cost estimation\n\n🛠️ Tech Stack:\n- Next.js 15 + TypeScript\n- Tailwind CSS\n- Supabase (Auth + Database)\n- Anthropic Claude API + DeepSeek API\n- Web Speech API\n\n📝 Documentation:\n- Complete setup guide\n- Model selection documentation\n- Contributing guidelines\n- Security policy\")",
       "Bash(git remote add origin git@github.com:1481259826/AI-Travel-Planner.git)",
-      "Bash(git push -u origin main)"
+      "Bash(git push -u origin main)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: 地图集成、出发地功能、删除行程功能及数据库优化\n\n✨ 新功能：\n\n1. **地图集成功能**\n   - 集成高德地图 Web API，在行程详情页显示景点位置\n   - 支持景点标注，点击显示详细信息\n   - 实现路线规划功能，可视化推荐行进路线\n   - 响应式设计，支持移动端和桌面端\n   - 完善的错误处理和加载状态\n\n2. **出发地功能**\n   - 在创建行程表单添加出发地字段\n   - 支持语音输入出发地\n   - AI 根据出发地和目的地准确估算交通费用\n   - 推荐最佳交通方式（飞机/高铁/汽车）\n\n3. **删除行程功能**\n   - 在行程详情页添加删除按钮\n   - 在 Dashboard 卡片上添加悬浮删除按钮\n   - 确认对话框防止误删\n   - 实时更新列表，无需刷新\n\n🎨 改进：\n\n1. **默认 AI 模型调整**\n   - 将 DeepSeek Chat 设为默认模型\n   - 中文支持更优秀\n\n2. **数据库优化**\n   - 创建统一的数据库初始化脚本 `supabase-init.sql`\n   - 添加数据库索引提升查询性能\n   - 添加自动更新时间戳触发器\n   - 清理冗余 SQL 文件，保持项目整洁\n\n📚 文档：\n\n1. **新增文档**\n   - `docs/MAP_INTEGRATION.md` - 地图集成详细说明\n   - `docs/ORIGIN_FIELD_UPDATE.md` - 出发地功能说明\n   - `docs/DATABASE_SETUP.md` - 数据库设置完整指南\n\n2. **更新文档**\n   - 更新 README.md，添加地图和出发地功能说明\n   - 更新环境变量配置说明\n\n🔧 技术细节：\n\n- 新增 MapView 组件（components/MapView.tsx）\n- 优化 AI prompt，强化位置信息和交通费用估算\n- 数据库 schema 添加 origin 列\n- 改进行程详情页面布局和交互\n- 修复 React Hooks 错误\n\n🗄️ 数据库变更：\n\n- trips 表新增 origin 列\n- 创建性能优化索引\n- 添加自动更新触发器\n\n🎉 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push origin main)",
+      "Bash(then echo \"✅ Dependencies installed\")",
+      "Bash(else echo \"❌ Need to install dependencies\")",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
