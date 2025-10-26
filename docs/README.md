@@ -31,6 +31,16 @@
   - 日期筛选功能
   - 响应式设计说明
 
+#### 🔗 分享功能
+
+- **[SHARE_FEATURE.md](SHARE_FEATURE.md)** - 行程分享功能
+  - 分享链接生成
+  - 公开访问控制
+  - 安全性设计
+  - 使用示例
+
+#### 📖 使用指南
+
 - **[EXAMPLES.md](EXAMPLES.md)** - 使用示例和最佳实践
   - 实际场景演示
   - 步骤详解
@@ -64,7 +74,7 @@
   - Bug 修复记录
   - 依赖包变更
 
-- **[DEPLOYMENT.md](../DEPLOYMENT.md)** - 部署指南
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - 部署指南
   - Vercel 部署
   - Docker 部署
   - 环境变量配置
@@ -102,7 +112,7 @@
 
 如果你想将项目部署到生产环境：
 
-1. 🚀 [DEPLOYMENT.md](../DEPLOYMENT.md) - 完整部署指南
+1. 🚀 [DEPLOYMENT.md](DEPLOYMENT.md) - 完整部署指南
 2. 🔧 环境变量配置 - 确保所有必需的变量已配置
 3. 🗄️ [DATABASE_SETUP.md](DATABASE_SETUP.md) - 设置生产数据库
 
@@ -113,6 +123,8 @@
 - **[Create_Prompt.md](archive/Create_Prompt.md)** - 原始项目需求文档
 - **[ORIGIN_FIELD_UPDATE.md](archive/ORIGIN_FIELD_UPDATE.md)** - 出发地功能更新说明
 - **[BUGFIX_EXPENSE_FIELDS.md](archive/BUGFIX_EXPENSE_FIELDS.md)** - 费用字段 Bug 修复记录
+- **[DOCUMENTATION_CLEANUP_SUMMARY.md](archive/DOCUMENTATION_CLEANUP_SUMMARY.md)** - 文档整理总结
+- **[INITIAL_SETUP_SUMMARY.txt](archive/INITIAL_SETUP_SUMMARY.txt)** - 初始项目设置总结
 
 这些文档包含了项目早期的需求和开发过程，对了解项目演进有帮助。
 

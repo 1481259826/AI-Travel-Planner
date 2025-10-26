@@ -11,6 +11,7 @@ import MapView, { extractLocationsFromItinerary } from '@/components/MapView'
 import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
+import ShareButton from '@/components/ShareButton'
 import { Expense } from '@/types/expense'
 
 export default function TripDetailPage() {
@@ -147,6 +148,17 @@ export default function TripDetailPage() {
     }
   }
 
+  const handleShareUpdate = (shareToken: string, isPublic: boolean) => {
+    // 更新本地状态
+    if (trip) {
+      setTrip({
+        ...trip,
+        share_token: shareToken,
+        is_public: isPublic
+      })
+    }
+  }
+
   // 计算总开销
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
 
@@ -187,24 +199,27 @@ export default function TripDetailPage() {
                 {trip.start_date} 至 {trip.end_date}
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  删除中...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  删除行程
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    删除中...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    删除行程
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </header>

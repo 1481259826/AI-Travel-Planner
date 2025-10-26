@@ -15,14 +15,15 @@
 - **🗺️ 地图集成** - 高德地图显示景点位置、路线规划（[查看文档](docs/MAP_INTEGRATION.md)）
 - **💵 费用追踪** - 语音录入开销、实时预算对比、费用分类管理
 - **📈 数据可视化** - 预算使用图表、费用分布分析、每日开销趋势（[查看文档](docs/BUDGET_VISUALIZATION.md)）
+- **🔗 行程分享** - 生成分享链接、二维码、支持社交媒体分享（[查看文档](docs/SHARE_FEATURE.md)）
 
 ### 计划功能
 
-- 行程分享功能
 - 离线缓存支持
 - 百度地图支持
 - 多币种支持
 - 费用预测分析
+- 分享访问统计
 
 ## 🚀 快速开始
 
@@ -86,15 +87,12 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 
 在 Supabase SQL Editor 中运行初始化脚本：
 
-**新项目（推荐）：**
 ```bash
-运行 supabase-init.sql - 一键完成所有表、策略、索引的创建
+# 复制 database/init.sql 的全部内容到 Supabase SQL Editor 并执行
+# 脚本包含所有功能：基础表 + 分享功能 + 费用追踪 + RLS 策略
 ```
 
-**旧项目升级：**
-```bash
-运行 supabase-add-origin.sql - 仅添加出发地字段
-```
+**已有项目？** 无需担心！脚本包含向后兼容逻辑，会自动检测并添加缺失字段。
 
 ### 4. 启动项目
 
@@ -120,6 +118,20 @@ npm run dev
    - 选择 AI 模型
 4. **生成行程** - 点击"生成旅行计划"，AI 将在几秒内生成详细行程
 5. **查看详情** - 自动跳转到行程详情页，查看完整计划和地图
+
+### 分享行程
+
+1. **打开行程详情** - 进入想要分享的行程页面
+2. **点击分享按钮** - 点击顶部的"分享行程"按钮
+3. **开启公开分享** - 打开"公开分享"开关
+4. **获取分享链接** - 系统自动生成唯一的分享链接
+5. **分享给他人**：
+   - 复制链接直接分享
+   - 显示二维码供扫描
+   - 分享到社交媒体（微信、微博、Twitter）
+6. **管理分享** - 随时可以关闭公开分享或重新开启
+
+详细说明请查看 [docs/SHARE_FEATURE.md](docs/SHARE_FEATURE.md)
 
 ### AI 模型选择
 
@@ -154,10 +166,15 @@ npm run dev
 ai-travel-planner/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API 路由
-│   │   └── generate-itinerary/   # 行程生成 API
+│   │   ├── generate-itinerary/   # 行程生成 API
+│   │   ├── expenses/             # 费用管理 API
+│   │   └── trips/                # 行程相关 API
+│   │       ├── [id]/share/       # 分享链接管理
+│   │       └── share/[token]/    # 获取公开行程
 │   ├── dashboard/                # 仪表板页面
 │   │   ├── create/              # 创建行程
 │   │   └── trips/[id]/          # 行程详情
+│   ├── share/[token]/           # 公开分享页面
 │   ├── login/                   # 登录页面
 │   ├── register/                # 注册页面
 │   └── page.tsx                 # 首页
@@ -165,21 +182,30 @@ ai-travel-planner/
 │   ├── ui/                      # UI 基础组件
 │   ├── VoiceInput.tsx           # 语音输入组件
 │   ├── ModelSelector.tsx        # 模型选择器
-│   └── MapView.tsx              # 地图显示组件
+│   ├── MapView.tsx              # 地图显示组件
+│   ├── ShareButton.tsx          # 分享按钮组件
+│   ├── ExpenseForm.tsx          # 费用表单
+│   ├── ExpenseList.tsx          # 费用列表
+│   └── BudgetChart.tsx          # 预算图表
 ├── lib/                         # 工具库
 │   ├── config.ts                # 配置管理
 │   ├── models.ts                # AI 模型配置
 │   ├── supabase.ts              # Supabase 客户端
-│   └── auth-helpers.ts          # 认证辅助函数
+│   ├── auth-helpers.ts          # 认证辅助函数
+│   └── share.ts                 # 分享功能工具
 ├── types/                       # TypeScript 类型
-├── docs/                        # 文档
+├── docs/                        # 项目文档
+│   ├── README.md                # 文档索引
 │   ├── MODEL_SELECTION.md       # 模型选择说明
 │   ├── MAP_INTEGRATION.md       # 地图集成说明
 │   ├── DATABASE_SETUP.md        # 数据库设置指南
-│   ├── ORIGIN_FIELD_UPDATE.md   # 出发地功能说明
-│   └── Create_Prompt.md         # 原始需求文档
-├── supabase-init.sql            # 数据库初始化脚本（推荐）
-├── supabase-add-origin.sql      # 添加出发地字段（升级用）
+│   ├── BUDGET_VISUALIZATION.md  # 费用可视化说明
+│   ├── SHARE_FEATURE.md         # 分享功能说明
+│   ├── DEPLOYMENT.md            # 部署指南
+│   └── archive/                 # 历史文档归档
+├── database/                    # 数据库脚本
+│   ├── README.md                # 数据库说明
+│   └── init.sql                 # 完整数据库初始化脚本
 └── .env.example                 # 环境变量模板
 ```
 
@@ -189,13 +215,17 @@ ai-travel-planner/
 用户配置信息（扩展 Supabase auth.users）
 
 ### trips 表
-- 基本信息：目的地、日期、预算、人数
+- 基本信息：origin（出发地）、destination（目的地）、日期、预算、人数
 - 行程数据：itinerary (JSONB)
 - 状态：draft/planned/ongoing/completed
+- 分享：share_token（分享标识）、is_public（是否公开）
 
 ### expenses 表
 - 分类：accommodation/transportation/food/attractions/shopping/other
 - 关联：trip_id
+- 字段：amount（金额）、description（描述）、date（日期）
+
+详细的数据库设置请查看 [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md)
 
 ## 🚀 部署
 
@@ -221,7 +251,7 @@ ai-travel-planner/
 - 查看服务器日志获取详细错误
 
 ### 数据库保存失败？
-- 确保运行了 `supabase-fix-profiles.sql`
+- 确保运行了 `database/init.sql` 初始化脚本
 - 检查 RLS 策略是否启用
 - 确认用户已登录
 

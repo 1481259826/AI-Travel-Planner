@@ -19,6 +19,8 @@ export interface Trip {
   preferences: string[]
   itinerary?: Itinerary
   status: 'draft' | 'planned' | 'ongoing' | 'completed'
+  share_token?: string
+  is_public: boolean
   created_at: string
   updated_at: string
 }
