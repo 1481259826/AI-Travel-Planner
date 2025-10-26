@@ -47,6 +47,7 @@ cp .env.example .env.local
 # Supabase（必需）
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # 分享功能必需
 
 # Anthropic Claude API（必需）
 ANTHROPIC_API_KEY=your_anthropic_api_key
@@ -59,6 +60,9 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 # 高德地图 API（必需 - 用于行程地图显示）
 NEXT_PUBLIC_MAP_API_KEY=your_amap_api_key
 
+# 应用配置
+NEXT_PUBLIC_BASE_URL=http://localhost:3008  # 开发环境；生产环境改为实际域名
+
 # 其他可选服务
 VOICE_API_KEY=your_voice_api_key
 UNSPLASH_ACCESS_KEY=your_unsplash_access_key
@@ -68,7 +72,11 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 
 **Supabase:**
 1. 访问 [supabase.com](https://supabase.com) 创建项目
-2. 进入 Settings → API 复制 URL 和 anon key
+2. 进入 Settings → API
+3. 复制以下密钥：
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` ⚠️ 保密！仅服务端使用
 
 **Anthropic Claude:**
 1. 访问 [console.anthropic.com](https://console.anthropic.com)
@@ -100,7 +108,9 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 npm run dev
 ```
 
-访问 http://localhost:3000
+访问 http://localhost:3008
+
+**注意**：默认端口为 3008，可在 `package.json` 中修改
 
 ## 📖 使用指南
 
