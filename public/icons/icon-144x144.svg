@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变背景 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 飞机阴影 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.1520000000000001"/>
+      <feOffset dx="0.5760000000000001" dy="1.1520000000000001" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="144" height="144" fill="url(#bgGradient)" rx="25.919999999999998"/>
+
+  <!-- 装饰圆点 (可选) -->
+  <circle cx="122.39999999999999" cy="21.599999999999998" r="5.76" fill="white" opacity="0.2"/>
+  <circle cx="21.599999999999998" cy="122.39999999999999" r="4.32" fill="white" opacity="0.15"/>
+
+  <!-- 飞机图标 -->
+  <g transform="translate(72, 72)" filter="url(#shadow)">
+    <!-- 机身 -->
+    <ellipse cx="0" cy="0" rx="9.719999999999999" ry="29.16"
+             fill="white" transform="rotate(-45)"/>
+
+    <!-- 主翼 -->
+    <path d="M -22.679999999999996 -9.719999999999999
+             L -6.48 -19.439999999999998
+             L 29.16 -3.24
+             L 32.4 3.24
+             L 9.719999999999999 6.48
+             L -9.719999999999999 0
+             Z"
+          fill="white"
+          stroke="white"
+          stroke-width="0.432"
+          stroke-linejoin="round"/>
+
+    <!-- 尾翼 -->
+    <path d="M -22.679999999999996 -9.719999999999999
+             L -19.439999999999998 -22.679999999999996
+             L -9.719999999999999 -19.439999999999998
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <path d="M -12.96 9.719999999999999
+             L -3.24 22.679999999999996
+             L 3.24 16.2
+             L 9.719999999999999 6.48
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <!-- 窗户装饰 -->
+    <circle cx="3.24" cy="-3.24"
+            r="3.888" fill="#3b82f6" opacity="0.3"/>
+    <circle cx="12.96" cy="0"
+            r="3.24" fill="#3b82f6" opacity="0.3"/>
+  </g>
+
+  <!-- 文字标签 (仅在较大尺寸显示) -->
+  
+</svg>

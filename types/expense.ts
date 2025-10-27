@@ -1,7 +1,7 @@
 export interface Expense {
   id: string;
   trip_id: string;
-  category: string; // 数据库存储英文：'accommodation' | 'transportation' | 'food' | 'attractions' | 'shopping' | 'other'
+  category: 'accommodation' | 'transportation' | 'food' | 'attractions' | 'shopping' | 'other';
   amount: number;
   description: string | null;
   date: string; // ISO date string - 注意：数据库字段名是 'date'，不是 'expense_date'

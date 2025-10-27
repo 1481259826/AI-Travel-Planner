@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Expense } from '@/types';
 
 // 费用类别映射
 const CATEGORY_INFO: Record<string, { label: string; icon: string; color: string }> = {
@@ -11,15 +12,6 @@ const CATEGORY_INFO: Record<string, { label: string; icon: string; color: string
   shopping: { label: '购物', icon: '🛍️', color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' },
   other: { label: '其他', icon: '📝', color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' },
 };
-
-interface Expense {
-  id: string;
-  category: string;
-  amount: number;
-  description: string | null;
-  date: string;
-  created_at: string;
-}
 
 interface ExpenseListProps {
   expenses: Expense[];

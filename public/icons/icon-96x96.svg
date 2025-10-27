@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变背景 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 飞机阴影 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.768"/>
+      <feOffset dx="0.384" dy="0.768" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="96" height="96" fill="url(#bgGradient)" rx="17.28"/>
+
+  <!-- 装饰圆点 (可选) -->
+  <circle cx="81.6" cy="14.399999999999999" r="3.84" fill="white" opacity="0.2"/>
+  <circle cx="14.399999999999999" cy="81.6" r="2.88" fill="white" opacity="0.15"/>
+
+  <!-- 飞机图标 -->
+  <g transform="translate(48, 48)" filter="url(#shadow)">
+    <!-- 机身 -->
+    <ellipse cx="0" cy="0" rx="6.48" ry="19.44"
+             fill="white" transform="rotate(-45)"/>
+
+    <!-- 主翼 -->
+    <path d="M -15.12 -6.48
+             L -4.32 -12.96
+             L 19.44 -2.16
+             L 21.6 2.16
+             L 6.48 4.32
+             L -6.48 0
+             Z"
+          fill="white"
+          stroke="white"
+          stroke-width="0.28800000000000003"
+          stroke-linejoin="round"/>
+
+    <!-- 尾翼 -->
+    <path d="M -15.12 -6.48
+             L -12.96 -15.12
+             L -6.48 -12.96
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <path d="M -8.64 6.48
+             L -2.16 15.12
+             L 2.16 10.8
+             L 6.48 4.32
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <!-- 窗户装饰 -->
+    <circle cx="2.16" cy="-2.16"
+            r="2.592" fill="#3b82f6" opacity="0.3"/>
+    <circle cx="8.64" cy="0"
+            r="2.16" fill="#3b82f6" opacity="0.3"/>
+  </g>
+
+  <!-- 文字标签 (仅在较大尺寸显示) -->
+  
+</svg>

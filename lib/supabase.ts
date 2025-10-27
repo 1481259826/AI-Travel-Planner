@@ -109,6 +109,15 @@ export const db = {
       return { data, error }
     },
 
+    getById: async (id: string) => {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('id', id)
+        .single()
+      return { data, error }
+    },
+
     create: async (expense: any) => {
       const { data, error } = await supabase
         .from('expenses')

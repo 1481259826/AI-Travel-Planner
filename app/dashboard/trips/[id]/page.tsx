@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -13,17 +13,22 @@ import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
 import ShareButton from '@/components/ShareButton'
 import { Expense } from '@/types/expense'
+import { useOfflineTrip } from '@/hooks/useOfflineTrip'
+import { offlineExpenses, offlineData } from '@/lib/offline'
+import { cacheExpensesFromServer } from '@/lib/sync'
 
 export default function TripDetailPage() {
   const router = useRouter()
   const params = useParams()
   const tripId = params.id as string
 
-  const [trip, setTrip] = useState<Trip | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Use offline-first hook for trip data
+  const { trip, isLoading: loading, error, refetch, updateTrip, fromCache } = useOfflineTrip(tripId)
+
   const [showMap, setShowMap] = useState(true)
   const [showRoute, setShowRoute] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   // 费用追踪相关状态
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -39,7 +44,7 @@ export default function TripDetailPage() {
     : []
 
   useEffect(() => {
-    fetchTrip()
+    setMounted(true)
     fetchExpenses()
   }, [tripId])
 
@@ -52,35 +57,36 @@ export default function TripDetailPage() {
     }
   }, [trip, itinerary, allLocations])
 
-  const fetchTrip = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('id', tripId)
-        .single()
-
-      if (error) throw error
-      setTrip(data)
-    } catch (error) {
-      console.error('Error fetching trip:', error)
-      alert('获取行程失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const fetchExpenses = async () => {
     setLoadingExpenses(true)
     try {
-      const { data, error } = await supabase.from('expenses')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('date', { ascending: false })
+      // Try to load from cache first
+      const cachedExpenses = await offlineExpenses.getByTrip(tripId)
+      if (cachedExpenses.length > 0) {
+        setExpenses(cachedExpenses)
+      }
 
-      if (error) throw error
+      // Then try to fetch from server if online
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+      if (isOnline) {
+        try {
+          const { data, error } = await supabase.from('expenses')
+            .select('*')
+            .eq('trip_id', tripId)
+            .order('date', { ascending: false })
 
-      setExpenses(data || [])
+          if (error) throw error
+
+          if (data) {
+            // Update cache with fresh data
+            await cacheExpensesFromServer(tripId)
+            setExpenses(data)
+          }
+        } catch (networkError) {
+          console.error('Failed to fetch expenses from server, using cache:', networkError)
+          // Continue using cached data
+        }
+      }
     } catch (error) {
       console.error('Error fetching expenses:', error)
     } finally {
@@ -132,12 +138,20 @@ export default function TripDetailPage() {
 
     setDeleting(true)
     try {
-      const { error } = await supabase
-        .from('trips')
-        .delete()
-        .eq('id', tripId)
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
 
-      if (error) throw error
+      // Delete from server and cache
+      if (isOnline) {
+        const { error } = await supabase
+          .from('trips')
+          .delete()
+          .eq('id', tripId)
+
+        if (error) throw error
+      }
+
+      // Delete from offline cache
+      await offlineData.deleteTrip(tripId, !isOnline)
 
       alert('行程已删除')
       router.push('/dashboard')
@@ -148,10 +162,10 @@ export default function TripDetailPage() {
     }
   }
 
-  const handleShareUpdate = (shareToken: string, isPublic: boolean) => {
+  const handleShareUpdate = async (shareToken: string, isPublic: boolean) => {
     // 更新本地状态
     if (trip) {
-      setTrip({
+      await updateTrip({
         ...trip,
         share_token: shareToken,
         is_public: isPublic
@@ -200,6 +214,18 @@ export default function TripDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {mounted && fromCache && (
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
+                  <Database className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-medium text-amber-700">离线数据</span>
+                </div>
+              )}
+              {mounted && !fromCache && typeof navigator !== 'undefined' && navigator.onLine && (
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 border border-green-200">
+                  <Cloud className="w-4 h-4 text-green-600" />
+                  <span className="text-xs font-medium text-green-700">已同步</span>
+                </div>
+              )}
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <Button
                 variant="outline"

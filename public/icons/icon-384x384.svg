@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="384" height="384" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变背景 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- 飞机阴影 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3.072"/>
+      <feOffset dx="1.536" dy="3.072" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="384" height="384" fill="url(#bgGradient)" rx="69.12"/>
+
+  <!-- 装饰圆点 (可选) -->
+  <circle cx="326.4" cy="57.599999999999994" r="15.36" fill="white" opacity="0.2"/>
+  <circle cx="57.599999999999994" cy="326.4" r="11.52" fill="white" opacity="0.15"/>
+
+  <!-- 飞机图标 -->
+  <g transform="translate(192, 192)" filter="url(#shadow)">
+    <!-- 机身 -->
+    <ellipse cx="0" cy="0" rx="25.92" ry="77.76"
+             fill="white" transform="rotate(-45)"/>
+
+    <!-- 主翼 -->
+    <path d="M -60.48 -25.92
+             L -17.28 -51.84
+             L 77.76 -8.64
+             L 86.4 8.64
+             L 25.92 17.28
+             L -25.92 0
+             Z"
+          fill="white"
+          stroke="white"
+          stroke-width="1.1520000000000001"
+          stroke-linejoin="round"/>
+
+    <!-- 尾翼 -->
+    <path d="M -60.48 -25.92
+             L -51.84 -60.48
+             L -25.92 -51.84
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <path d="M -34.56 25.92
+             L -8.64 60.48
+             L 8.64 43.2
+             L 25.92 17.28
+             Z"
+          fill="white"
+          opacity="0.95"/>
+
+    <!-- 窗户装饰 -->
+    <circle cx="8.64" cy="-8.64"
+            r="10.368" fill="#3b82f6" opacity="0.3"/>
+    <circle cx="34.56" cy="0"
+            r="8.64" fill="#3b82f6" opacity="0.3"/>
+  </g>
+
+  <!-- 文字标签 (仅在较大尺寸显示) -->
+  
+  <text x="192" y="314.88"
+        font-family="Arial, -apple-system, sans-serif"
+        font-size="42.24"
+        font-weight="600"
+        fill="white"
+        text-anchor="middle"
+        opacity="0.95">AI 旅行</text>
+  
+</svg>

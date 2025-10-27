@@ -7,11 +7,11 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 // GET /api/trips/share/[token] - 通过 token 获取公开的行程
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const shareToken = params.token
+    const { token: shareToken } = await params
 
     if (!shareToken) {
       return NextResponse.json(
@@ -62,10 +62,11 @@ export async function GET(
       .order('date', { ascending: false })
 
     // 返回行程信息（脱敏处理用户邮箱）
+    const profile = Array.isArray(trip.profiles) ? trip.profiles[0] : trip.profiles
     const response = {
       ...trip,
-      profiles: trip.profiles ? {
-        name: trip.profiles.name || '匿名用户'
+      profiles: profile ? {
+        name: profile.name || '匿名用户'
         // 不返回邮箱以保护隐私
       } : null,
       expenses: expenses || []

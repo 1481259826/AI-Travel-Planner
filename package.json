@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev -p 3008 -H 0.0.0.0",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3008 -H 0.0.0.0",
     "lint": "next lint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/supabase-js": "^2.48.1",
     "date-fns": "^4.1.0",
+    "idb": "^8.0.3",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.469.0",

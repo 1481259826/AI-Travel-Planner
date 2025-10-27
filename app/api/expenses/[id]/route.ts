@@ -8,7 +8,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 // PUT /api/expenses/[id] - 更新费用记录
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 验证用户登录
@@ -20,7 +20,7 @@ export async function PUT(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const expenseId = params.id;
+    const { id: expenseId } = await params;
 
     // 获取请求数据
     const body = await request.json();
@@ -124,7 +124,7 @@ export async function PUT(
 // DELETE /api/expenses/[id] - 删除费用记录
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 验证用户登录
@@ -136,7 +136,7 @@ export async function DELETE(
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const expenseId = params.id;
+    const { id: expenseId } = await params;
 
     // 验证用户是否拥有该费用记录（通过 trip）
     const { data: expense, error: expenseError } = await supabase

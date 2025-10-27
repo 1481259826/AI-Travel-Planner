@@ -32,3 +32,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright MCP
+.playwright-mcp/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+*.log
+
+# PWA Service Worker (auto-generated)
+/public/sw.js
+/public/swe-worker-*.js
+/public/workbox-*.js

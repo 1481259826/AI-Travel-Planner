@@ -63,6 +63,13 @@ export default function MapView({
       return
     }
 
+    // 设置安全密钥（必须在加载脚本之前设置）
+    if (process.env.NEXT_PUBLIC_MAP_SECURITY_KEY) {
+      window._AMapSecurityConfig = {
+        securityJsCode: process.env.NEXT_PUBLIC_MAP_SECURITY_KEY,
+      }
+    }
+
     // 动态加载高德地图脚本
     const script = document.createElement('script')
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`
@@ -72,12 +79,6 @@ export default function MapView({
       setLoading(false)
     }
     script.onload = () => {
-      // 设置安全密钥（如果有）
-      if (process.env.NEXT_PUBLIC_MAP_SECURITY_KEY) {
-        window._AMapSecurityConfig = {
-          securityJsCode: process.env.NEXT_PUBLIC_MAP_SECURITY_KEY,
-        }
-      }
       initMap()
     }
 

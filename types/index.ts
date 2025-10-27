@@ -111,10 +111,11 @@ export interface Expense {
   trip_id: string
   category: 'accommodation' | 'transportation' | 'food' | 'attractions' | 'shopping' | 'other'
   amount: number
-  description: string
+  description: string | null
   date: string
   created_at: string
-  receipt_url?: string
+  updated_at: string
+  receipt_url?: string | null
 }
 
 // Trip planning form types

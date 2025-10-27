@@ -3,21 +3,28 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2 } from 'lucide-react'
+import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { auth, db } from '@/lib/supabase'
 import { Trip } from '@/types'
 import { format } from 'date-fns'
+import { useOfflineTrips } from '@/hooks/useOfflineTrips'
+import { offlineData } from '@/lib/offline'
+import CacheManager from '@/components/CacheManager'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [trips, setTrips] = useState<Trip[]>([])
-  const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showCacheManager, setShowCacheManager] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Use offline-first hook for trips
+  const { trips, isLoading: loading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
 
   useEffect(() => {
+    setMounted(true)
     checkAuth()
   }, [])
 
@@ -30,17 +37,6 @@ export default function DashboardPage() {
     }
 
     setUser(user)
-    await loadTrips(user.id)
-  }
-
-  const loadTrips = async (userId: string) => {
-    const { data, error } = await db.trips.getAll(userId)
-
-    if (!error && data) {
-      setTrips(data)
-    }
-
-    setLoading(false)
   }
 
   const handleLogout = async () => {
@@ -58,12 +54,19 @@ export default function DashboardPage() {
 
     setDeletingId(tripId)
     try {
-      const { error } = await db.trips.delete(tripId)
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
 
-      if (error) throw error
+      // Delete from server and cache
+      if (isOnline) {
+        const { error } = await db.trips.delete(tripId)
+        if (error) throw error
+      }
 
-      // 从列表中移除已删除的行程
-      setTrips(trips.filter(trip => trip.id !== tripId))
+      // Delete from offline cache
+      await offlineData.deleteTrip(tripId, !isOnline)
+
+      // Refresh the list
+      await refetch()
       alert('行程已删除')
     } catch (error) {
       console.error('Error deleting trip:', error)
@@ -114,7 +117,26 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">AI 旅行规划师</h1>
           </div>
           <div className="flex items-center gap-4">
+            {mounted && fromCache && (
+              <div className="flex items-center gap-1 text-sm text-amber-600">
+                <Database className="w-4 h-4" />
+                <span>离线数据</span>
+              </div>
+            )}
+            {mounted && !fromCache && typeof navigator !== 'undefined' && navigator.onLine && (
+              <div className="flex items-center gap-1 text-sm text-green-600">
+                <Cloud className="w-4 h-4" />
+                <span>已同步</span>
+              </div>
+            )}
             <span className="text-gray-700">欢迎, {user?.email}</span>
+            <Button
+              variant="outline"
+              onClick={() => setShowCacheManager(!showCacheManager)}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              缓存
+            </Button>
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               退出
@@ -125,6 +147,12 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Cache Manager */}
+        {showCacheManager && (
+          <div className="mb-6">
+            <CacheManager />
+          </div>
+        )}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">我的行程</h2>

@@ -10,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 // POST /api/trips/[id]/share - 生成或更新分享链接
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 获取 cookies
@@ -55,7 +55,7 @@ export async function POST(
 
     // 使用 service key 进行数据库操作
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const tripId = params.id
+    const { id: tripId } = await params
 
     // 获取请求数据
     const body = await request.json()
@@ -126,7 +126,7 @@ export async function POST(
 // DELETE /api/trips/[id]/share - 取消分享
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // 获取 cookies
@@ -168,7 +168,7 @@ export async function DELETE(
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const tripId = params.id
+    const { id: tripId } = await params
 
     // 验证用户是否拥有该行程
     const { data: trip, error: tripError } = await supabase

@@ -16,14 +16,17 @@
 - **💵 费用追踪** - 语音录入开销、实时预算对比、费用分类管理
 - **📈 数据可视化** - 预算使用图表、费用分布分析、每日开销趋势（[查看文档](docs/BUDGET_VISUALIZATION.md)）
 - **🔗 行程分享** - 生成分享链接、二维码、支持社交媒体分享（[查看文档](docs/SHARE_FEATURE.md)）
+- **📱 PWA 支持** - 安装到主屏幕，像原生应用一样使用
+- **💾 离线缓存** - 查看和编辑已缓存的行程，支持离线访问（[查看文档](docs/OFFLINE_USAGE.md)）
 
 ### 计划功能
 
-- 离线缓存支持
 - 百度地图支持
 - 多币种支持
 - 费用预测分析
 - 分享访问统计
+- 离线创建新行程
+- 推送通知
 
 ## 🚀 快速开始
 
@@ -161,6 +164,8 @@ npm run dev
 - **样式**: Tailwind CSS
 - **图标**: Lucide React
 - **状态管理**: Zustand
+- **PWA**: next-pwa + Workbox
+- **离线存储**: IndexedDB (idb)
 
 ### 后端
 - **认证与数据库**: Supabase (PostgreSQL + RLS)
@@ -196,13 +201,24 @@ ai-travel-planner/
 │   ├── ShareButton.tsx          # 分享按钮组件
 │   ├── ExpenseForm.tsx          # 费用表单
 │   ├── ExpenseList.tsx          # 费用列表
-│   └── BudgetChart.tsx          # 预算图表
+│   ├── BudgetChart.tsx          # 预算图表
+│   ├── OfflineIndicator.tsx    # 离线状态指示器
+│   ├── SyncStatus.tsx           # 同步状态组件
+│   ├── InstallPrompt.tsx        # PWA 安装提示
+│   └── CacheManager.tsx         # 缓存管理器
+├── hooks/                       # React Hooks
+│   ├── useOfflineTrips.ts       # 离线行程数据获取
+│   ├── useOfflineTrip.ts        # 单个行程离线获取
+│   └── useSync.ts               # 同步状态管理
 ├── lib/                         # 工具库
 │   ├── config.ts                # 配置管理
 │   ├── models.ts                # AI 模型配置
 │   ├── supabase.ts              # Supabase 客户端
 │   ├── auth-helpers.ts          # 认证辅助函数
-│   └── share.ts                 # 分享功能工具
+│   ├── share.ts                 # 分享功能工具
+│   ├── offline.ts               # IndexedDB 离线数据管理
+│   ├── sync.ts                  # 数据同步引擎
+│   └── analytics.ts             # 分析工具
 ├── types/                       # TypeScript 类型
 ├── docs/                        # 项目文档
 │   ├── README.md                # 文档索引
@@ -211,11 +227,17 @@ ai-travel-planner/
 │   ├── DATABASE_SETUP.md        # 数据库设置指南
 │   ├── BUDGET_VISUALIZATION.md  # 费用可视化说明
 │   ├── SHARE_FEATURE.md         # 分享功能说明
+│   ├── PWA_IMPLEMENTATION.md    # PWA 技术实现文档
+│   ├── OFFLINE_USAGE.md         # 离线功能用户指南
 │   ├── DEPLOYMENT.md            # 部署指南
 │   └── archive/                 # 历史文档归档
 ├── database/                    # 数据库脚本
 │   ├── README.md                # 数据库说明
 │   └── init.sql                 # 完整数据库初始化脚本
+├── public/                      # 静态资源
+│   ├── manifest.json            # PWA manifest 文件
+│   └── icons/                   # PWA 应用图标
+│       └── README.md            # 图标生成说明
 └── .env.example                 # 环境变量模板
 ```
 
@@ -247,6 +269,52 @@ ai-travel-planner/
 4. 部署完成
 
 详细步骤请查看 [DEPLOYMENT.md](DEPLOYMENT.md)
+
+## 📱 PWA 和离线功能
+
+### 安装 PWA
+
+应用支持安装到设备主屏幕，像原生应用一样使用。
+
+**手机端（Android/iOS）**：
+1. 使用 Chrome/Safari 访问应用
+2. 点击页面顶部的"安装 AI 旅行规划"横幅
+3. 或通过浏览器菜单选择"添加到主屏幕"
+
+**桌面端（Chrome/Edge）**：
+1. 访问应用
+2. 点击地址栏的安装图标
+3. 确认安装
+
+### 使用离线功能
+
+**准备离线使用**（需要网络）：
+1. 登录账号
+2. 访问您想离线查看的行程
+3. 等待右下角显示"已同步"
+
+**离线访问**（无需网络）：
+- ✅ 查看已缓存的行程详情
+- ✅ 编辑行程信息
+- ✅ 查看费用记录
+- ✅ 查看地图（需事先加载）
+
+**数据同步**：
+- 网络恢复后自动同步离线编辑
+- 右下角显示同步状态和进度
+- 支持手动触发同步
+
+### 缓存管理
+
+在 Dashboard 点击"缓存"按钮可以：
+- 查看缓存统计
+- 清除本地缓存
+- 刷新数据
+
+### 详细文档
+
+- **技术实现**: [docs/PWA_IMPLEMENTATION.md](docs/PWA_IMPLEMENTATION.md)
+- **用户指南**: [docs/OFFLINE_USAGE.md](docs/OFFLINE_USAGE.md)
 
 ## ❓ 常见问题
 
