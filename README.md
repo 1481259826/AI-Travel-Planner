@@ -107,19 +107,19 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ### 3. 设置数据库
 
-在 Supabase SQL Editor 中运行数据库脚本：
+在 Supabase SQL Editor 中运行统一的数据库初始化脚本：
 
 ```bash
-# 1. 基础数据库初始化（必需）
 # 复制 database/init.sql 的全部内容到 Supabase SQL Editor 并执行
-# 脚本包含所有功能：基础表 + 分享功能 + 费用追踪 + RLS 策略
-
-# 2. 设置功能数据库扩展（可选 - 如需使用设置页面）
-# 复制 database/migrations/add-settings-support.sql 的内容到 SQL Editor 并执行
-# 添加：主题设置 + 默认偏好 + API Keys 加密存储
+# 一次性完成所有数据库设置，包含：
+# - 4 个核心表：profiles、trips、expenses、api_keys
+# - 完整的 RLS 安全策略
+# - 性能优化索引
+# - 自动更新触发器
+# - 用户设置功能（主题、默认偏好、API Keys 加密存储）
 ```
 
-**已有项目？** 无需担心！脚本包含向后兼容逻辑，会自动检测并添加缺失字段。
+**已有项目？** 无需担心！脚本包含向后兼容逻辑，会自动检测并添加缺失字段，安全升级数据库到最新版本。
 
 ### 4. 启动项目
 
@@ -285,9 +285,7 @@ ai-travel-planner/
 │   └── archive/                 # 历史文档归档
 ├── database/                    # 数据库脚本
 │   ├── README.md                # 数据库说明
-│   ├── init.sql                 # 完整数据库初始化脚本
-│   └── migrations/              # 数据库迁移脚本
-│       └── add-settings-support.sql # 设置功能数据库扩展
+│   └── init.sql                 # 统一数据库初始化脚本 (v3.0)
 ├── public/                      # 静态资源
 │   ├── manifest.json            # PWA manifest 文件
 │   └── icons/                   # PWA 应用图标
