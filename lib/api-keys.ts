@@ -85,6 +85,52 @@ export async function testMapKey(apiKey: string): Promise<boolean> {
 }
 
 /**
+ * 测试科大讯飞语音 API Key 是否有效
+ * @param apiKey 科大讯飞 API Key
+ * @returns 是否有效
+ */
+export async function testVoiceKey(apiKey: string): Promise<boolean> {
+  try {
+    // 科大讯飞的 API 需要 APPID + API Key + API Secret 组合验证
+    // 这里只做基本格式验证，实际验证需要在服务端进行完整的签名流程
+    // 简单验证：检查 Key 格式是否符合基本要求（非空且长度合理）
+    if (!apiKey || apiKey.length < 16) {
+      return false
+    }
+
+    // 实际使用时需要调用讯飞 API 进行验证
+    // 由于讯飞 API 需要复杂的签名流程，这里暂时返回格式验证结果
+    // 建议用户在实际使用时测试语音功能是否正常
+    return true
+  } catch (error) {
+    console.error('Test Voice key error:', error)
+    return false
+  }
+}
+
+/**
+ * 测试 Unsplash API Key 是否有效
+ * @param apiKey Unsplash Access Key
+ * @returns 是否有效
+ */
+export async function testUnsplashKey(apiKey: string): Promise<boolean> {
+  try {
+    // 使用一个简单的 API 调用来验证 Key
+    const response = await fetch('https://api.unsplash.com/photos/random?count=1', {
+      headers: {
+        'Authorization': `Client-ID ${apiKey}`,
+      },
+    })
+
+    // 200 表示成功，401/403 表示认证失败
+    return response.ok
+  } catch (error) {
+    console.error('Test Unsplash key error:', error)
+    return false
+  }
+}
+
+/**
  * 获取用户指定服务的激活 API Key
  * @param userId 用户 ID
  * @param service 服务类型
@@ -92,7 +138,7 @@ export async function testMapKey(apiKey: string): Promise<boolean> {
  */
 export async function getUserApiKey(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'map'
+  service: 'anthropic' | 'deepseek' | 'map' | 'voice' | 'unsplash'
 ): Promise<string | null> {
   try {
     const { supabase } = await import('@/lib/supabase')

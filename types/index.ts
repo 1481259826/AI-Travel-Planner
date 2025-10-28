@@ -169,7 +169,7 @@ export interface UserProfile {
 }
 
 // API Key types
-export type ApiKeyService = 'anthropic' | 'deepseek' | 'map'
+export type ApiKeyService = 'anthropic' | 'deepseek' | 'map' | 'voice' | 'unsplash'
 
 export interface ApiKey {
   id: string

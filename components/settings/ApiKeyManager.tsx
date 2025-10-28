@@ -150,6 +150,18 @@ export default function ApiKeyManager() {
       icon: '🗺️',
       keys: apiKeys.filter((k) => k.service === 'map'),
     },
+    {
+      id: 'voice',
+      name: '科大讯飞语音',
+      icon: '🎤',
+      keys: apiKeys.filter((k) => k.service === 'voice'),
+    },
+    {
+      id: 'unsplash',
+      name: 'Unsplash 图片',
+      icon: '🖼️',
+      keys: apiKeys.filter((k) => k.service === 'unsplash'),
+    },
   ]
 
   if (loading) {

@@ -274,7 +274,7 @@ CREATE POLICY "Users can delete expenses for their trips"
 CREATE TABLE IF NOT EXISTS public.api_keys (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('anthropic', 'deepseek', 'map')),
+  service TEXT NOT NULL CHECK (service IN ('anthropic', 'deepseek', 'map', 'voice', 'unsplash')),
   key_name TEXT NOT NULL,
   encrypted_key TEXT NOT NULL,
   key_prefix TEXT NOT NULL,
