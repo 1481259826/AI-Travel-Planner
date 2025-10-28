@@ -141,7 +141,7 @@ export interface VoiceRecognitionResult {
 }
 
 // AI Model types
-export type AIModel = 'claude-haiku-4-5' | 'claude-3-5-sonnet-20241022' | 'deepseek-chat'
+export type AIModel = 'claude-haiku-4-5' | 'deepseek-chat' | 'deepseek-reasoner'
 
 export interface AIModelConfig {
   id: AIModel
@@ -150,4 +150,81 @@ export interface AIModelConfig {
   description: string
   maxTokens: number
   enabled: boolean
+}
+
+// Settings and Profile types
+export type ThemeMode = 'light' | 'dark' | 'system'
+
+export interface UserProfile {
+  id: string
+  email: string
+  name?: string
+  avatar_url?: string
+  theme: ThemeMode
+  default_model?: AIModel
+  default_budget?: number
+  default_origin?: string
+  created_at: string
+  updated_at: string
+}
+
+// API Key types
+export type ApiKeyService = 'anthropic' | 'deepseek' | 'map'
+
+export interface ApiKey {
+  id: string
+  user_id: string
+  service: ApiKeyService
+  key_name: string
+  encrypted_key: string
+  key_prefix: string
+  is_active: boolean
+  last_used_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiKeyDisplay {
+  id: string
+  service: ApiKeyService
+  key_name: string
+  key_prefix: string
+  is_active: boolean
+  last_used_at?: string
+  created_at: string
+}
+
+export interface CreateApiKeyData {
+  service: ApiKeyService
+  key_name: string
+  api_key: string
+}
+
+export interface UpdateApiKeyData {
+  key_name?: string
+  is_active?: boolean
+}
+
+// Password change types
+export interface PasswordChangeData {
+  current_password: string
+  new_password: string
+  confirm_password: string
+}
+
+export type PasswordStrength = 'weak' | 'medium' | 'strong'
+
+export interface PasswordRequirement {
+  label: string
+  met: boolean
+}
+
+// Settings form types
+export interface ProfileUpdateData {
+  name?: string
+  avatar_url?: string
+  theme?: ThemeMode
+  default_model?: AIModel
+  default_budget?: number
+  default_origin?: string
 }

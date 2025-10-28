@@ -18,6 +18,7 @@
 - **🔗 行程分享** - 生成分享链接、二维码、支持社交媒体分享（[查看文档](docs/SHARE_FEATURE.md)）
 - **📱 PWA 支持** - 安装到主屏幕，像原生应用一样使用
 - **💾 离线缓存** - 查看和编辑已缓存的行程，支持离线访问（[查看文档](docs/OFFLINE_USAGE.md)）
+- **⚙️ 用户设置** - 账户管理、密码修改、主题切换、API Keys 管理（[查看文档](docs/SETTINGS_GUIDE.md)）
 
 ### 计划功能
 
@@ -63,6 +64,9 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 # 高德地图 API（必需 - 用于行程地图显示）
 NEXT_PUBLIC_MAP_API_KEY=your_amap_api_key
 
+# 数据加密密钥（必需 - 用于 API Key 加密存储）
+ENCRYPTION_KEY=your_32_char_or_longer_encryption_key_here
+
 # 应用配置
 NEXT_PUBLIC_BASE_URL=http://localhost:3008  # 开发环境；生产环境改为实际域名
 
@@ -94,13 +98,25 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 2. 创建应用并获取 Web 端（JS API）Key
 3. 详细说明查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md)
 
+**加密密钥 (必需):**
+使用 Node.js 生成安全的随机密钥：
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+⚠️ 密钥至少 32 个字符，不要将密钥提交到版本控制
+
 ### 3. 设置数据库
 
-在 Supabase SQL Editor 中运行初始化脚本：
+在 Supabase SQL Editor 中运行数据库脚本：
 
 ```bash
+# 1. 基础数据库初始化（必需）
 # 复制 database/init.sql 的全部内容到 Supabase SQL Editor 并执行
 # 脚本包含所有功能：基础表 + 分享功能 + 费用追踪 + RLS 策略
+
+# 2. 设置功能数据库扩展（可选 - 如需使用设置页面）
+# 复制 database/migrations/add-settings-support.sql 的内容到 SQL Editor 并执行
+# 添加：主题设置 + 默认偏好 + API Keys 加密存储
 ```
 
 **已有项目？** 无需担心！脚本包含向后兼容逻辑，会自动检测并添加缺失字段。
@@ -131,6 +147,22 @@ npm run dev
    - 选择 AI 模型
 4. **生成行程** - 点击"生成旅行计划"，AI 将在几秒内生成详细行程
 5. **查看详情** - 自动跳转到行程详情页，查看完整计划和地图
+
+### 用户设置
+
+1. **进入设置** - 点击 Dashboard 右上角的「设置」按钮
+2. **账户信息** - 修改用户名、头像
+3. **安全设置** - 修改密码（带强度验证）
+4. **偏好设置**：
+   - 选择主题（浅色/深色/跟随系统）
+   - 设置默认 AI 模型
+   - 设置默认预算和出发地
+5. **API Keys 管理**：
+   - 添加您自己的 Anthropic/DeepSeek/高德地图 API Keys
+   - 系统将优先使用您的 Keys（AES-256 加密存储）
+   - 测试 Key 有效性，管理多个备用 Keys
+
+详细说明请查看 [docs/SETTINGS_GUIDE.md](docs/SETTINGS_GUIDE.md)
 
 ### 分享行程
 
@@ -183,20 +215,33 @@ ai-travel-planner/
 │   ├── api/                      # API 路由
 │   │   ├── generate-itinerary/   # 行程生成 API
 │   │   ├── expenses/             # 费用管理 API
+│   │   ├── user/                 # 用户相关 API
+│   │   │   ├── profile/          # 用户配置
+│   │   │   ├── password/         # 密码修改
+│   │   │   └── api-keys/         # API Keys 管理
 │   │   └── trips/                # 行程相关 API
 │   │       ├── [id]/share/       # 分享链接管理
 │   │       └── share/[token]/    # 获取公开行程
 │   ├── dashboard/                # 仪表板页面
 │   │   ├── create/              # 创建行程
+│   │   ├── settings/            # 用户设置
 │   │   └── trips/[id]/          # 行程详情
 │   ├── share/[token]/           # 公开分享页面
 │   ├── login/                   # 登录页面
 │   ├── register/                # 注册页面
+│   ├── providers.tsx            # 全局 Provider（主题等）
 │   └── page.tsx                 # 首页
 ├── components/                   # React 组件
 │   ├── ui/                      # UI 基础组件
+│   ├── settings/                # 设置页面组件
+│   │   ├── ProfileForm.tsx      # 账户信息表单
+│   │   ├── PasswordChangeForm.tsx # 密码修改表单
+│   │   ├── PreferencesForm.tsx  # 偏好设置表单
+│   │   ├── ApiKeyManager.tsx    # API Keys 管理
+│   │   └── AddApiKeyModal.tsx   # 添加 Key 模态框
 │   ├── VoiceInput.tsx           # 语音输入组件
 │   ├── ModelSelector.tsx        # 模型选择器
+│   ├── ThemeToggle.tsx          # 主题切换组件
 │   ├── MapView.tsx              # 地图显示组件
 │   ├── ShareButton.tsx          # 分享按钮组件
 │   ├── ExpenseForm.tsx          # 费用表单
@@ -211,10 +256,16 @@ ai-travel-planner/
 │   ├── useOfflineTrip.ts        # 单个行程离线获取
 │   └── useSync.ts               # 同步状态管理
 ├── lib/                         # 工具库
+│   ├── stores/                  # 状态管理
+│   │   └── theme-store.ts       # 主题状态
+│   ├── utils/                   # 工具函数
+│   │   └── password.ts          # 密码验证
 │   ├── config.ts                # 配置管理
 │   ├── models.ts                # AI 模型配置
 │   ├── supabase.ts              # Supabase 客户端
 │   ├── auth-helpers.ts          # 认证辅助函数
+│   ├── encryption.ts            # AES-256 加密工具
+│   ├── api-keys.ts              # API Keys 工具函数
 │   ├── share.ts                 # 分享功能工具
 │   ├── offline.ts               # IndexedDB 离线数据管理
 │   ├── sync.ts                  # 数据同步引擎
@@ -227,13 +278,16 @@ ai-travel-planner/
 │   ├── DATABASE_SETUP.md        # 数据库设置指南
 │   ├── BUDGET_VISUALIZATION.md  # 费用可视化说明
 │   ├── SHARE_FEATURE.md         # 分享功能说明
+│   ├── SETTINGS_GUIDE.md        # 设置功能使用指南
 │   ├── PWA_IMPLEMENTATION.md    # PWA 技术实现文档
 │   ├── OFFLINE_USAGE.md         # 离线功能用户指南
 │   ├── DEPLOYMENT.md            # 部署指南
 │   └── archive/                 # 历史文档归档
 ├── database/                    # 数据库脚本
 │   ├── README.md                # 数据库说明
-│   └── init.sql                 # 完整数据库初始化脚本
+│   ├── init.sql                 # 完整数据库初始化脚本
+│   └── migrations/              # 数据库迁移脚本
+│       └── add-settings-support.sql # 设置功能数据库扩展
 ├── public/                      # 静态资源
 │   ├── manifest.json            # PWA manifest 文件
 │   └── icons/                   # PWA 应用图标
@@ -245,6 +299,9 @@ ai-travel-planner/
 
 ### profiles 表
 用户配置信息（扩展 Supabase auth.users）
+- 基本信息：email、name、avatar_url
+- 主题设置：theme (light/dark/system)
+- 默认偏好：default_model、default_budget、default_origin
 
 ### trips 表
 - 基本信息：origin（出发地）、destination（目的地）、日期、预算、人数
@@ -256,6 +313,11 @@ ai-travel-planner/
 - 分类：accommodation/transportation/food/attractions/shopping/other
 - 关联：trip_id
 - 字段：amount（金额）、description（描述）、date（日期）
+
+### api_keys 表
+- 用户自定义 API Keys（AES-256 加密存储）
+- 服务类型：anthropic / deepseek / map
+- 字段：encrypted_key（加密密钥）、key_prefix（显示前缀）、is_active（是否激活）
 
 详细的数据库设置请查看 [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md)
 

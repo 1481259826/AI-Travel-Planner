@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/supabase-js": "^2.48.1",
+    "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "jspdf": "^3.0.3",
@@ -22,9 +23,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.4",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

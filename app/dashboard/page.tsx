@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud } from 'lucide-react'
+import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { auth, db } from '@/lib/supabase'
@@ -137,6 +137,12 @@ export default function DashboardPage() {
               <Database className="w-4 h-4 mr-2" />
               缓存
             </Button>
+            <Link href="/dashboard/settings">
+              <Button variant="outline">
+                <Settings className="w-4 h-4 mr-2" />
+                设置
+              </Button>
+            </Link>
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               退出

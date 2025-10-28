@@ -82,7 +82,7 @@ export default function VoiceInput({ onTranscript, className = '' }: VoiceInputP
       <Button
         variant="outline"
         disabled
-        className={className}
+        className={`whitespace-nowrap ${className}`}
         title="您的浏览器不支持语音输入"
       >
         <MicOff className="w-4 h-4 mr-2" />
@@ -95,7 +95,7 @@ export default function VoiceInput({ onTranscript, className = '' }: VoiceInputP
     <Button
       onClick={toggleListening}
       variant={isListening ? "destructive" : "outline"}
-      className={className}
+      className={`whitespace-nowrap ${className}`}
       title={isListening ? "点击停止录音" : "点击开始语音输入"}
     >
       {isListening ? (

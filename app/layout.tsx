@@ -4,6 +4,7 @@ import './globals.css'
 import OfflineIndicator from '@/components/OfflineIndicator'
 import SyncStatus from '@/components/SyncStatus'
 import InstallPrompt from '@/components/InstallPrompt'
+import Providers from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -40,10 +41,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <InstallPrompt />
-        <OfflineIndicator />
-        {children}
-        <SyncStatus />
+        <Providers>
+          <InstallPrompt />
+          <OfflineIndicator />
+          {children}
+          <SyncStatus />
+        </Providers>
       </body>
     </html>
   )

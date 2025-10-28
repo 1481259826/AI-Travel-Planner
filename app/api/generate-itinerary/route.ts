@@ -6,6 +6,7 @@ import { getAuthUser } from '@/lib/auth-helpers'
 import config from '@/lib/config'
 import { TripFormData, Itinerary, AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
+import { getUserApiKey } from '@/lib/api-keys'
 
 // 初始化 Anthropic 客户端
 const anthropic = new Anthropic({
@@ -41,6 +42,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // 检查用户是否有自己的 API Key
+    let userAnthropicKey: string | null = null
+    let userDeepSeekKey: string | null = null
+
+    if (modelConfig.provider === 'anthropic') {
+      userAnthropicKey = await getUserApiKey(user.id, 'anthropic')
+    } else if (modelConfig.provider === 'deepseek') {
+      userDeepSeekKey = await getUserApiKey(user.id, 'deepseek')
+    }
+
+    // 如果用户有自己的 Key，创建新的客户端实例
+    const anthropicClient = userAnthropicKey
+      ? new Anthropic({ apiKey: userAnthropicKey, baseURL: config.anthropic.baseURL })
+      : anthropic
+
+    const deepseekClient = userDeepSeekKey
+      ? new OpenAI({ apiKey: userDeepSeekKey, baseURL: config.deepseek.baseURL })
+      : deepseek
 
     // Calculate trip duration
     const startDate = new Date(formData.start_date)
@@ -163,8 +183,8 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
     let responseText = ''
 
     if (modelConfig.provider === 'deepseek') {
-      // DeepSeek 使用 OpenAI 兼容的 API
-      const completion = await deepseek.chat.completions.create({
+      // DeepSeek 使用 OpenAI 兼容的 API（使用用户 Key 或系统默认）
+      const completion = await deepseekClient.chat.completions.create({
         model: config.deepseek.model,
         messages: [
           {
@@ -176,8 +196,8 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
       })
       responseText = completion.choices[0]?.message?.content || ''
     } else {
-      // Anthropic Claude API
-      const message = await anthropic.messages.create({
+      // Anthropic Claude API（使用用户 Key 或系统默认）
+      const message = await anthropicClient.messages.create({
         model: selectedModel,
         max_tokens: modelConfig.maxTokens,
         messages: [

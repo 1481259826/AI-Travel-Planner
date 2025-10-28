@@ -25,7 +25,14 @@
       "Bash(cat:*)",
       "Bash(rm:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "mcp__playwright__browser_select_option",
+      "Bash(npm run build:*)",
+      "Bash(npm run start)"
     ],
     "deny": [],
     "ask": []
