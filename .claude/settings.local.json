@@ -32,7 +32,10 @@
       "Bash(findstr:*)",
       "mcp__playwright__browser_select_option",
       "Bash(npm run build:*)",
-      "Bash(npm run start)"
+      "Bash(npm run start)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_close"
     ],
     "deny": [],
     "ask": []

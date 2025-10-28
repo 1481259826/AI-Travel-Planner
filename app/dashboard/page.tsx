@@ -98,38 +98,38 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <Plane className="w-12 h-12 text-blue-600 animate-bounce mx-auto mb-4" />
-          <p className="text-gray-600">加载中...</p>
+          <Plane className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-bounce mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">加载中...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Plane className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">AI 旅行规划师</h1>
+            <Plane className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI 旅行规划师</h1>
           </div>
           <div className="flex items-center gap-4">
             {mounted && fromCache && (
-              <div className="flex items-center gap-1 text-sm text-amber-600">
+              <div className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
                 <Database className="w-4 h-4" />
                 <span>离线数据</span>
               </div>
             )}
             {mounted && !fromCache && typeof navigator !== 'undefined' && navigator.onLine && (
-              <div className="flex items-center gap-1 text-sm text-green-600">
+              <div className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
                 <Cloud className="w-4 h-4" />
                 <span>已同步</span>
               </div>
             )}
-            <span className="text-gray-700">欢迎, {user?.email}</span>
+            <span className="text-gray-700 dark:text-gray-300">欢迎, {user?.email}</span>
             <Button
               variant="outline"
               onClick={() => setShowCacheManager(!showCacheManager)}
@@ -161,8 +161,8 @@ export default function DashboardPage() {
         )}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">我的行程</h2>
-            <p className="text-gray-600 mt-2">管理您的旅行计划</p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">我的行程</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">管理您的旅行计划</p>
           </div>
           <Link href="/dashboard/create">
             <Button size="lg">
@@ -175,11 +175,11 @@ export default function DashboardPage() {
         {/* Trips Grid */}
         {trips.length === 0 ? (
           <div className="text-center py-16">
-            <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <MapPin className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
               还没有旅行计划
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               创建您的第一个行程，开始规划精彩旅程
             </p>
             <Link href="/dashboard/create">

@@ -74,10 +74,21 @@ export const useThemeStore = create<ThemeState>()(
 
       saveThemeToProfile: async (theme: ThemeMode) => {
         try {
+          // 动态导入 supabase 客户端（避免在服务端导入）
+          if (typeof window === 'undefined') return
+
+          const { supabase } = await import('@/lib/supabase')
+          const { data: { session } } = await supabase.auth.getSession()
+
+          if (!session) {
+            throw new Error('No active session')
+          }
+
           const response = await fetch('/api/user/profile', {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({ theme }),
           })
