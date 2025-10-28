@@ -39,6 +39,35 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {/* 防止主题闪烁的脚本 - 必须在页面渲染前执行 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  // 从 localStorage 读取主题设置
+                  const stored = localStorage.getItem('theme-storage');
+                  if (stored) {
+                    const { state } = JSON.parse(stored);
+                    const theme = state?.theme || 'system';
+
+                    // 确定实际主题
+                    let actualTheme = theme;
+                    if (theme === 'system') {
+                      actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    }
+
+                    // 立即应用主题类到 html 元素
+                    document.documentElement.classList.remove('light', 'dark');
+                    document.documentElement.classList.add(actualTheme);
+                  }
+                } catch (e) {
+                  console.error('Failed to load theme:', e);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
