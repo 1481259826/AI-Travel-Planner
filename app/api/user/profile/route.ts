@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+import config from '@/lib/config'
 import type { ProfileUpdateData } from '@/types'
 
 /**
@@ -16,6 +17,19 @@ export async function GET(request: NextRequest) {
 
     const token = authorization.replace('Bearer ', '')
 
+    // 创建带有用户认证的 Supabase 客户端（这样才能通过 RLS）
+    const supabase = createClient(
+      config.supabase.url,
+      config.supabase.anonKey,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
+
     // 验证用户
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
@@ -29,6 +43,33 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('id', user.id)
       .single()
+
+    // 如果 profile 不存在，自动创建
+    if (profileError && profileError.code === 'PGRST116') {
+      console.log('Profile not found, creating new profile for user:', user.id)
+
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+          avatar_url: user.user_metadata?.avatar_url || null,
+          theme: 'system',
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Error creating profile:', createError)
+        return NextResponse.json(
+          { error: 'Failed to create profile' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ profile: newProfile })
+    }
 
     if (profileError) {
       console.error('Error fetching profile:', profileError)
@@ -61,6 +102,19 @@ export async function PUT(request: NextRequest) {
     }
 
     const token = authorization.replace('Bearer ', '')
+
+    // 创建带有用户认证的 Supabase 客户端
+    const supabase = createClient(
+      config.supabase.url,
+      config.supabase.anonKey,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
 
     // 验证用户
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
