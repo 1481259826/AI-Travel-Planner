@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+import config from '@/lib/config'
 import { isPasswordValid } from '@/lib/utils/password'
 
 /**
@@ -14,6 +15,19 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authorization.replace('Bearer ', '')
+
+    // 创建带有用户认证的 Supabase 客户端
+    const supabase = createClient(
+      config.supabase.url,
+      config.supabase.anonKey,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
 
     // 验证用户
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
@@ -48,22 +62,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 使用 Supabase Auth API 更新密码
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: new_password,
+    // 验证当前密码是否正确
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: current_password,
     })
+
+    if (signInError) {
+      return NextResponse.json(
+        { error: '当前密码不正确' },
+        { status: 400 }
+      )
+    }
+
+    // 使用 Admin API 更新密码（需要 service role key）
+    const adminClient = createClient(
+      config.supabase.url,
+      config.supabase.serviceRoleKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(
+      user.id,
+      { password: new_password }
+    )
 
     if (updateError) {
       console.error('Password update error:', updateError)
-
-      // 处理特定错误
-      if (updateError.message.includes('same')) {
-        return NextResponse.json(
-          { error: '新密码不能与当前密码相同' },
-          { status: 400 }
-        )
-      }
-
       return NextResponse.json(
         { error: '密码修改失败，请重试' },
         { status: 500 }
