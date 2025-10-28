@@ -178,10 +178,10 @@ export default function TripDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">加载行程中...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">加载行程中...</p>
         </div>
       </div>
     )
@@ -189,9 +189,9 @@ export default function TripDetailPage() {
 
   if (!trip) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">行程不存在</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">行程不存在</h2>
           <Button onClick={() => router.push('/dashboard')}>返回首页</Button>
         </div>
       </div>
@@ -199,31 +199,31 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.push('/dashboard')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{trip.destination} 之旅</h1>
-              <p className="text-sm text-gray-600">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{trip.destination} 之旅</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {trip.start_date} 至 {trip.end_date}
               </p>
             </div>
             <div className="flex items-center gap-2">
               {mounted && fromCache && (
-                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
-                  <Database className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs font-medium text-amber-700">离线数据</span>
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <Database className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">离线数据</span>
                 </div>
               )}
               {mounted && !fromCache && typeof navigator !== 'undefined' && navigator.onLine && (
-                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 border border-green-200">
-                  <Cloud className="w-4 h-4 text-green-600" />
-                  <span className="text-xs font-medium text-green-700">已同步</span>
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                  <Cloud className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-xs font-medium text-green-700 dark:text-green-300">已同步</span>
                 </div>
               )}
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
@@ -254,13 +254,13 @@ export default function TripDetailPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Tab Navigation */}
-          <div className="flex gap-2 border-b border-gray-200">
+          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('itinerary')}
               className={`px-6 py-3 font-medium transition-colors relative ${
                 activeTab === 'itinerary'
-                  ? 'text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -268,36 +268,36 @@ export default function TripDetailPage() {
                 行程安排
               </div>
               {activeTab === 'itinerary' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
               )}
             </button>
             <button
               onClick={() => setActiveTab('expenses')}
               className={`px-6 py-3 font-medium transition-colors relative ${
                 activeTab === 'expenses'
-                  ? 'text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5" />
                 费用追踪
                 {expenses.length > 0 && (
-                  <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full">
+                  <span className="ml-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full">
                     {expenses.length}
                   </span>
                 )}
               </div>
               {activeTab === 'expenses' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
               )}
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
               className={`px-6 py-3 font-medium transition-colors relative ${
                 activeTab === 'analytics'
-                  ? 'text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function TripDetailPage() {
                 数据分析
               </div>
               {activeTab === 'analytics' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
               )}
             </button>
           </div>
@@ -320,17 +320,17 @@ export default function TripDetailPage() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <p className="text-sm text-gray-600">目的地</p>
-                        <p className="font-semibold">{trip.destination}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">目的地</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{trip.destination}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-blue-600" />
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <p className="text-sm text-gray-600">天数</p>
-                        <p className="font-semibold">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">天数</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">
                           {Math.ceil(
                             (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) /
                               (1000 * 60 * 60 * 24)
@@ -339,29 +339,29 @@ export default function TripDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-blue-600" />
+                      <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <p className="text-sm text-gray-600">人数</p>
-                        <p className="font-semibold">{trip.travelers} 人</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">人数</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{trip.travelers} 人</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
+                      <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <div>
-                        <p className="text-sm text-gray-600">预算</p>
-                        <p className="font-semibold">¥{trip.budget.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">预算</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">¥{trip.budget.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
 
                   {trip.preferences && trip.preferences.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm text-gray-600 mb-2">旅行偏好</p>
+                    <div className="mt-4 pt-4 border-t dark:border-gray-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">旅行偏好</p>
                       <div className="flex flex-wrap gap-2">
                         {trip.preferences.map((pref) => (
                           <span
                             key={pref}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                            className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
                           >
                             {pref}
                           </span>
@@ -379,7 +379,7 @@ export default function TripDetailPage() {
                     <CardTitle>行程概述</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700">{trip.itinerary.summary}</p>
+                    <p className="text-gray-700 dark:text-gray-300">{trip.itinerary.summary}</p>
                   </CardContent>
                 </Card>
               )}
@@ -425,8 +425,8 @@ export default function TripDetailPage() {
                               showRoute={showRoute}
                               className="w-full"
                             />
-                            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                              <p className="text-sm text-blue-800">
+                            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <p className="text-sm text-blue-800 dark:text-blue-300">
                                 <strong>提示：</strong> 点击地图上的标记查看详细信息。
                                 {allLocations.length > 1 && '开启路线规划可查看推荐行进路线。'}
                               </p>
@@ -435,15 +435,15 @@ export default function TripDetailPage() {
                         )}
                       </>
                     ) : (
-                      <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                         <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                           <div>
-                            <h3 className="font-semibold text-amber-900 mb-1">地图数据不可用</h3>
-                            <p className="text-sm text-amber-800 mb-2">
+                            <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">地图数据不可用</h3>
+                            <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
                               当前行程中没有包含地理位置信息（经纬度坐标）。
                             </p>
-                            <p className="text-sm text-amber-700">
+                            <p className="text-sm text-amber-700 dark:text-amber-300">
                               建议：重新生成行程时，AI 可能会自动添加位置信息。如果问题持续存在，请检查 AI 模型配置。
                             </p>
                           </div>
@@ -457,7 +457,7 @@ export default function TripDetailPage() {
               {/* Daily Plans */}
               {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-gray-900">每日行程</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">每日行程</h2>
                   {trip.itinerary.days.map((day) => (
                     <Card key={day.day}>
                       <CardHeader>
@@ -469,22 +469,22 @@ export default function TripDetailPage() {
                         {/* Activities */}
                         {day.activities && day.activities.length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">活动安排</h4>
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">活动安排</h4>
                             <div className="space-y-3">
                               {day.activities.map((activity, idx) => (
-                                <div key={idx} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                                  <div className="text-sm font-medium text-blue-600 min-w-[60px]">
+                                <div key={idx} className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                  <div className="text-sm font-medium text-blue-600 dark:text-blue-400 min-w-[60px]">
                                     {activity.time}
                                   </div>
                                   <div className="flex-1">
-                                    <h5 className="font-semibold text-gray-900">{activity.name}</h5>
-                                    <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                                    <h5 className="font-semibold text-gray-900 dark:text-white">{activity.name}</h5>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{activity.description}</p>
                                     {activity.location && (
-                                      <p className="text-sm text-gray-500 mt-1">
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                         📍 {activity.location.name}
                                       </p>
                                     )}
-                                    <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                                    <div className="flex gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                                       {activity.duration && <span>⏱️ {activity.duration}</span>}
                                       {activity.ticket_price && (
                                         <span>💰 ¥{activity.ticket_price}</span>
@@ -500,20 +500,20 @@ export default function TripDetailPage() {
                         {/* Meals */}
                         {day.meals && day.meals.length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-3">用餐推荐</h4>
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">用餐推荐</h4>
                             <div className="space-y-3">
                               {day.meals.map((meal, idx) => (
-                                <div key={idx} className="flex gap-3 p-3 bg-amber-50 rounded-lg">
-                                  <div className="text-sm font-medium text-amber-600 min-w-[60px]">
+                                <div key={idx} className="flex gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                                  <div className="text-sm font-medium text-amber-600 dark:text-amber-400 min-w-[60px]">
                                     {meal.time}
                                   </div>
                                   <div className="flex-1">
-                                    <h5 className="font-semibold text-gray-900">{meal.restaurant}</h5>
-                                    <p className="text-sm text-gray-600">
+                                    <h5 className="font-semibold text-gray-900 dark:text-white">{meal.restaurant}</h5>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">
                                       {meal.cuisine} · 人均 ¥{meal.avg_price}
                                     </p>
                                     {meal.recommended_dishes && meal.recommended_dishes.length > 0 && (
-                                      <p className="text-sm text-gray-600 mt-1">
+                                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                         推荐菜品：{meal.recommended_dishes.join('、')}
                                       </p>
                                     )}
@@ -538,28 +538,28 @@ export default function TripDetailPage() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">住宿</span>
-                        <span className="font-semibold">¥{trip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
+                        <span className="text-gray-600 dark:text-gray-400">住宿</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">交通</span>
-                        <span className="font-semibold">¥{trip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
+                        <span className="text-gray-600 dark:text-gray-400">交通</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">餐饮</span>
-                        <span className="font-semibold">¥{trip.itinerary.estimated_cost.food.toLocaleString()}</span>
+                        <span className="text-gray-600 dark:text-gray-400">餐饮</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.food.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">景点门票</span>
-                        <span className="font-semibold">¥{trip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
+                        <span className="text-gray-600 dark:text-gray-400">景点门票</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">其他</span>
-                        <span className="font-semibold">¥{trip.itinerary.estimated_cost.other.toLocaleString()}</span>
+                        <span className="text-gray-600 dark:text-gray-400">其他</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.other.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between pt-2 border-t font-bold text-lg">
-                        <span>总计</span>
-                        <span className="text-blue-600">¥{trip.itinerary.estimated_cost.total.toLocaleString()}</span>
+                      <div className="flex justify-between pt-2 border-t dark:border-gray-700 font-bold text-lg">
+                        <span className="text-gray-900 dark:text-white">总计</span>
+                        <span className="text-blue-600 dark:text-blue-400">¥{trip.itinerary.estimated_cost.total.toLocaleString()}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -583,9 +583,9 @@ export default function TripDetailPage() {
                 {/* Right: Expense List */}
                 <div className="lg:col-span-2">
                   {loadingExpenses ? (
-                    <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-                      <p className="text-gray-600">加载费用记录中...</p>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">加载费用记录中...</p>
                     </div>
                   ) : (
                     <ExpenseList
@@ -602,9 +602,9 @@ export default function TripDetailPage() {
             <>
               {/* Analytics Tab */}
               {loadingExpenses ? (
-                <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-                  <p className="text-gray-600">加载数据中...</p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">加载数据中...</p>
                 </div>
               ) : expenses.length > 0 ? (
                 <BudgetChart
@@ -613,10 +613,10 @@ export default function TripDetailPage() {
                   tripName={trip.destination}
                 />
               ) : (
-                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                  <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">暂无费用数据</h3>
-                  <p className="text-gray-500 mb-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
+                  <BarChart3 className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">暂无费用数据</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
                     请先在"费用追踪"标签页添加一些费用记录，才能查看数据分析
                   </p>
                   <Button onClick={() => setActiveTab('expenses')}>

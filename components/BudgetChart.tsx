@@ -93,7 +93,7 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
     <div className="space-y-6">
       {/* 头部：标题和导出按钮 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900">费用数据分析</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">费用数据分析</h2>
         <div className="flex gap-2">
           <button
             onClick={handleExportCSV}
@@ -113,42 +113,42 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
       </div>
 
       {/* 预算使用进度条 */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">预算使用情况</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">预算使用情况</h3>
 
         {/* 统计数字 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center">
-            <p className="text-sm text-gray-600">总预算</p>
-            <p className="text-xl font-bold text-gray-900">
+            <p className="text-sm text-gray-600 dark:text-gray-400">总预算</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(stats.totalBudget)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600">已花费</p>
-            <p className="text-xl font-bold text-blue-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">已花费</p>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(stats.totalExpenses)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600">剩余</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">剩余</p>
             <p
               className={`text-xl font-bold ${
-                stats.isOverBudget ? 'text-red-600' : 'text-green-600'
+                stats.isOverBudget ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
               }`}
             >
               {formatCurrency(stats.remaining)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600">使用率</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">使用率</p>
             <p
               className={`text-xl font-bold ${
                 stats.usagePercentage > 100
-                  ? 'text-red-600'
+                  ? 'text-red-600 dark:text-red-400'
                   : stats.usagePercentage > 80
-                  ? 'text-yellow-600'
-                  : 'text-green-600'
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-green-600 dark:text-green-400'
               }`}
             >
               {stats.usagePercentage.toFixed(1)}%
@@ -157,7 +157,7 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
         </div>
 
         {/* 进度条 */}
-        <div className="relative w-full h-8 bg-gray-200 rounded-full overflow-hidden">
+        <div className="relative w-full h-8 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className={`absolute top-0 left-0 h-full transition-all duration-500 ${
               stats.usagePercentage > 100
@@ -169,14 +169,14 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
             style={{ width: `${Math.min(stats.usagePercentage, 100)}%` }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               {stats.usagePercentage.toFixed(1)}%
             </span>
           </div>
         </div>
 
         {stats.isOverBudget && (
-          <p className="mt-4 text-sm text-red-600 font-medium">
+          <p className="mt-4 text-sm text-red-600 dark:text-red-400 font-medium">
             ⚠️ 已超出预算 {formatCurrency(Math.abs(stats.remaining))}
           </p>
         )}
@@ -185,8 +185,8 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
       {/* 图表区域 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 饼图：费用类别分布 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">费用类别分布</h3>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">费用类别分布</h3>
           {stats.categories.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={300}>
@@ -225,13 +225,13 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: cat.color }}
                       />
-                      <span className="text-sm text-gray-700">{cat.category}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{cat.category}</span>
                     </div>
                     <div className="text-sm">
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(cat.amount)}
                       </span>
-                      <span className="text-gray-500 ml-2">
+                      <span className="text-gray-500 dark:text-gray-400 ml-2">
                         ({cat.percentage.toFixed(1)}%)
                       </span>
                     </div>
@@ -240,15 +240,15 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
+            <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
               暂无费用数据
             </div>
           )}
         </div>
 
         {/* 柱状图：每日开销对比 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">每日开销趋势</h3>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">每日开销趋势</h3>
           {stats.dailyExpenses.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats.dailyExpenses}>
@@ -283,7 +283,7 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
+            <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
               暂无每日开销数据
             </div>
           )}
@@ -291,16 +291,16 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
       </div>
 
       {/* 日期筛选（可选功能） */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">日期筛选</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">日期筛选</h3>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               开始日期
             </label>
             <input
               type="date"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               onChange={(e) =>
                 setDateRange((prev) => ({
                   ...prev,
@@ -310,12 +310,12 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               结束日期
             </label>
             <input
               type="date"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               onChange={(e) =>
                 setDateRange((prev) => ({
                   ...prev,
@@ -333,7 +333,7 @@ export default function BudgetChart({ expenses, totalBudget, tripName }: BudgetC
             </button>
           </div>
         </div>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
           当前显示 {filteredExpenses.length} 条费用记录
         </p>
       </div>
