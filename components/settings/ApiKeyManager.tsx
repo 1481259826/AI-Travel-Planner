@@ -1,24 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Loader2, Key, Trash2, Check, X, TestTube } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Loader2, Key, Trash2, Check, X, TestTube, Upload, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AddApiKeyModal from './AddApiKeyModal'
 import { supabase } from '@/lib/supabase'
 import type { ApiKey, ApiKeyService } from '@/types'
 
+interface SystemApiKey {
+  service: ApiKeyService
+  key_name: string
+  key_prefix: string
+  is_active: boolean
+  is_system: true
+}
+
 interface ServiceGroup {
   id: ApiKeyService
   name: string
   icon: string
-  keys: ApiKey[]
+  userKeys: ApiKey[]
+  systemKeys: SystemApiKey[]
 }
 
 export default function ApiKeyManager() {
   const [loading, setLoading] = useState(true)
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [systemKeys, setSystemKeys] = useState<SystemApiKey[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [testingKeyId, setTestingKeyId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadApiKeys()
@@ -31,20 +43,95 @@ export default function ApiKeyManager() {
 
       if (!session) return
 
-      const response = await fetch('/api/user/api-keys', {
+      // 加载用户 API Keys
+      const userResponse = await fetch('/api/user/api-keys', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       })
 
-      if (!response.ok) throw new Error('Failed to load')
+      if (userResponse.ok) {
+        const { apiKeys: keys } = await userResponse.json()
+        setApiKeys(keys)
+      }
 
-      const { apiKeys: keys } = await response.json()
-      setApiKeys(keys)
+      // 加载系统默认 API Keys
+      const systemResponse = await fetch('/api/user/api-keys/system', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (systemResponse.ok) {
+        const { systemKeys: sysKeys } = await systemResponse.json()
+        setSystemKeys(sysKeys)
+      }
     } catch (error) {
       console.error('Load API keys error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleImportFromEnv = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+
+    try {
+      const content = await file.text()
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('请先登录')
+        return
+      }
+
+      const response = await fetch('/api/user/api-keys/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ envContent: content }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        const { imported, skipped, errors, total } = data
+        let message = `导入完成！\n\n`
+        message += `✅ 成功导入: ${imported.length} 个\n`
+        if (imported.length > 0) {
+          message += imported.map((k: string) => `  - ${k}`).join('\n') + '\n'
+        }
+        if (skipped.length > 0) {
+          message += `\n⚠️ 跳过: ${skipped.length} 个\n`
+          message += skipped.map((k: string) => `  - ${k}`).join('\n') + '\n'
+        }
+        if (errors.length > 0) {
+          message += `\n❌ 失败: ${errors.length} 个\n`
+          message += errors.map((k: string) => `  - ${k}`).join('\n')
+        }
+
+        alert(message)
+        loadApiKeys()
+      } else {
+        alert('❌ ' + (data.error || '导入失败'))
+      }
+    } catch (error) {
+      alert('读取文件失败，请确保文件格式正确')
+    } finally {
+      setImporting(false)
+      // 清空文件输入
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -136,31 +223,36 @@ export default function ApiKeyManager() {
       id: 'anthropic',
       name: 'Anthropic Claude',
       icon: '🤖',
-      keys: apiKeys.filter((k) => k.service === 'anthropic'),
+      userKeys: apiKeys.filter((k) => k.service === 'anthropic'),
+      systemKeys: systemKeys.filter((k) => k.service === 'anthropic'),
     },
     {
       id: 'deepseek',
       name: 'DeepSeek',
       icon: '🧠',
-      keys: apiKeys.filter((k) => k.service === 'deepseek'),
+      userKeys: apiKeys.filter((k) => k.service === 'deepseek'),
+      systemKeys: systemKeys.filter((k) => k.service === 'deepseek'),
     },
     {
       id: 'map',
       name: '高德地图',
       icon: '🗺️',
-      keys: apiKeys.filter((k) => k.service === 'map'),
+      userKeys: apiKeys.filter((k) => k.service === 'map'),
+      systemKeys: systemKeys.filter((k) => k.service === 'map'),
     },
     {
       id: 'voice',
       name: '科大讯飞语音',
       icon: '🎤',
-      keys: apiKeys.filter((k) => k.service === 'voice'),
+      userKeys: apiKeys.filter((k) => k.service === 'voice'),
+      systemKeys: systemKeys.filter((k) => k.service === 'voice'),
     },
     {
       id: 'unsplash',
       name: 'Unsplash 图片',
       icon: '🖼️',
-      keys: apiKeys.filter((k) => k.service === 'unsplash'),
+      userKeys: apiKeys.filter((k) => k.service === 'unsplash'),
+      systemKeys: systemKeys.filter((k) => k.service === 'unsplash'),
     },
   ]
 
@@ -184,11 +276,35 @@ export default function ApiKeyManager() {
             添加您自己的 API Keys，将替代系统默认配置
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          添加 Key
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleImportFromEnv} disabled={importing}>
+            {importing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                导入中...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                从 .env.local 导入
+              </>
+            )}
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            添加 Key
+          </Button>
+        </div>
       </div>
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".env,.env.local,text/plain"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
       {/* Service Groups */}
       <div className="space-y-6">
@@ -201,18 +317,59 @@ export default function ApiKeyManager() {
                 {group.name}
               </h4>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                ({group.keys.length})
+                (系统 {group.systemKeys.length} · 用户 {group.userKeys.length})
               </span>
             </div>
 
-            {/* Keys List */}
-            {group.keys.length === 0 ? (
+            {/* System Keys List */}
+            {group.systemKeys.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 pl-10 flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  系统默认配置
+                </div>
+                {group.systemKeys.map((key, idx) => (
+                  <div
+                    key={`system-${key.service}-${idx}`}
+                    className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <Key className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {key.key_name}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                              系统
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {key.key_prefix}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* User Keys List */}
+            {group.userKeys.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-gray-400 pl-10">
-                暂无 API Key
+                {group.systemKeys.length === 0 ? '暂无 API Key' : '暂无用户自定义 Key'}
               </div>
             ) : (
               <div className="space-y-2">
-                {group.keys.map((key) => (
+                {group.systemKeys.length > 0 && (
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 pl-10 flex items-center gap-1">
+                    <Key className="w-3 h-3" />
+                    用户自定义 Keys
+                  </div>
+                )}
+                {group.userKeys.map((key) => (
                   <div
                     key={key.id}
                     className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border dark:border-gray-600"
