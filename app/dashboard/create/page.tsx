@@ -98,16 +98,16 @@ export default function CreateTripPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Plane className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">创建新行程</h1>
+            <Plane className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">创建新行程</h1>
           </div>
         </div>
       </header>
@@ -128,7 +128,7 @@ export default function CreateTripPage() {
                 {/* Origin and Destination */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">出发地 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">出发地 *</label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="例如: 上海、深圳、广州"
@@ -142,7 +142,7 @@ export default function CreateTripPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">目的地 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">目的地 *</label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="例如: 北京、东京、巴黎"
@@ -160,7 +160,7 @@ export default function CreateTripPage() {
                 {/* Dates */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">出发日期 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">出发日期 *</label>
                     <Input
                       type="date"
                       value={formData.start_date}
@@ -169,7 +169,7 @@ export default function CreateTripPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">返回日期 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">返回日期 *</label>
                     <Input
                       type="date"
                       value={formData.end_date}
@@ -181,7 +181,7 @@ export default function CreateTripPage() {
 
                 {/* Budget */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">预算 (¥) *</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white">预算 (¥) *</label>
                   <Input
                     type="number"
                     min="0"
@@ -195,7 +195,7 @@ export default function CreateTripPage() {
                 {/* Travelers */}
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">总人数 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">总人数 *</label>
                     <Input
                       type="number"
                       min="1"
@@ -205,7 +205,7 @@ export default function CreateTripPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">成人数</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">成人数</label>
                     <Input
                       type="number"
                       min="0"
@@ -214,7 +214,7 @@ export default function CreateTripPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">儿童数</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">儿童数</label>
                     <Input
                       type="number"
                       min="0"
@@ -226,7 +226,7 @@ export default function CreateTripPage() {
 
                 {/* Preferences */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">旅行偏好</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white">旅行偏好</label>
                   <div className="flex flex-wrap gap-2">
                     {preferenceOptions.map((pref) => (
                       <button
@@ -236,7 +236,7 @@ export default function CreateTripPage() {
                         className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                           formData.preferences.includes(pref)
                             ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}
                       >
                         {pref}
@@ -247,10 +247,10 @@ export default function CreateTripPage() {
 
                 {/* Additional Notes */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">补充说明</label>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white">补充说明</label>
                   <div className="space-y-2">
                     <textarea
-                      className="flex min-h-[120px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      className="flex min-h-[120px] w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 focus:border-transparent"
                       placeholder="任何特殊要求或偏好..."
                       value={formData.additional_notes}
                       onChange={(e) => setFormData({ ...formData, additional_notes: e.target.value })}
