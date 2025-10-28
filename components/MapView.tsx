@@ -52,7 +52,7 @@ export default function MapView({
     const apiKey = process.env.NEXT_PUBLIC_MAP_API_KEY
 
     if (!apiKey) {
-      setError('地图 API Key 未配置，请在环境变量中设置 NEXT_PUBLIC_MAP_API_KEY')
+      setError('未配置地图 API Key，地图功能不可用。您可以在设置页面添加高德地图 API Key 以使用地图功能。')
       setLoading(false)
       return
     }

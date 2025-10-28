@@ -83,10 +83,10 @@ export default function VoiceInput({ onTranscript, className = '' }: VoiceInputP
         variant="outline"
         disabled
         className={`whitespace-nowrap ${className}`}
-        title="您的浏览器不支持语音输入"
+        title="您的浏览器不支持语音输入。建议使用 Chrome/Edge/Safari 浏览器，或在设置页面添加科大讯飞语音 API Key 以获得更好的语音识别效果。"
       >
         <MicOff className="w-4 h-4 mr-2" />
-        语音输入不可用
+        语音不可用
       </Button>
     )
   }

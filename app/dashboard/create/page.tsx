@@ -11,6 +11,7 @@ import ModelSelector from '@/components/ModelSelector'
 import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
 import { getDefaultModel } from '@/lib/models'
+import { checkDeepSeekKeyRequired } from '@/lib/check-api-keys'
 
 export default function CreateTripPage() {
   const router = useRouter()
@@ -69,6 +70,15 @@ export default function CreateTripPage() {
       if (!session) {
         alert('请先登录')
         router.push('/login')
+        return
+      }
+
+      // 检查 DeepSeek Key 是否配置（必需）
+      const deepseekCheck = await checkDeepSeekKeyRequired(session.user.id, session.access_token)
+      if (!deepseekCheck.available) {
+        alert(deepseekCheck.message)
+        setLoading(false)
+        router.push('/dashboard/settings')
         return
       }
 
