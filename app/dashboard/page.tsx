@@ -16,12 +16,13 @@ import CacheManager from '@/components/CacheManager'
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showCacheManager, setShowCacheManager] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   // Use offline-first hook for trips
-  const { trips, isLoading: loading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
+  const { trips, isLoading: tripsLoading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
 
   useEffect(() => {
     setMounted(true)
@@ -29,14 +30,18 @@ export default function DashboardPage() {
   }, [])
 
   const checkAuth = async () => {
-    const { user, error } = await auth.getUser()
+    try {
+      const { user, error } = await auth.getUser()
 
-    if (error || !user) {
-      router.push('/login')
-      return
+      if (error || !user) {
+        router.push('/login')
+        return
+      }
+
+      setUser(user)
+    } finally {
+      setAuthLoading(false)
     }
-
-    setUser(user)
   }
 
   const handleLogout = async () => {
@@ -96,12 +101,15 @@ export default function DashboardPage() {
     return colorMap[status] || 'bg-gray-100 text-gray-700'
   }
 
-  if (loading) {
+  // 显示加载状态：认证加载中 或 行程加载中
+  if (authLoading || tripsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Plane className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-bounce mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">加载中...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            {authLoading ? '验证登录状态...' : '加载行程数据...'}
+          </p>
         </div>
       </div>
     )
