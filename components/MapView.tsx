@@ -105,11 +105,8 @@ export default function MapView({
     }
 
     try {
-      console.log('开始初始化地图，位置数量:', locations.length)
-
       // 计算地图中心点
       const mapCenter = center || calculateCenter(locations)
-      console.log('地图中心点:', mapCenter)
 
       // 创建地图实例
       const map = new window.AMap.Map(mapContainer.current, {
@@ -122,8 +119,6 @@ export default function MapView({
 
       mapInstance.current = map
 
-      console.log('地图实例创建成功')
-
       // 添加控件 - 使用 AMap.plugin 加载控件
       window.AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
         try {
@@ -131,7 +126,6 @@ export default function MapView({
           const toolbar = new window.AMap.ToolBar()
           map.addControl(scale)
           map.addControl(toolbar)
-          console.log('地图控件添加成功')
         } catch (err) {
           console.warn('地图控件添加失败:', err)
           // 控件添加失败不影响地图显示，继续运行
@@ -140,7 +134,7 @@ export default function MapView({
 
       setLoading(false)
     } catch (err) {
-      console.error('地图初始化失败详细错误:', err)
+      console.error('地图初始化失败:', err)
       setError(`地图初始化失败：${err instanceof Error ? err.message : '未知错误'}`)
       setLoading(false)
     }

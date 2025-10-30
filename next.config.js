@@ -8,6 +8,11 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
+      // Health check endpoint - must NEVER be cached, always hit network
+      {
+        urlPattern: ({ url }) => url.pathname === '/api/health',
+        handler: 'NetworkOnly',
+      },
       {
         urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
         handler: 'CacheFirst',
@@ -123,7 +128,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
       {
         urlPattern: /\/api\/.*$/i,
         handler: 'NetworkFirst',
-        method: 'GET',
         options: {
           cacheName: 'api-cache',
           expiration: {

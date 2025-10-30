@@ -26,7 +26,6 @@ export function useOfflineTrip(tripId: string | null): UseOfflineTripReturn {
     }
 
     try {
-      setIsLoading(true)
       setError(null)
 
       // Try to load from cache first (offline-first strategy)
@@ -35,10 +34,12 @@ export function useOfflineTrip(tripId: string | null): UseOfflineTripReturn {
       if (cachedTrip) {
         setTrip(cachedTrip)
         setFromCache(true)
-        setIsLoading(false)
+        setIsLoading(false) // 立即停止加载，显示缓存数据
+      } else {
+        setIsLoading(true) // 只有在没有缓存时才显示加载状态
       }
 
-      // Then try to fetch from server if online
+      // Then try to fetch from server if online (在后台进行)
       if (navigator.onLine) {
         try {
           const { data: serverTrip, error: serverError } = await db.trips.getById(tripId)
@@ -46,10 +47,14 @@ export function useOfflineTrip(tripId: string | null): UseOfflineTripReturn {
           if (serverError) throw serverError
 
           if (serverTrip) {
-            // Update cache with fresh data
-            await offlineTrips.save(serverTrip)
-            setTrip(serverTrip)
-            setFromCache(false)
+            // 只有当数据真的不同时才更新
+            const isDifferent = JSON.stringify(cachedTrip) !== JSON.stringify(serverTrip)
+            if (isDifferent) {
+              // Update cache with fresh data
+              await offlineTrips.save(serverTrip)
+              setTrip(serverTrip)
+              setFromCache(false)
+            }
           }
         } catch (networkError) {
           console.error('Failed to fetch from server, using cached data:', networkError)
