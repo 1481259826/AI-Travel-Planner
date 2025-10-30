@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
 import ShareButton from '@/components/ShareButton'
+import { ExportPdfButton } from '@/components/ExportPdfButton'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -25,7 +26,7 @@ export default function TripDetailPage() {
   // Use offline-first hook for trip data
   const { trip, isLoading: loading, error, refetch, updateTrip, fromCache } = useOfflineTrip(tripId)
 
-  const [showMap, setShowMap] = useState(true)
+  const [showMap, setShowMap] = useState(false) // 默认隐藏地图，提升加载速度
   const [showRoute, setShowRoute] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -35,27 +36,20 @@ export default function TripDetailPage() {
   const [loadingExpenses, setLoadingExpenses] = useState(false)
   const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'analytics'>('itinerary')
 
-  // 提取所有位置信息用于地图显示
-  const itinerary = trip?.itinerary
-  const allLocations = itinerary?.days
-    ? itinerary.days.flatMap(day =>
-        extractLocationsFromItinerary(day.activities || [], day.meals || [])
-      )
-    : []
+  // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
+  const allLocations = useMemo(() => {
+    const itinerary = trip?.itinerary
+    return itinerary?.days
+      ? itinerary.days.flatMap(day =>
+          extractLocationsFromItinerary(day.activities || [], day.meals || [])
+        )
+      : []
+  }, [trip?.itinerary])
 
   useEffect(() => {
     setMounted(true)
     fetchExpenses()
   }, [tripId])
-
-  // 调试：输出位置信息
-  useEffect(() => {
-    if (trip) {
-      console.log('行程数据:', itinerary)
-      console.log('提取的位置数量:', allLocations.length)
-      console.log('位置详情:', allLocations)
-    }
-  }, [trip, itinerary, allLocations])
 
   const fetchExpenses = async () => {
     setLoadingExpenses(true)
@@ -227,6 +221,7 @@ export default function TripDetailPage() {
                 </div>
               )}
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
+              <ExportPdfButton trip={trip} />
               <Button
                 variant="outline"
                 onClick={handleDelete}
@@ -418,7 +413,7 @@ export default function TripDetailPage() {
                   <CardContent>
                     {allLocations.length > 0 ? (
                       <>
-                        {showMap && (
+                        {showMap ? (
                           <>
                             <MapView
                               locations={allLocations}
@@ -432,6 +427,10 @@ export default function TripDetailPage() {
                               </p>
                             </div>
                           </>
+                        ) : (
+                          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                            点击"显示地图"查看行程地图
+                          </div>
                         )}
                       </>
                     ) : (
