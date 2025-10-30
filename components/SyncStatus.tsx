@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react'
 import { onSyncStatusChange, startSync, getSyncStats, type SyncStatus as SyncStatusType } from '@/lib/sync'
+import { useServerStatus } from '@/hooks/useServerStatus'
 
 interface SyncStats {
   pending: number
@@ -17,6 +18,9 @@ export default function SyncStatus() {
   const [stats, setStats] = useState<SyncStats>({ pending: 0, syncing: 0, synced: 0, failed: 0 })
   const [showStats, setShowStats] = useState(false)
   const [mounted, setMounted] = useState(false)
+
+  // Check if server is actually reachable
+  const { isServerOnline } = useServerStatus()
 
   useEffect(() => {
     // Set mounted to true after component mounts (client-side only)
@@ -65,9 +69,6 @@ export default function SyncStatus() {
     return null
   }
 
-  // Check online status
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
-
   return (
     <div className="fixed bottom-4 right-4 z-40">
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
@@ -95,12 +96,12 @@ export default function SyncStatus() {
           {/* Status text */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900">
-              {!isOnline && '离线模式'}
-              {isOnline && status === 'syncing' && '正在同步...'}
-              {isOnline && status === 'synced' && '已同步'}
-              {isOnline && status === 'error' && '同步失败'}
-              {isOnline && status === 'idle' && hasPendingChanges && `${stats.pending} 个待同步更改`}
-              {isOnline && status === 'idle' && !hasPendingChanges && '已同步'}
+              {!isServerOnline && '离线模式'}
+              {isServerOnline && status === 'syncing' && '正在同步...'}
+              {isServerOnline && status === 'synced' && '已同步'}
+              {isServerOnline && status === 'error' && '同步失败'}
+              {isServerOnline && status === 'idle' && hasPendingChanges && `${stats.pending} 个待同步更改`}
+              {isServerOnline && status === 'idle' && !hasPendingChanges && '已同步'}
             </p>
             {message && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">{message}</p>
@@ -122,7 +123,7 @@ export default function SyncStatus() {
             {/* Manual sync button */}
             <button
               onClick={handleManualSync}
-              disabled={status === 'syncing' || !isOnline}
+              disabled={status === 'syncing' || !isServerOnline}
               className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               title="手动同步"
             >

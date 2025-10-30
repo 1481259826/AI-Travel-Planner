@@ -10,6 +10,7 @@ import { auth, db } from '@/lib/supabase'
 import { Trip } from '@/types'
 import { format } from 'date-fns'
 import { useOfflineTrips } from '@/hooks/useOfflineTrips'
+import { useServerStatus } from '@/hooks/useServerStatus'
 import { offlineData } from '@/lib/offline'
 import CacheManager from '@/components/CacheManager'
 
@@ -20,7 +21,9 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showCacheManager, setShowCacheManager] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [isOnline, setIsOnline] = useState(true)
+
+  // Check if server is actually reachable
+  const { isServerOnline } = useServerStatus()
 
   // Use offline-first hook for trips
   const { trips, isLoading: tripsLoading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
@@ -28,23 +31,6 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true)
     checkAuth()
-
-    // Monitor online/offline status
-    const updateOnlineStatus = () => {
-      setIsOnline(navigator.onLine)
-    }
-
-    // Set initial status
-    updateOnlineStatus()
-
-    // Add event listeners
-    window.addEventListener('online', updateOnlineStatus)
-    window.addEventListener('offline', updateOnlineStatus)
-
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus)
-      window.removeEventListener('offline', updateOnlineStatus)
-    }
   }, [])
 
   const checkAuth = async () => {
@@ -216,7 +202,7 @@ export default function DashboardPage() {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">我的行程</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2">管理您的旅行计划</p>
           </div>
-          {isOnline ? (
+          {isServerOnline ? (
             <Link href="/dashboard/create">
               <Button size="lg">
                 <Plus className="w-5 h-5 mr-2" />
@@ -246,7 +232,7 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               创建您的第一个行程，开始规划精彩旅程
             </p>
-            {isOnline ? (
+            {isServerOnline ? (
               <Link href="/dashboard/create">
                 <Button>
                   <Plus className="w-5 h-5 mr-2" />
