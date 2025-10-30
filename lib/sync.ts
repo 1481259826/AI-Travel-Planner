@@ -301,6 +301,50 @@ export async function getSyncStats(): Promise<{
   }
 }
 
+// Prefetch all trip details (including itinerary) for offline access
+export async function prefetchAllTripDetails(userId: string): Promise<void> {
+  try {
+    const { data: trips, error } = await db.trips.getAll(userId)
+
+    if (error) throw error
+
+    if (!trips || trips.length === 0) {
+      console.log('No trips to prefetch')
+      return
+    }
+
+    console.log(`Prefetching details for ${trips.length} trips...`)
+
+    // Fetch full details for each trip in parallel (with limit to avoid overwhelming server)
+    const batchSize = 3 // Fetch 3 trips at a time
+    for (let i = 0; i < trips.length; i += batchSize) {
+      const batch = trips.slice(i, i + batchSize)
+      await Promise.all(
+        batch.map(async (trip) => {
+          try {
+            const { data: fullTrip, error: tripError } = await db.trips.getById(trip.id)
+            if (tripError) throw tripError
+
+            if (fullTrip) {
+              // Save complete trip data (including itinerary) to IndexedDB
+              await offlineTrips.save(fullTrip)
+              console.log(`Prefetched trip: ${fullTrip.destination}`)
+            }
+          } catch (err) {
+            console.error(`Failed to prefetch trip ${trip.id}:`, err)
+            // Continue with other trips even if one fails
+          }
+        })
+      )
+    }
+
+    console.log('Prefetch completed')
+  } catch (error) {
+    console.error('Prefetch failed:', error)
+    // Don't throw - prefetch is a background operation
+  }
+}
+
 // Force full sync (download all data from server)
 export async function forceFullSync(userId: string): Promise<void> {
   notifySyncStatus('syncing', '正在同步所有数据...')
@@ -311,6 +355,9 @@ export async function forceFullSync(userId: string): Promise<void> {
 
     // Download all trips
     await cacheTripsFromServer(userId)
+
+    // Prefetch all trip details (including itinerary)
+    await prefetchAllTripDetails(userId)
 
     // Download expenses for all cached trips
     const trips = await offlineTrips.getAll(userId)

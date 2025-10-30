@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Trip } from '@/types'
 import { db } from '@/lib/supabase'
 import { offlineTrips } from '@/lib/offline'
-import { cacheTripsFromServer } from '@/lib/sync'
+import { cacheTripsFromServer, prefetchAllTripDetails } from '@/lib/sync'
 
 interface UseOfflineTripsReturn {
   trips: Trip[]
@@ -26,7 +26,6 @@ export function useOfflineTrips(userId: string | null): UseOfflineTripsReturn {
     }
 
     try {
-      setIsLoading(true)
       setError(null)
 
       // Try to load from cache first (offline-first strategy)
@@ -35,10 +34,12 @@ export function useOfflineTrips(userId: string | null): UseOfflineTripsReturn {
       if (cachedTrips.length > 0) {
         setTrips(cachedTrips)
         setFromCache(true)
-        setIsLoading(false)
+        setIsLoading(false) // 立即停止加载，显示缓存数据
+      } else {
+        setIsLoading(true) // 只有在没有缓存时才显示加载状态
       }
 
-      // Then try to fetch from server if online
+      // Then try to fetch from server if online (在后台进行)
       if (navigator.onLine) {
         try {
           const { data: serverTrips, error: serverError } = await db.trips.getAll(userId)
@@ -46,10 +47,21 @@ export function useOfflineTrips(userId: string | null): UseOfflineTripsReturn {
           if (serverError) throw serverError
 
           if (serverTrips) {
-            // Update cache with fresh data
-            await offlineTrips.saveMany(serverTrips)
-            setTrips(serverTrips)
-            setFromCache(false)
+            // 只有当数据真的不同时才更新
+            const isDifferent = JSON.stringify(cachedTrips) !== JSON.stringify(serverTrips)
+            if (isDifferent) {
+              // Update cache with fresh data
+              await offlineTrips.saveMany(serverTrips)
+              setTrips(serverTrips)
+              setFromCache(false)
+            }
+
+            // Prefetch all trip details in background for offline access
+            // This ensures all trips are fully cached even if user hasn't clicked them
+            prefetchAllTripDetails(userId).catch(err => {
+              console.error('Background prefetch failed:', err)
+              // Don't throw - this is a background operation
+            })
           }
         } catch (networkError) {
           console.error('Failed to fetch from server, using cached data:', networkError)

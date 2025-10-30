@@ -31,25 +31,31 @@ export default function DashboardPage() {
 
   const checkAuth = async () => {
     try {
-      // Check if offline
-      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+      // Always check local session first (fast - reads from localStorage)
+      const { data: { session } } = await auth.getSession()
 
-      if (!isOnline) {
-        // Offline: use cached session from Supabase localStorage
-        const { data: { session } } = await auth.getSession()
+      if (session?.user) {
+        // Immediately set user from cached session
+        setUser(session.user)
+        setAuthLoading(false)
 
-        if (session?.user) {
-          setUser(session.user)
-          setAuthLoading(false)
-          return
-        } else {
-          // No cached session, redirect to login
-          router.push('/login')
-          return
+        // Then verify with server in background if online (non-blocking)
+        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+        if (isOnline) {
+          auth.getUser().then(({ user, error }) => {
+            if (error || !user) {
+              // Session expired, redirect to login
+              router.push('/login')
+            }
+          }).catch(err => {
+            console.error('Background auth verification failed:', err)
+            // Keep using cached session if verification fails
+          })
         }
+        return
       }
 
-      // Online: verify with server
+      // No cached session - need to check with server
       const { user, error } = await auth.getUser()
 
       if (error || !user) {
