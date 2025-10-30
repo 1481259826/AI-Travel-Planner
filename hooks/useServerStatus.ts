@@ -27,8 +27,8 @@ export function useServerStatus() {
 
       clearTimeout(timeoutId)
 
-      // Server is online if we get any response (even 404)
-      setIsServerOnline(response.ok || response.status === 404)
+      // Server is online only if we get 200 OK
+      setIsServerOnline(response.ok)
     } catch (error) {
       // Network error or timeout = server offline
       setIsServerOnline(false)
