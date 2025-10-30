@@ -31,6 +31,25 @@ export default function DashboardPage() {
 
   const checkAuth = async () => {
     try {
+      // Check if offline
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
+
+      if (!isOnline) {
+        // Offline: use cached session from Supabase localStorage
+        const { data: { session } } = await auth.getSession()
+
+        if (session?.user) {
+          setUser(session.user)
+          setAuthLoading(false)
+          return
+        } else {
+          // No cached session, redirect to login
+          router.push('/login')
+          return
+        }
+      }
+
+      // Online: verify with server
       const { user, error } = await auth.getUser()
 
       if (error || !user) {
@@ -39,6 +58,9 @@ export default function DashboardPage() {
       }
 
       setUser(user)
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      router.push('/login')
     } finally {
       setAuthLoading(false)
     }
@@ -101,15 +123,13 @@ export default function DashboardPage() {
     return colorMap[status] || 'bg-gray-100 text-gray-700'
   }
 
-  // 显示加载状态：认证加载中 或 行程加载中
-  if (authLoading || tripsLoading) {
+  // 显示加载状态：只在认证加载时显示加载页面，行程加载时显示骨架屏
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Plane className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-bounce mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
-            {authLoading ? '验证登录状态...' : '加载行程数据...'}
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">验证登录状态...</p>
         </div>
       </div>
     )
@@ -181,7 +201,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Trips Grid */}
-        {trips.length === 0 ? (
+        {tripsLoading ? (
+          <div className="text-center py-16">
+            <Plane className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-bounce mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">加载行程数据...</p>
+          </div>
+        ) : trips.length === 0 ? (
           <div className="text-center py-16">
             <MapPin className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">

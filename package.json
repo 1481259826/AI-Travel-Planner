@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3008 -H 0.0.0.0",
     "dev:safe": "node scripts/health-check.js --auto && npm run dev",
+    "dev:pwa": "cross-env ENABLE_PWA_DEV=true next dev -p 3008 -H 0.0.0.0",
     "dev:pm2": "pm2 start ecosystem.config.js",
     "dev:check": "node scripts/health-check.js",
     "build": "next build",
@@ -40,6 +41,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.4",
     "postcss": "^8.4.49",
