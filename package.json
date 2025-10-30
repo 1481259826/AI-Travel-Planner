@@ -4,8 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3008 -H 0.0.0.0",
+    "dev:safe": "node scripts/health-check.js --auto && npm run dev",
+    "dev:pm2": "pm2 start ecosystem.config.js",
+    "dev:check": "node scripts/health-check.js",
     "build": "next build",
     "start": "next start -p 3008 -H 0.0.0.0",
+    "stop": "pm2 stop ai-travel-planner",
+    "restart": "pm2 restart ai-travel-planner",
+    "logs": "pm2 logs ai-travel-planner",
+    "status": "pm2 list",
+    "cleanup": "node scripts/health-check.js --auto",
     "lint": "next lint"
   },
   "dependencies": {
