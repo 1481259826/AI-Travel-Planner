@@ -65,11 +65,8 @@ export default function SyncStatus() {
     return null
   }
 
-  // Check if we should hide the component
+  // Check online status
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
-  if (!isOnline && status === 'idle' && !hasPendingChanges) {
-    return null
-  }
 
   return (
     <div className="fixed bottom-4 right-4 z-40">
@@ -98,11 +95,12 @@ export default function SyncStatus() {
           {/* Status text */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900">
-              {status === 'syncing' && '正在同步...'}
-              {status === 'synced' && '已同步'}
-              {status === 'error' && '同步失败'}
-              {status === 'idle' && hasPendingChanges && `${stats.pending} 个待同步更改`}
-              {status === 'idle' && !hasPendingChanges && '已同步'}
+              {!isOnline && '离线模式'}
+              {isOnline && status === 'syncing' && '正在同步...'}
+              {isOnline && status === 'synced' && '已同步'}
+              {isOnline && status === 'error' && '同步失败'}
+              {isOnline && status === 'idle' && hasPendingChanges && `${stats.pending} 个待同步更改`}
+              {isOnline && status === 'idle' && !hasPendingChanges && '已同步'}
             </p>
             {message && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">{message}</p>

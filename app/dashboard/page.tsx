@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showCacheManager, setShowCacheManager] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isOnline, setIsOnline] = useState(true)
 
   // Use offline-first hook for trips
   const { trips, isLoading: tripsLoading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
@@ -27,6 +28,23 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true)
     checkAuth()
+
+    // Monitor online/offline status
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine)
+    }
+
+    // Set initial status
+    updateOnlineStatus()
+
+    // Add event listeners
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+    }
   }, [])
 
   const checkAuth = async () => {
@@ -198,12 +216,19 @@ export default function DashboardPage() {
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">我的行程</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2">管理您的旅行计划</p>
           </div>
-          <Link href="/dashboard/create">
-            <Button size="lg">
+          {isOnline ? (
+            <Link href="/dashboard/create">
+              <Button size="lg">
+                <Plus className="w-5 h-5 mr-2" />
+                创建新行程
+              </Button>
+            </Link>
+          ) : (
+            <Button size="lg" disabled title="离线时无法创建新行程">
               <Plus className="w-5 h-5 mr-2" />
-              创建新行程
+              创建新行程（离线）
             </Button>
-          </Link>
+          )}
         </div>
 
         {/* Trips Grid */}
@@ -221,12 +246,19 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               创建您的第一个行程，开始规划精彩旅程
             </p>
-            <Link href="/dashboard/create">
-              <Button>
+            {isOnline ? (
+              <Link href="/dashboard/create">
+                <Button>
+                  <Plus className="w-5 h-5 mr-2" />
+                  创建行程
+                </Button>
+              </Link>
+            ) : (
+              <Button disabled title="离线时无法创建新行程">
                 <Plus className="w-5 h-5 mr-2" />
-                创建行程
+                创建行程（离线）
               </Button>
-            </Link>
+            )}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
