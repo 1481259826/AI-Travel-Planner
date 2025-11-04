@@ -61,6 +61,33 @@ export async function testDeepSeekKey(apiKey: string): Promise<boolean> {
 }
 
 /**
+ * 测试 ModelScope API Key 是否有效
+ * @param apiKey ModelScope API Key
+ * @returns 是否有效
+ */
+export async function testModelScopeKey(apiKey: string): Promise<boolean> {
+  try {
+    const response = await fetch('https://api-inference.modelscope.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'Qwen/Qwen2.5-72B-Instruct',
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 10,
+      }),
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Test ModelScope key error:', error)
+    return false
+  }
+}
+
+/**
  * 测试高德地图 API Key 是否有效
  * @param apiKey 高德地图 Web 服务 API Key
  * @returns 是否有效
@@ -138,7 +165,7 @@ export async function testUnsplashKey(apiKey: string): Promise<boolean> {
  */
 export async function getUserApiKey(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'map' | 'voice' | 'unsplash'
+  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice' | 'unsplash'
 ): Promise<string | null> {
   try {
     const { supabase } = await import('@/lib/supabase')

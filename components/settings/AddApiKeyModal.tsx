@@ -34,6 +34,12 @@ const services: ServiceInfo[] = [
     helpText: '在 DeepSeek Platform 获取 API Key',
   },
   {
+    id: 'modelscope',
+    name: 'ModelScope (Qwen)',
+    placeholder: 'ms-...',
+    helpText: '在 ModelScope 体验平台获取 API Key',
+  },
+  {
     id: 'map',
     name: '高德地图',
     placeholder: '您的高德地图 Web 服务 Key',

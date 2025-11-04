@@ -193,6 +193,7 @@ function getServiceName(service: ApiKeyService): string {
   const names: Record<ApiKeyService, string> = {
     anthropic: 'Anthropic Claude',
     deepseek: 'DeepSeek',
+    modelscope: 'ModelScope',
     map: '高德地图',
     voice: '科大讯飞语音',
     unsplash: 'Unsplash 图片',

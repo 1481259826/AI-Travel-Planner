@@ -141,12 +141,16 @@ export interface VoiceRecognitionResult {
 }
 
 // AI Model types
-export type AIModel = 'claude-haiku-4-5' | 'deepseek-chat' | 'deepseek-reasoner'
+export type AIModel =
+  | 'claude-haiku-4-5'
+  | 'deepseek-chat'
+  | 'deepseek-reasoner'
+  | 'Qwen/Qwen2.5-72B-Instruct'
 
 export interface AIModelConfig {
   id: AIModel
   name: string
-  provider: 'anthropic' | 'deepseek'
+  provider: 'anthropic' | 'deepseek' | 'modelscope'
   description: string
   maxTokens: number
   enabled: boolean
@@ -169,7 +173,13 @@ export interface UserProfile {
 }
 
 // API Key types
-export type ApiKeyService = 'anthropic' | 'deepseek' | 'map' | 'voice' | 'unsplash'
+export type ApiKeyService =
+  | 'anthropic'
+  | 'deepseek'
+  | 'modelscope'
+  | 'map'
+  | 'voice'
+  | 'unsplash'
 
 export interface ApiKey {
   id: string

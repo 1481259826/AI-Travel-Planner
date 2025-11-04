@@ -20,6 +20,12 @@ const deepseek = new OpenAI({
   baseURL: config.deepseek.baseURL,
 })
 
+// 初始化 ModelScope 客户端（使用 OpenAI 兼容 API）
+const modelscope = new OpenAI({
+  apiKey: config.modelscope.apiKey,
+  baseURL: config.modelscope.baseURL,
+})
+
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
@@ -46,11 +52,14 @@ export async function POST(request: NextRequest) {
     // 检查用户是否有自己的 API Key
     let userAnthropicKey: string | null = null
     let userDeepSeekKey: string | null = null
+    let userModelScopeKey: string | null = null
 
     if (modelConfig.provider === 'anthropic') {
       userAnthropicKey = await getUserApiKey(user.id, 'anthropic')
     } else if (modelConfig.provider === 'deepseek') {
       userDeepSeekKey = await getUserApiKey(user.id, 'deepseek')
+    } else if (modelConfig.provider === 'modelscope') {
+      userModelScopeKey = await getUserApiKey(user.id, 'modelscope')
     }
 
     // 如果用户有自己的 Key，创建新的客户端实例
@@ -61,6 +70,10 @@ export async function POST(request: NextRequest) {
     const deepseekClient = userDeepSeekKey
       ? new OpenAI({ apiKey: userDeepSeekKey, baseURL: config.deepseek.baseURL })
       : deepseek
+
+    const modelscopeClient = userModelScopeKey
+      ? new OpenAI({ apiKey: userModelScopeKey, baseURL: config.modelscope.baseURL })
+      : modelscope
 
     // Calculate trip duration
     const startDate = new Date(formData.start_date)
@@ -186,6 +199,19 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
       // DeepSeek 使用 OpenAI 兼容的 API（使用用户 Key 或系统默认）
       const completion = await deepseekClient.chat.completions.create({
         model: config.deepseek.model,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: modelConfig.maxTokens,
+      })
+      responseText = completion.choices[0]?.message?.content || ''
+    } else if (modelConfig.provider === 'modelscope') {
+      // ModelScope (Qwen) 使用 OpenAI 兼容的 API
+      const completion = await modelscopeClient.chat.completions.create({
+        model: selectedModel,
         messages: [
           {
             role: 'user',

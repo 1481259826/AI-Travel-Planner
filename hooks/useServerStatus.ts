@@ -17,7 +17,7 @@ export function useServerStatus() {
     try {
       // Try to fetch a lightweight endpoint with short timeout
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout（开发环境更稳）
 
       const response = await fetch('/api/health', {
         method: 'HEAD',
@@ -30,16 +30,20 @@ export function useServerStatus() {
       // Server is online only if we get 200 OK
       setIsServerOnline(response.ok)
     } catch (error) {
-      // Network error or timeout = server offline
-      setIsServerOnline(false)
+      // 忽略被主动中止（AbortController）的错误，按离线处理但不抛出
+      if ((error as any)?.name === 'AbortError') {
+        setIsServerOnline(false)
+      } else {
+        setIsServerOnline(false)
+      }
     } finally {
       setIsChecking(false)
     }
   }
 
   useEffect(() => {
-    // Initial check
-    checkServerStatus()
+    // 初次检查延迟 1s，避免热更新/页面切换导致请求被中止
+    const initialTimer = setTimeout(checkServerStatus, 1000)
 
     // Check periodically (every 10 seconds)
     const interval = setInterval(checkServerStatus, 10000)
@@ -53,6 +57,7 @@ export function useServerStatus() {
     window.addEventListener('offline', handleOffline)
 
     return () => {
+      clearTimeout(initialTimer)
       clearInterval(interval)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)

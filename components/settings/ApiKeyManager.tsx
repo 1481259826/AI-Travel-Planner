@@ -234,6 +234,13 @@ export default function ApiKeyManager() {
       systemKeys: systemKeys.filter((k) => k.service === 'deepseek'),
     },
     {
+      id: 'modelscope',
+      name: 'ModelScope (Qwen)',
+      icon: '🌐',
+      userKeys: apiKeys.filter((k) => k.service === 'modelscope'),
+      systemKeys: systemKeys.filter((k) => k.service === 'modelscope'),
+    },
+    {
       id: 'map',
       name: '高德地图',
       icon: '🗺️',

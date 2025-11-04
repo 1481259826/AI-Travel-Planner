@@ -26,6 +26,14 @@ export const availableModels: AIModelConfig[] = [
     maxTokens: 8000,
     enabled: true,
   },
+  {
+    id: 'Qwen/Qwen2.5-72B-Instruct',
+    name: 'Qwen2.5 72B Instruct (ModelScope)',
+    provider: 'modelscope',
+    description: 'Qwen 2.5 72B 指令微调模型（ModelScope）',
+    maxTokens: 8000,
+    enabled: true,
+  },
 ]
 
 // 获取默认模型

@@ -56,6 +56,18 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // 检查 ModelScope API Key
+    if (process.env.MODELSCOPE_API_KEY) {
+      const key = process.env.MODELSCOPE_API_KEY
+      systemKeys.push({
+        service: 'modelscope',
+        key_name: '系统默认 (ModelScope)',
+        key_prefix: key.substring(0, 12) + '...',
+        is_active: true,
+        is_system: true,
+      })
+    }
+
     // 检查高德地图 API Key
     if (process.env.NEXT_PUBLIC_MAP_API_KEY) {
       const key = process.env.NEXT_PUBLIC_MAP_API_KEY

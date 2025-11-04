@@ -23,6 +23,14 @@ export const config = {
     maxTokens: 8000,
   },
 
+  // ModelScope (Qwen)
+  modelscope: {
+    apiKey: process.env.MODELSCOPE_API_KEY || '',
+    baseURL: process.env.MODELSCOPE_BASE_URL || 'https://api-inference.modelscope.cn/v1/',
+    model: 'Qwen/Qwen2.5-72B-Instruct',
+    maxTokens: 8000,
+  },
+
   // Voice Recognition
   voice: {
     apiKey: process.env.VOICE_API_KEY || '',
