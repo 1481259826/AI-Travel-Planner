@@ -14,6 +14,7 @@ import BudgetChart from '@/components/BudgetChart'
 import ShareButton from '@/components/ShareButton'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
 import AttractionCard from '@/components/AttractionCard'
+import ItineraryNav from '@/components/ItineraryNav'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -388,6 +389,16 @@ export default function TripDetailPage() {
           {/* Tab Content */}
           {activeTab === 'itinerary' ? (
             <>
+              {/* Itinerary Navigation */}
+              {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+                <ItineraryNav
+                  days={trip.itinerary.days.map(day => ({
+                    day: day.day,
+                    date: day.date
+                  }))}
+                />
+              )}
+
               {/* Trip Info Card */}
               <Card>
                 <CardHeader>
@@ -539,7 +550,12 @@ export default function TripDetailPage() {
                 <div className="space-y-4">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">每日行程</h2>
                   {trip.itinerary.days.map((day) => (
-                    <Card key={day.day}>
+                    <Card
+                      key={day.day}
+                      id={`day-${day.day}`}
+                      data-day={day.day}
+                      className="scroll-mt-20"
+                    >
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
                           <span>第 {day.day} 天 - {day.date}</span>
