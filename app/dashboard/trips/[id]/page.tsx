@@ -141,10 +141,18 @@ export default function TripDetailPage() {
     setEnrichingActivities(prev => new Set(prev).add(activityKey))
 
     try {
+      // 获取当前用户的 session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('未登录')
+      }
+
       const response = await fetch('/api/enrich-attraction', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',  // 包含认证 cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,  // 添加 Authorization 头
+        },
         body: JSON.stringify({
           name: activity.name,
           destination: trip?.destination,

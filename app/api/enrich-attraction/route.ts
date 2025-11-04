@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
-import { getAuthUser } from '@/lib/auth-helpers'
 import config from '@/lib/config'
 import { getUserApiKey } from '@/lib/api-keys'
 
@@ -12,7 +12,30 @@ import { getUserApiKey } from '@/lib/api-keys'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { user, error: authError } = await getAuthUser(request)
+    // 从请求头获取 Authorization token
+    const authorization = request.headers.get('authorization')
+    if (!authorization) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authorization.replace('Bearer ', '')
+
+    // 创建带有用户认证的 Supabase 客户端
+    const supabase = createClient(
+      config.supabase.url,
+      config.supabase.anonKey,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
+
+    // 验证用户
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
