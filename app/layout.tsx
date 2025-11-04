@@ -37,7 +37,6 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         {/* 防止主题闪烁的脚本 - 必须在页面渲染前执行 */}
         <script

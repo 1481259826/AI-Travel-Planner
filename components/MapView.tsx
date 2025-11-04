@@ -120,17 +120,26 @@ export default function MapView({
       mapInstance.current = map
 
       // 添加控件 - 使用 AMap.plugin 加载控件
-      window.AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
-        try {
-          const scale = new window.AMap.Scale()
-          const toolbar = new window.AMap.ToolBar()
-          map.addControl(scale)
-          map.addControl(toolbar)
-        } catch (err) {
-          console.warn('地图控件添加失败:', err)
-          // 控件添加失败不影响地图显示，继续运行
-        }
-      })
+      if (window.AMap && typeof window.AMap.plugin === 'function') {
+        window.AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
+          try {
+            // 检查构造函数是否存在
+            if (window.AMap.Scale && window.AMap.ToolBar) {
+              const scale = new window.AMap.Scale()
+              const toolbar = new window.AMap.ToolBar()
+              map.addControl(scale)
+              map.addControl(toolbar)
+            } else {
+              console.warn('地图控件类不存在，跳过控件添加')
+            }
+          } catch (err) {
+            console.warn('地图控件添加失败:', err)
+            // 控件添加失败不影响地图显示，继续运行
+          }
+        })
+      } else {
+        console.warn('AMap.plugin 方法不存在，跳过控件加载')
+      }
 
       setLoading(false)
     } catch (err) {
@@ -222,11 +231,22 @@ export default function MapView({
     const waypoints = locations.map(loc => [loc.lng, loc.lat])
 
     // 使用 plugin 加载驾车路线规划插件
+    if (!window.AMap || typeof window.AMap.plugin !== 'function') {
+      console.warn('AMap.plugin 不可用，跳过路线规划')
+      return
+    }
+
     window.AMap.plugin('AMap.Driving', () => {
       try {
+        // 检查 Driving 类是否存在
+        if (!window.AMap.Driving) {
+          console.warn('AMap.Driving 类不存在，跳过路线规划')
+          return
+        }
+
         // 创建驾车路线规划实例（不自动在地图上显示）
         const driving = new window.AMap.Driving({
-          policy: window.AMap.DrivingPolicy.LEAST_TIME, // 最快捷路线
+          policy: window.AMap.DrivingPolicy?.LEAST_TIME || 0, // 最快捷路线
           hideMarkers: true, // 隐藏起终点标记，使用我们自己的标记
         })
 
