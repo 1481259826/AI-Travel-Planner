@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plane, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,14 +8,55 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import VoiceInput from '@/components/VoiceInput'
 import ModelSelector from '@/components/ModelSelector'
+import ProgressModal, { GenerationStage } from '@/components/ProgressModal'
 import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
 import { getDefaultModel } from '@/lib/models'
 import { checkDeepSeekKeyRequired } from '@/lib/check-api-keys'
 
+// 定义生成阶段
+const GENERATION_STAGES: Omit<GenerationStage, 'progress' | 'status'>[] = [
+  {
+    id: 'search',
+    name: '正在搜索景点和餐厅',
+    description: '根据您的偏好查找最佳目的地...',
+  },
+  {
+    id: 'weather',
+    name: '正在获取天气信息',
+    description: '了解目的地天气情况，优化行程安排...',
+  },
+  {
+    id: 'optimize',
+    name: '正在优化路线规划',
+    description: '安排最合理的游览顺序...',
+  },
+  {
+    id: 'description',
+    name: '正在生成景点描述',
+    description: '为每个景点添加详细介绍...',
+  },
+  {
+    id: 'finalize',
+    name: '正在完成最后调整',
+    description: '整合所有信息，生成完整行程...',
+  },
+]
+
 export default function CreateTripPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [showProgress, setShowProgress] = useState(false)
+  const [currentStage, setCurrentStage] = useState(0)
+  const [stages, setStages] = useState<GenerationStage[]>(
+    GENERATION_STAGES.map(stage => ({
+      ...stage,
+      progress: 0,
+      status: 'pending' as const,
+    }))
+  )
+  const [overallProgress, setOverallProgress] = useState(0)
+
   const [formData, setFormData] = useState<TripFormData>({
     origin: '',
     destination: '',
@@ -59,9 +100,50 @@ export default function CreateTripPage() {
     }))
   }
 
+  // 模拟进度更新
+  const simulateProgress = async (stageIndex: number, duration: number) => {
+    const steps = 20 // 每个阶段20步
+    const stepDuration = duration / steps
+
+    for (let i = 0; i <= steps; i++) {
+      await new Promise(resolve => setTimeout(resolve, stepDuration))
+
+      const progress = (i / steps) * 100
+
+      setStages(prev => prev.map((stage, idx) => {
+        if (idx === stageIndex) {
+          return { ...stage, progress, status: 'in_progress' as const }
+        }
+        return stage
+      }))
+
+      // 更新总体进度
+      const totalProgress = ((stageIndex + i / steps) / GENERATION_STAGES.length) * 100
+      setOverallProgress(totalProgress)
+    }
+
+    // 标记当前阶段为完成
+    setStages(prev => prev.map((stage, idx) => {
+      if (idx === stageIndex) {
+        return { ...stage, progress: 100, status: 'completed' as const }
+      }
+      return stage
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setShowProgress(true)
+
+    // 重置进度状态
+    setCurrentStage(0)
+    setOverallProgress(0)
+    setStages(GENERATION_STAGES.map(stage => ({
+      ...stage,
+      progress: 0,
+      status: 'pending' as const,
+    })))
 
     try {
       // Get current session
@@ -69,6 +151,7 @@ export default function CreateTripPage() {
 
       if (!session) {
         alert('请先登录')
+        setShowProgress(false)
         router.push('/login')
         return
       }
@@ -78,9 +161,20 @@ export default function CreateTripPage() {
       if (!deepseekCheck.available) {
         alert(deepseekCheck.message)
         setLoading(false)
+        setShowProgress(false)
         router.push('/dashboard/settings')
         return
       }
+
+      // 模拟各个阶段的进度（与API调用并行）
+      const progressSimulation = (async () => {
+        for (let i = 0; i < GENERATION_STAGES.length; i++) {
+          setCurrentStage(i)
+          // 每个阶段的持续时间（毫秒）
+          const stageDuration = i === GENERATION_STAGES.length - 1 ? 3000 : 4000
+          await simulateProgress(i, stageDuration)
+        }
+      })()
 
       // Call API to generate itinerary
       const response = await fetch('/api/generate-itinerary', {
@@ -92,12 +186,28 @@ export default function CreateTripPage() {
         body: JSON.stringify(formData),
       })
 
+      // 等待进度模拟完成
+      await progressSimulation
+
       if (response.ok) {
         const data = await response.json()
+
+        // 标记所有阶段为完成
+        setStages(prev => prev.map(stage => ({
+          ...stage,
+          progress: 100,
+          status: 'completed' as const,
+        })))
+        setOverallProgress(100)
+
+        // 短暂延迟后跳转，让用户看到完成状态
+        await new Promise(resolve => setTimeout(resolve, 500))
+
         router.push(`/dashboard/trips/${data.trip_id}`)
       } else {
         const error = await response.json()
         alert(error.error || '生成行程失败，请重试')
+        setShowProgress(false)
       }
     } catch (error) {
       console.error('Error creating trip:', error)
@@ -293,6 +403,14 @@ export default function CreateTripPage() {
           </Card>
         </div>
       </main>
+
+      {/* Progress Modal */}
+      <ProgressModal
+        isOpen={showProgress}
+        stages={stages}
+        currentStage={currentStage}
+        overallProgress={overallProgress}
+      />
     </div>
   )
 }
