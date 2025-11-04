@@ -49,6 +49,11 @@ export interface Activity {
   description: string
   ticket_price?: number
   tips?: string
+  // 景点图片与描述增强
+  photos?: string[]       // 景点图片 URL 数组
+  short_desc?: string     // AI 生成的简短描述（1-2 行）
+  long_desc?: string      // AI 生成的详细介绍（3-4 行）
+  rating?: number         // 景点评分（0-5）
 }
 
 export interface Meal {

@@ -6,13 +6,14 @@ import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, R
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
-import { Trip } from '@/types'
+import { Trip, Activity } from '@/types'
 import MapView, { extractLocationsFromItinerary } from '@/components/MapView'
 import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
 import ShareButton from '@/components/ShareButton'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
+import AttractionCard from '@/components/AttractionCard'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -35,6 +36,9 @@ export default function TripDetailPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loadingExpenses, setLoadingExpenses] = useState(false)
   const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'analytics'>('itinerary')
+
+  // 景点图片加载状态
+  const [enrichingActivities, setEnrichingActivities] = useState<Set<string>>(new Set())
 
   // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
   const allLocations = useMemo(() => {
@@ -122,6 +126,75 @@ export default function TripDetailPage() {
       fetchExpenses()
     } catch (error: any) {
       alert(error.message || '更新费用记录失败')
+    }
+  }
+
+  // 为景点获取图片和描述
+  const handleEnrichActivity = async (activity: Activity, dayIndex: number, activityIndex: number) => {
+    const activityKey = `${dayIndex}-${activityIndex}`
+
+    // 避免重复请求
+    if (enrichingActivities.has(activityKey)) {
+      return
+    }
+
+    setEnrichingActivities(prev => new Set(prev).add(activityKey))
+
+    try {
+      const response = await fetch('/api/enrich-attraction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',  // 包含认证 cookies
+        body: JSON.stringify({
+          name: activity.name,
+          destination: trip?.destination,
+          locationName: activity.location?.name,
+          count: 3,  // 获取3张图片
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('获取景点信息失败')
+      }
+
+      const data = await response.json()
+
+      // 更新行程数据
+      if (trip && trip.itinerary) {
+        const updatedItinerary = { ...trip.itinerary }
+        const updatedActivity = {
+          ...activity,
+          photos: data.images || [],
+          long_desc: data.description || activity.description,
+          short_desc: data.description ? data.description.substring(0, 100) + '...' : activity.description,
+          rating: 4.5,  // 默认评分，可以后续从API获取
+        }
+
+        updatedItinerary.days[dayIndex].activities[activityIndex] = updatedActivity
+
+        // 更新到数据库
+        const { error } = await supabase
+          .from('trips')
+          .update({ itinerary: updatedItinerary })
+          .eq('id', tripId)
+
+        if (error) throw error
+
+        // 更新本地状态
+        await updateTrip({ ...trip, itinerary: updatedItinerary })
+
+        // 刷新数据
+        await refetch()
+      }
+    } catch (error: any) {
+      console.error('Error enriching activity:', error)
+      alert(error.message || '获取景点信息失败')
+    } finally {
+      setEnrichingActivities(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(activityKey)
+        return newSet
+      })
     }
   }
 
@@ -469,28 +542,14 @@ export default function TripDetailPage() {
                         {day.activities && day.activities.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">活动安排</h4>
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                               {day.activities.map((activity, idx) => (
-                                <div key={idx} className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                  <div className="text-sm font-medium text-blue-600 dark:text-blue-400 min-w-[60px]">
-                                    {activity.time}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h5 className="font-semibold text-gray-900 dark:text-white">{activity.name}</h5>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{activity.description}</p>
-                                    {activity.location && (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        📍 {activity.location.name}
-                                      </p>
-                                    )}
-                                    <div className="flex gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                      {activity.duration && <span>⏱️ {activity.duration}</span>}
-                                      {activity.ticket_price && (
-                                        <span>💰 ¥{activity.ticket_price}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
+                                <AttractionCard
+                                  key={idx}
+                                  activity={activity}
+                                  onEnrich={() => handleEnrichActivity(activity, day.day - 1, idx)}
+                                  isEnriching={enrichingActivities.has(`${day.day - 1}-${idx}`)}
+                                />
                               ))}
                             </div>
                           </div>
