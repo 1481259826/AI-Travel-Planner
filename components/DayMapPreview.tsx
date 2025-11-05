@@ -89,10 +89,11 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
 
     // 过滤出有位置信息的活动（景点、餐厅等）
     const locatedActivities = activities.filter(
-      activity => activity.location?.coordinates &&
-      activity.location.coordinates.length === 2 &&
-      !isNaN(activity.location.coordinates[0]) &&
-      !isNaN(activity.location.coordinates[1])
+      activity => activity.location &&
+      typeof activity.location.lat === 'number' &&
+      typeof activity.location.lng === 'number' &&
+      !isNaN(activity.location.lat) &&
+      !isNaN(activity.location.lng)
     )
 
     if (locatedActivities.length === 0) {
@@ -116,7 +117,7 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
 
     locatedActivities.forEach((activity, index) => {
       const marker = new window.AMap.Marker({
-        position: activity.location!.coordinates,
+        position: [activity.location!.lng, activity.location!.lat],
         map: mapInstance,
         title: activity.name,
         label: {
@@ -155,7 +156,7 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
     if (locatedActivities.length > 1) {
       mapInstance.setFitView(newMarkers, false, [50, 50, 50, 50])
     } else {
-      mapInstance.setCenter(locatedActivities[0].location!.coordinates)
+      mapInstance.setCenter([locatedActivities[0].location!.lng, locatedActivities[0].location!.lat])
     }
 
     // 清理函数
@@ -233,7 +234,7 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {activities
-            .filter(a => a.location?.coordinates)
+            .filter(a => a.location && typeof a.location.lat === 'number' && typeof a.location.lng === 'number')
             .map((activity, index) => (
               <div
                 key={index}

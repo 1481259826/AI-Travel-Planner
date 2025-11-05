@@ -87,10 +87,11 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
 
     // 过滤出有位置信息的活动
     const locatedActivities = activities.filter(
-      activity => activity.location?.coordinates &&
-      activity.location.coordinates.length === 2 &&
-      !isNaN(activity.location.coordinates[0]) &&
-      !isNaN(activity.location.coordinates[1])
+      activity => activity.location &&
+      typeof activity.location.lat === 'number' &&
+      typeof activity.location.lng === 'number' &&
+      !isNaN(activity.location.lat) &&
+      !isNaN(activity.location.lng)
     )
 
     if (locatedActivities.length === 0) return
@@ -111,7 +112,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
 
     locatedActivities.forEach((activity, index) => {
       const marker = new window.AMap.Marker({
-        position: activity.location!.coordinates,
+        position: [activity.location!.lng, activity.location!.lat],
         map: mapInstance,
         title: activity.name,
         label: {
@@ -152,7 +153,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
     if (locatedActivities.length > 1) {
       mapInstance.setFitView(markers, false, [100, 100, 100, 100])
     } else {
-      mapInstance.setCenter(locatedActivities[0].location!.coordinates)
+      mapInstance.setCenter([locatedActivities[0].location!.lng, locatedActivities[0].location!.lat])
     }
 
     // 清理函数
@@ -168,8 +169,9 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
     if (!map) return
 
     const locatedActivities = activities.filter(
-      activity => activity.location?.coordinates &&
-      activity.location.coordinates.length === 2
+      activity => activity.location &&
+      typeof activity.location.lat === 'number' &&
+      typeof activity.location.lng === 'number'
     )
 
     if (locatedActivities.length < 2) {
@@ -184,7 +186,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
       setShowRoute(false)
     } else {
       // 显示路线
-      const path = locatedActivities.map(a => a.location!.coordinates)
+      const path = locatedActivities.map(a => [a.location!.lng, a.location!.lat])
 
       const polyline = new window.AMap.Polyline({
         path: path,
@@ -216,7 +218,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
                 第 {dayNumber} 天行程地图
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {activities.filter(a => a.location?.coordinates).length} 个景点
+                {activities.filter(a => a.location && typeof a.location.lat === 'number' && typeof a.location.lng === 'number').length} 个景点
               </p>
             </div>
           </div>
@@ -269,7 +271,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
         <div className="bg-white dark:bg-gray-900 shadow-lg p-4">
           <div className="flex gap-3 overflow-x-auto pb-2">
             {activities
-              .filter(a => a.location?.coordinates)
+              .filter(a => a.location && typeof a.location.lat === 'number' && typeof a.location.lng === 'number')
               .map((activity, index) => (
                 <div
                   key={index}
