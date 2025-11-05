@@ -40,6 +40,7 @@ export const config = {
   // Map Service
   map: {
     apiKey: process.env.NEXT_PUBLIC_MAP_API_KEY || '',
+    webServiceKey: process.env.AMAP_WEB_SERVICE_KEY || '', // Web服务API Key（后端使用）
   },
 
   // Image Service
