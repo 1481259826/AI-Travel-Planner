@@ -18,6 +18,8 @@ import ItineraryNav from '@/components/ItineraryNav'
 import EditModeControls from '@/components/EditModeControls'
 import AddItemModal from '@/components/AddItemModal'
 import WeatherCard from '@/components/WeatherCard'
+import DayMapPreview from '@/components/DayMapPreview'
+import FullScreenMapModal from '@/components/FullScreenMapModal'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -54,6 +56,9 @@ export default function TripDetailPage() {
   // 天气数据状态
   const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
   const [loadingWeather, setLoadingWeather] = useState(false)
+
+  // 全屏地图状态
+  const [fullScreenMapDay, setFullScreenMapDay] = useState<{ dayNumber: number; activities: Activity[] } | null>(null)
 
   // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
   // 在编辑模式下使用 editingTrip，否则使用原始 trip
@@ -647,6 +652,22 @@ export default function TripDetailPage() {
                           />
                         </div>
 
+                        {/* Day Map Preview */}
+                        {day.activities && day.activities.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                              <Map className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              景点地图
+                            </h4>
+                            <DayMapPreview
+                              activities={day.activities}
+                              weather={weatherData.find(w => w.fxDate === day.date) || null}
+                              dayNumber={day.day}
+                              onExpandMap={() => setFullScreenMapDay({ dayNumber: day.day, activities: day.activities })}
+                            />
+                          </div>
+                        )}
+
                         {/* Activities */}
                         {day.activities && day.activities.length > 0 && (
                           <div>
@@ -805,6 +826,16 @@ export default function TripDetailPage() {
         onAdd={handleAddActivity}
         dayNumber={addModalDayIndex + 1}
       />
+
+      {/* Full Screen Map Modal */}
+      {fullScreenMapDay && (
+        <FullScreenMapModal
+          isOpen={!!fullScreenMapDay}
+          onClose={() => setFullScreenMapDay(null)}
+          activities={fullScreenMapDay.activities}
+          dayNumber={fullScreenMapDay.dayNumber}
+        />
+      )}
     </div>
   )
 }
