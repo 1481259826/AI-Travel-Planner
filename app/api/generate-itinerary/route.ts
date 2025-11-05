@@ -7,6 +7,7 @@ import config from '@/lib/config'
 import { TripFormData, Itinerary, AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
 import { getUserApiKey } from '@/lib/api-keys'
+import { getWeatherByCityName } from '@/lib/weather'
 
 // 初始化 Anthropic 客户端
 const anthropic = new Anthropic({
@@ -80,6 +81,25 @@ export async function POST(request: NextRequest) {
     const endDate = new Date(formData.end_date)
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
+    // 获取目的地天气预报（可选，失败不影响主流程）
+    let weatherInfo = ''
+    try {
+      const weatherData = await getWeatherByCityName(formData.destination)
+      if (weatherData && weatherData.daily) {
+        weatherInfo = '\n天气预报信息：\n'
+        weatherData.daily.slice(0, days).forEach((day, index) => {
+          weatherInfo += `${day.fxDate}: ${day.textDay}，温度 ${day.tempMin}°C - ${day.tempMax}°C，${day.windDirDay}风${day.windScaleDay}级`
+          if (parseFloat(day.precip) > 0) {
+            weatherInfo += `，降水${day.precip}mm`
+          }
+          weatherInfo += '\n'
+        })
+        weatherInfo += '\n请根据天气情况合理安排活动，如遇雨天建议安排室内活动，晴天适合户外游览。\n'
+      }
+    } catch (error) {
+      console.error('Failed to fetch weather, continuing without weather data:', error)
+    }
+
     // Create prompt for Claude
     const prompt = `你是一个专业的旅行规划师。根据以下信息生成详细的旅行计划：
 
@@ -89,7 +109,7 @@ export async function POST(request: NextRequest) {
 预算：¥${formData.budget}
 人数：${formData.travelers} 人（成人 ${formData.adult_count} 人，儿童 ${formData.child_count} 人）
 偏好：${formData.preferences.join('、') || '无特殊偏好'}
-${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''}
+${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''}${weatherInfo}
 
 请生成一个详细的旅行计划，以 JSON 格式返回，包含以下内容：
 

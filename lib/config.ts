@@ -46,6 +46,12 @@ export const config = {
   unsplash: {
     accessKey: process.env.UNSPLASH_ACCESS_KEY || '',
   },
+
+  // Weather Service (QWeather/和风天气)
+  qweather: {
+    apiKey: process.env.QWEATHER_API_KEY || '',
+    baseURL: process.env.QWEATHER_BASE_URL || 'https://devapi.qweather.com',
+  },
 }
 
 export default config

@@ -17,11 +17,13 @@ import AttractionCard from '@/components/AttractionCard'
 import ItineraryNav from '@/components/ItineraryNav'
 import EditModeControls from '@/components/EditModeControls'
 import AddItemModal from '@/components/AddItemModal'
+import WeatherCard from '@/components/WeatherCard'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
 import { cacheExpensesFromServer } from '@/lib/sync'
 import { useItineraryStore } from '@/lib/stores/itinerary-store'
+import { WeatherDaily } from '@/lib/weather'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -49,6 +51,10 @@ export default function TripDetailPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [addModalDayIndex, setAddModalDayIndex] = useState(0)
 
+  // 天气数据状态
+  const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
+  const [loadingWeather, setLoadingWeather] = useState(false)
+
   // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
   // 在编辑模式下使用 editingTrip，否则使用原始 trip
   const displayTrip = isEditMode && editingTrip ? editingTrip : trip
@@ -64,7 +70,33 @@ export default function TripDetailPage() {
   useEffect(() => {
     setMounted(true)
     fetchExpenses()
-  }, [tripId])
+    if (trip?.destination) {
+      fetchWeather()
+    }
+  }, [tripId, trip?.destination])
+
+  // 获取天气数据
+  const fetchWeather = async () => {
+    if (!trip?.destination) return
+
+    setLoadingWeather(true)
+    try {
+      const response = await fetch(`/api/weather?city=${encodeURIComponent(trip.destination)}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.daily) {
+          setWeatherData(data.daily)
+        }
+      } else {
+        console.error('Failed to fetch weather data')
+      }
+    } catch (error) {
+      console.error('Error fetching weather:', error)
+    } finally {
+      setLoadingWeather(false)
+    }
+  }
 
   const fetchExpenses = async () => {
     setLoadingExpenses(true)
@@ -600,6 +632,21 @@ export default function TripDetailPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
+                        {/* Weather Information */}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                            </svg>
+                            天气预报
+                          </h4>
+                          <WeatherCard
+                            date={day.date}
+                            weather={weatherData.find(w => w.fxDate === day.date) || null}
+                            isLoading={loadingWeather}
+                          />
+                        </div>
+
                         {/* Activities */}
                         {day.activities && day.activities.length > 0 && (
                           <div>
