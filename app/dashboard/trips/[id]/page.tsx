@@ -15,10 +15,13 @@ import ShareButton from '@/components/ShareButton'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
 import AttractionCard from '@/components/AttractionCard'
 import ItineraryNav from '@/components/ItineraryNav'
+import EditModeControls from '@/components/EditModeControls'
+import AddItemModal from '@/components/AddItemModal'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
 import { cacheExpensesFromServer } from '@/lib/sync'
+import { useItineraryStore } from '@/lib/stores/itinerary-store'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -41,15 +44,22 @@ export default function TripDetailPage() {
   // 景点图片加载状态
   const [enrichingActivities, setEnrichingActivities] = useState<Set<string>>(new Set())
 
+  // 编辑模式状态
+  const { isEditMode, editingTrip, deleteActivity, addActivity } = useItineraryStore()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addModalDayIndex, setAddModalDayIndex] = useState(0)
+
   // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
+  // 在编辑模式下使用 editingTrip，否则使用原始 trip
+  const displayTrip = isEditMode && editingTrip ? editingTrip : trip
   const allLocations = useMemo(() => {
-    const itinerary = trip?.itinerary
+    const itinerary = displayTrip?.itinerary
     return itinerary?.days
       ? itinerary.days.flatMap(day =>
           extractLocationsFromItinerary(day.activities || [], day.meals || [])
         )
       : []
-  }, [trip?.itinerary])
+  }, [displayTrip?.itinerary])
 
   useEffect(() => {
     setMounted(true)
@@ -249,6 +259,22 @@ export default function TripDetailPage() {
     }
   }
 
+  // 处理添加活动
+  const handleAddActivity = (activity: Activity) => {
+    addActivity(addModalDayIndex, activity)
+  }
+
+  // 打开添加活动模态框
+  const openAddModal = (dayIndex: number) => {
+    setAddModalDayIndex(dayIndex)
+    setShowAddModal(true)
+  }
+
+  // 处理保存成功后的刷新
+  const handleSaveSuccess = async () => {
+    await refetch()
+  }
+
   // 计算总开销
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
 
@@ -302,6 +328,7 @@ export default function TripDetailPage() {
                   <span className="text-xs font-medium text-green-700 dark:text-green-300">已同步</span>
                 </div>
               )}
+              <EditModeControls trip={trip} onSaveSuccess={handleSaveSuccess} />
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <ExportPdfButton trip={trip} />
               <Button
@@ -390,9 +417,9 @@ export default function TripDetailPage() {
           {activeTab === 'itinerary' ? (
             <>
               {/* Itinerary Navigation */}
-              {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+              {displayTrip?.itinerary?.days && displayTrip.itinerary.days.length > 0 && (
                 <ItineraryNav
-                  days={trip.itinerary.days.map(day => ({
+                  days={displayTrip.itinerary.days.map(day => ({
                     day: day.day,
                     date: day.date
                   }))}
@@ -460,19 +487,19 @@ export default function TripDetailPage() {
               </Card>
 
               {/* Itinerary Summary */}
-              {trip.itinerary?.summary && (
+              {displayTrip?.itinerary?.summary && (
                 <Card>
                   <CardHeader>
                     <CardTitle>行程概述</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300">{trip.itinerary.summary}</p>
+                    <p className="text-gray-700 dark:text-gray-300">{displayTrip.itinerary.summary}</p>
                   </CardContent>
                 </Card>
               )}
 
               {/* Map View */}
-              {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+              {displayTrip?.itinerary?.days && displayTrip.itinerary.days.length > 0 && (
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -546,10 +573,10 @@ export default function TripDetailPage() {
               )}
 
               {/* Daily Plans */}
-              {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+              {displayTrip?.itinerary?.days && displayTrip.itinerary.days.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">每日行程</h2>
-                  {trip.itinerary.days.map((day) => (
+                  {displayTrip.itinerary.days.map((day) => (
                     <Card
                       key={day.day}
                       id={`day-${day.day}`}
@@ -559,6 +586,17 @@ export default function TripDetailPage() {
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
                           <span>第 {day.day} 天 - {day.date}</span>
+                          {isEditMode && (
+                            <button
+                              onClick={() => openAddModal(day.day - 1)}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              添加活动
+                            </button>
+                          )}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -573,6 +611,8 @@ export default function TripDetailPage() {
                                   activity={activity}
                                   onEnrich={() => handleEnrichActivity(activity, day.day - 1, idx)}
                                   isEnriching={enrichingActivities.has(`${day.day - 1}-${idx}`)}
+                                  isEditMode={isEditMode}
+                                  onDelete={() => deleteActivity(day.day - 1, idx)}
                                 />
                               ))}
                             </div>
@@ -612,7 +652,7 @@ export default function TripDetailPage() {
               )}
 
               {/* Cost Breakdown */}
-              {trip.itinerary?.estimated_cost && (
+              {displayTrip?.itinerary?.estimated_cost && (
                 <Card>
                   <CardHeader>
                     <CardTitle>费用预估</CardTitle>
@@ -621,27 +661,27 @@ export default function TripDetailPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">住宿</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">交通</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">餐饮</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.food.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.food.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">景点门票</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">其他</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{trip.itinerary.estimated_cost.other.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.other.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between pt-2 border-t dark:border-gray-700 font-bold text-lg">
                         <span className="text-gray-900 dark:text-white">总计</span>
-                        <span className="text-blue-600 dark:text-blue-400">¥{trip.itinerary.estimated_cost.total.toLocaleString()}</span>
+                        <span className="text-blue-600 dark:text-blue-400">¥{displayTrip.itinerary.estimated_cost.total.toLocaleString()}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -710,6 +750,14 @@ export default function TripDetailPage() {
           )}
         </div>
       </main>
+
+      {/* Add Item Modal */}
+      <AddItemModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={handleAddActivity}
+        dayNumber={addModalDayIndex + 1}
+      />
     </div>
   )
 }

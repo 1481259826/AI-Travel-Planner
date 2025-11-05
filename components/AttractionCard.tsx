@@ -9,12 +9,15 @@ interface AttractionCardProps {
   activity: Activity
   onEnrich?: (activity: Activity) => void  // 回调函数，用于获取图片和描述
   isEnriching?: boolean  // 是否正在加载
+  isEditMode?: boolean  // 是否处于编辑模式
+  onDelete?: () => void  // 删除回调函数
 }
 
-export default function AttractionCard({ activity, onEnrich, isEnriching = false }: AttractionCardProps) {
+export default function AttractionCard({ activity, onEnrich, isEnriching = false, isEditMode = false, onDelete }: AttractionCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const hasPhotos = activity.photos && activity.photos.length > 0
   const photos = activity.photos || []
@@ -136,10 +139,23 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
               {activity.type === 'entertainment' && '娱乐'}
               {activity.type === 'relaxation' && '休闲'}
             </div>
+
+            {/* 编辑模式：删除按钮 */}
+            {isEditMode && onDelete && (
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition-colors backdrop-blur-sm"
+                aria-label="删除活动"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
           </>
         ) : (
           /* 占位图 */
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+          <div className="relative w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
             <ImageIcon className="w-16 h-16 mb-2" />
             {!hasPhotos && onEnrich && !isEnriching && (
               <button
@@ -156,6 +172,19 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
               </div>
             )}
             {imageError && <p className="text-sm mt-2">图片加载失败</p>}
+
+            {/* 编辑模式：删除按钮 */}
+            {isEditMode && onDelete && (
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition-colors"
+                aria-label="删除活动"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -259,6 +288,59 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
           )}
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg
+                  className="w-6 h-6 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  确认删除活动？
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-1">
+                  即将删除：<span className="font-medium">{activity.name}</span>
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                  此操作仅在保存修改后生效
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowDeleteDialog(false)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => {
+                      onDelete?.()
+                      setShowDeleteDialog(false)
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    确认删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
