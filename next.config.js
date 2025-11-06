@@ -173,6 +173,27 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'api.mapbox.com',
       },
+      // 高德地图照片域名（需要同时支持 HTTP 和 HTTPS）
+      {
+        protocol: 'http',
+        hostname: 'store.is.autonavi.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'store.is.autonavi.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'aos-comment.amap.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'aos-cdn-image.amap.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'aos-cdn-image.amap.com',
+      },
     ],
   },
 }

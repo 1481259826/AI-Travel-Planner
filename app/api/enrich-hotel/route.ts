@@ -6,8 +6,8 @@ import config from '@/lib/config'
 import { getUserApiKey } from '@/lib/api-keys'
 
 /**
- * POST /api/enrich-attraction
- * 输入：{ name: string; destination?: string; locationName?: string; count?: number; model?: string }
+ * POST /api/enrich-hotel
+ * 输入：{ name: string; destination?: string; type?: string; count?: number; model?: string }
  * 输出：{ images: string[]; description: string }
  */
 export async function POST(request: NextRequest) {
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const name: string = body.name
     const destination: string | undefined = body.destination
-    const locationName: string | undefined = body.locationName
+    const type: string | undefined = body.type // hotel, hostel, apartment, resort
     const count: number = Math.max(1, Math.min(5, body.count || 3))
     const selectedModel: string | undefined = body.model
 
     if (!name) {
-      return NextResponse.json({ error: '缺少景点名称' }, { status: 400 })
+      return NextResponse.json({ error: '缺少酒店名称' }, { status: 400 })
     }
 
     // 1) 优先从高德地图获取真实照片
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          console.log(`高德地图找到 ${images.length} 张景点照片`)
+          console.log(`高德地图找到 ${images.length} 张照片`)
         }
       } catch (e) {
         console.warn('高德地图照片获取失败:', e)
@@ -85,32 +85,29 @@ export async function POST(request: NextRequest) {
 
     // 2) 如果高德地图没有照片，使用 Unsplash 作为备选
     if (images.length === 0) {
-      let query = ''
-
-      // 优化搜索策略：使用更通用的关键词
-      if (destination && name) {
-        const cleanedName = name
-          .replace(/酒店|宾馆|餐厅|饭店|商场|购物中心/g, '')
-          .replace(/\d+号|店|馆/g, '')
-          .trim()
-
-        query = `${destination} ${cleanedName}`.trim()
-      } else if (destination) {
-        query = `${destination} landmarks tourist attractions`
-      } else {
-        query = name || 'China tourist attractions'
+      const typeKeywords: { [key: string]: string } = {
+        hotel: 'hotel room luxury',
+        hostel: 'hostel dormitory',
+        apartment: 'apartment interior rental',
+        resort: 'resort vacation',
       }
+      const typeKeyword = typeKeywords[type || 'hotel'] || 'hotel room'
+      const destinationEn = destination || 'China'
+      const query = `${destinationEn} ${typeKeyword}`.trim()
 
       const unsplashKey = process.env.UNSPLASH_ACCESS_KEY || ''
       if (unsplashKey) {
         try {
-          const resp = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${count}`, {
-            headers: { 'Authorization': `Client-ID ${unsplashKey}` },
-          })
+          const resp = await fetch(
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${count}`,
+            {
+              headers: { 'Authorization': `Client-ID ${unsplashKey}` },
+            }
+          )
           if (resp.ok) {
             const data = await resp.json()
             images = (data.results || []).map((r: any) => r.urls?.small).filter(Boolean)
-            console.log(`Unsplash 找到 ${images.length} 张景点照片`)
+            console.log(`Unsplash 找到 ${images.length} 张照片`)
           }
         } catch (e) {
           console.warn('Unsplash fetch failed:', e)
@@ -139,17 +136,27 @@ export async function POST(request: NextRequest) {
       baseURL: config.anthropic.baseURL,
     })
 
-    const prompt = `你是一名旅行作家，请为下面的景点生成一段个性化、引人入胜的中文描述（约200-300字），突出特色、氛围、适合人群和小贴士，避免重复和模板化。
+    // 根据酒店类型生成不同的提示词
+    const typeDescriptions: { [key: string]: string } = {
+      hotel: '酒店',
+      hostel: '青年旅舍',
+      apartment: '公寓',
+      resort: '度假村',
+    }
+    const typeDesc = typeDescriptions[type || 'hotel'] || '酒店'
 
-景点：${name}
+    const prompt = `你是一名旅行住宿专家，请为下面的${typeDesc}生成一段吸引人的中文描述（约150-200字），突出位置优势、设施特色、服务亮点和适合人群，避免重复和模板化。
+
+${typeDesc}名称：${name}
 目的地：${destination || '未指定'}
-位置名称：${locationName || name}
+类型：${typeDesc}
 
 要求：
-- 语言优美、有画面感，避免堆砌形容词；
-- 不要编造不存在的事实；
-- 如果适合拍照、亲子或美食等，请自然提及；
-- 最后一句给出1-2条贴士（如最佳参观时间、预约、交通等）。`
+- 语言专业、有说服力，突出住宿体验；
+- 不要编造不存在的设施和服务；
+- 如果适合商务、家庭、情侣等，请自然提及；
+- 提及周边交通或景点便利性；
+- 最后一句给出1-2条住宿建议（如预订建议、特色服务等）。`
 
     try {
       // 判断模型所属的 provider
@@ -226,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ images, description })
   } catch (error) {
-    console.error('Enrich attraction error:', error)
+    console.error('Enrich hotel error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

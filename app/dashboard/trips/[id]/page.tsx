@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
-import { Trip, Activity } from '@/types'
-import MapView, { extractLocationsFromItinerary } from '@/components/MapView'
+import { Trip, Activity, Accommodation } from '@/types'
+import MapView, { extractLocationsFromItinerary, MapLocation } from '@/components/MapView'
+import AccommodationSection from '@/components/AccommodationSection'
 import ExpenseForm from '@/components/ExpenseForm'
 import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
@@ -35,7 +36,7 @@ export default function TripDetailPage() {
   // Use offline-first hook for trip data
   const { trip, isLoading: loading, error, refetch, updateTrip, fromCache } = useOfflineTrip(tripId)
 
-  const [showMap, setShowMap] = useState(false) // 默认隐藏地图，提升加载速度
+  const [showMap, setShowMap] = useState(true) // 默认显示地图
   const [showRoute, setShowRoute] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -47,6 +48,9 @@ export default function TripDetailPage() {
 
   // 景点图片加载状态
   const [enrichingActivities, setEnrichingActivities] = useState<Set<string>>(new Set())
+
+  // 酒店图片加载状态
+  const [enrichingHotels, setEnrichingHotels] = useState<Set<string>>(new Set())
 
   // 编辑模式状态
   const { isEditMode, editingTrip, deleteActivity, addActivity } = useItineraryStore()
@@ -60,16 +64,30 @@ export default function TripDetailPage() {
   // 全屏地图状态
   const [fullScreenMapDay, setFullScreenMapDay] = useState<{ dayNumber: number; activities: Activity[] } | null>(null)
 
+  // 自动加载照片的状态
+  const autoEnrichStarted = useRef(false)
+
   // 提取所有位置信息用于地图显示 - 使用 useMemo 避免重复计算
   // 在编辑模式下使用 editingTrip，否则使用原始 trip
   const displayTrip = isEditMode && editingTrip ? editingTrip : trip
   const allLocations = useMemo(() => {
     const itinerary = displayTrip?.itinerary
-    return itinerary?.days
+    const dayLocations = itinerary?.days
       ? itinerary.days.flatMap(day =>
           extractLocationsFromItinerary(day.activities || [], day.meals || [])
         )
       : []
+
+    // 添加酒店位置
+    const hotelLocations: MapLocation[] = (itinerary?.accommodation || []).map((hotel) => ({
+      name: hotel.name,
+      lat: hotel.location.lat,
+      lng: hotel.location.lng,
+      type: 'hotel' as const,
+      description: `${hotel.type} · 入住: ${new Date(hotel.check_in).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })} - 退房: ${new Date(hotel.check_out).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}`,
+    }))
+
+    return [...dayLocations, ...hotelLocations]
   }, [displayTrip?.itinerary])
 
   useEffect(() => {
@@ -79,6 +97,52 @@ export default function TripDetailPage() {
       fetchWeather()
     }
   }, [tripId, trip?.destination])
+
+  // 自动加载酒店和景点照片
+  useEffect(() => {
+    if (!trip || !mounted || autoEnrichStarted.current) return
+
+    const autoEnrichPhotos = async () => {
+      autoEnrichStarted.current = true
+
+      // 收集需要加载照片的酒店
+      const hotelsToEnrich: Accommodation[] = []
+      if (trip.itinerary?.accommodation) {
+        trip.itinerary.accommodation.forEach(hotel => {
+          if (!hotel.photos || hotel.photos.length === 0) {
+            hotelsToEnrich.push(hotel)
+          }
+        })
+      }
+
+      // 收集需要加载照片的景点
+      const activitiesToEnrich: { activity: Activity; dayIndex: number; activityIndex: number }[] = []
+      if (trip.itinerary?.days) {
+        trip.itinerary.days.forEach((day, dayIndex) => {
+          day.activities?.forEach((activity, activityIndex) => {
+            if (!activity.photos || activity.photos.length === 0) {
+              activitiesToEnrich.push({ activity, dayIndex, activityIndex })
+            }
+          })
+        })
+      }
+
+      // 使用队列逐个加载，避免同时发起太多请求
+      // 先加载酒店照片
+      for (const hotel of hotelsToEnrich) {
+        await new Promise(resolve => setTimeout(resolve, 500)) // 延迟500ms避免请求过快
+        await handleEnrichHotel(hotel)
+      }
+
+      // 再加载景点照片
+      for (const { activity, dayIndex, activityIndex } of activitiesToEnrich) {
+        await new Promise(resolve => setTimeout(resolve, 500)) // 延迟500ms避免请求过快
+        await handleEnrichActivity(activity, dayIndex, activityIndex)
+      }
+    }
+
+    autoEnrichPhotos()
+  }, [trip, mounted])
 
   // 获取天气数据
   const fetchWeather = async () => {
@@ -294,6 +358,100 @@ export default function TripDetailPage() {
         is_public: isPublic
       })
     }
+  }
+
+  // 为酒店获取图片和描述
+  const handleEnrichHotel = async (hotel: Accommodation) => {
+    const hotelKey = hotel.name
+
+    // 避免重复请求
+    if (enrichingHotels.has(hotelKey)) {
+      return
+    }
+
+    setEnrichingHotels(prev => new Set(prev).add(hotelKey))
+
+    try {
+      // 获取当前用户的 session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('未登录')
+      }
+
+      const response = await fetch('/api/enrich-hotel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: hotel.name,
+          destination: trip?.destination,
+          type: hotel.type,
+          count: 3,  // 获取3张图片
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('获取酒店信息失败')
+      }
+
+      const data = await response.json()
+
+      // 更新行程数据
+      if (trip && trip.itinerary && trip.itinerary.accommodation) {
+        const updatedItinerary = { ...trip.itinerary }
+        const hotelIndex = updatedItinerary.accommodation.findIndex(h => h.name === hotel.name)
+
+        if (hotelIndex !== -1) {
+          const updatedHotel = {
+            ...hotel,
+            photos: data.images || [],
+            description: data.description || hotel.description,
+          }
+
+          updatedItinerary.accommodation[hotelIndex] = updatedHotel
+
+          // 更新到数据库
+          const { error } = await supabase
+            .from('trips')
+            .update({ itinerary: updatedItinerary })
+            .eq('id', tripId)
+
+          if (error) throw error
+
+          // 更新本地状态
+          await updateTrip({ ...trip, itinerary: updatedItinerary })
+
+          // 刷新数据
+          await refetch()
+        }
+      }
+    } catch (error: any) {
+      console.error('Error enriching hotel:', error)
+      alert(error.message || '获取酒店信息失败')
+    } finally {
+      setEnrichingHotels(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(hotelKey)
+        return newSet
+      })
+    }
+  }
+
+  // 处理点击酒店的"地图查看"按钮
+  const handleShowHotelOnMap = (hotel: Accommodation) => {
+    // 确保地图可见
+    if (!showMap) {
+      setShowMap(true)
+    }
+    // 滚动到地图区域
+    setTimeout(() => {
+      const mapElement = document.getElementById('trip-map-section')
+      if (mapElement) {
+        mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
   }
 
   // 处理添加活动
@@ -537,7 +695,7 @@ export default function TripDetailPage() {
 
               {/* Map View */}
               {displayTrip?.itinerary?.days && displayTrip.itinerary.days.length > 0 && (
-                <Card>
+                <Card id="trip-map-section">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
@@ -607,6 +765,16 @@ export default function TripDetailPage() {
                     )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Accommodation Section */}
+              {displayTrip?.itinerary?.accommodation && displayTrip.itinerary.accommodation.length > 0 && (
+                <AccommodationSection
+                  accommodations={displayTrip.itinerary.accommodation}
+                  onShowHotelOnMap={handleShowHotelOnMap}
+                  onEnrichHotel={handleEnrichHotel}
+                  enrichingHotels={enrichingHotels}
+                />
               )}
 
               {/* Daily Plans */}

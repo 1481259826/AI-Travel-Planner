@@ -67,6 +67,7 @@ export default function CreateTripPage() {
     adult_count: 1,
     child_count: 0,
     preferences: [],
+    hotel_preferences: [],
     additional_notes: '',
     model: getDefaultModel().id as AIModel,
   })
@@ -80,6 +81,17 @@ export default function CreateTripPage() {
     '摄影',
     '冒险探险',
     '休闲度假',
+  ]
+
+  const hotelPreferenceOptions = [
+    '经济型',
+    '中档舒适',
+    '高档豪华',
+    '度假村',
+    '家庭友好',
+    '商务酒店',
+    '精品酒店',
+    '民宿客栈',
   ]
 
   const handleVoiceTranscript = (text: string) => {
@@ -97,6 +109,15 @@ export default function CreateTripPage() {
       preferences: prev.preferences.includes(pref)
         ? prev.preferences.filter(p => p !== pref)
         : [...prev.preferences, pref],
+    }))
+  }
+
+  const toggleHotelPreference = (pref: string) => {
+    setFormData(prev => ({
+      ...prev,
+      hotel_preferences: (prev.hotel_preferences || []).includes(pref)
+        ? (prev.hotel_preferences || []).filter(p => p !== pref)
+        : [...(prev.hotel_preferences || []), pref],
     }))
   }
 
@@ -356,6 +377,29 @@ export default function CreateTripPage() {
                         className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                           formData.preferences.includes(pref)
                             ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {pref}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hotel Preferences */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-900 dark:text-white">
+                    酒店偏好 <span className="text-xs text-gray-500 dark:text-gray-400">(可选)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {hotelPreferenceOptions.map((pref) => (
+                      <button
+                        key={pref}
+                        type="button"
+                        onClick={() => toggleHotelPreference(pref)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                          (formData.hotel_preferences || []).includes(pref)
+                            ? 'bg-purple-600 text-white'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}
                       >

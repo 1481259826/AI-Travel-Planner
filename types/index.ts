@@ -82,6 +82,8 @@ export interface Accommodation {
   total_price: number
   rating?: number
   amenities?: string[]
+  photos?: string[] // 酒店照片（增强功能）
+  description?: string // AI生成的详细描述（增强功能）
 }
 
 export interface Transportation {
@@ -134,6 +136,7 @@ export interface TripFormData {
   adult_count: number
   child_count: number
   preferences: string[]
+  hotel_preferences?: string[] // 酒店偏好：经济型、中档、豪华等
   additional_notes?: string
   model?: AIModel
 }

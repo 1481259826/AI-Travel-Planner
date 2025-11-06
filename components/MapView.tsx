@@ -16,7 +16,7 @@ export interface MapLocation {
   name: string
   lat: number
   lng: number
-  type: 'activity' | 'meal'
+  type: 'activity' | 'meal' | 'hotel'
   description?: string
   time?: string
 }
@@ -357,8 +357,20 @@ export default function MapView({
 
   // 创建信息窗口内容
   const createInfoWindowContent = (location: MapLocation, index: number) => {
-    const icon = location.type === 'activity' ? '🎯' : '🍽️'
-    const typeText = location.type === 'activity' ? '活动' : '餐饮'
+    const getIconAndType = () => {
+      switch (location.type) {
+        case 'activity':
+          return { icon: '🎯', typeText: '活动' }
+        case 'meal':
+          return { icon: '🍽️', typeText: '餐饮' }
+        case 'hotel':
+          return { icon: '🏨', typeText: '住宿' }
+        default:
+          return { icon: '📍', typeText: '地点' }
+      }
+    }
+
+    const { icon, typeText } = getIconAndType()
 
     return `
       <div style="padding: 12px; min-width: 200px;">
@@ -421,6 +433,10 @@ export default function MapView({
             <div className="flex items-center gap-2">
               <span className="text-lg">🍽️</span>
               <span className="text-gray-700">餐饮推荐</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏨</span>
+              <span className="text-gray-700">推荐住宿</span>
             </div>
           </div>
           {showRoute && (

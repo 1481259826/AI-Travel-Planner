@@ -8,6 +8,7 @@ import { TripFormData, Itinerary, AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
 import { getUserApiKey } from '@/lib/api-keys'
 import { getWeatherByCityName } from '@/lib/weather'
+import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
 
 // 初始化 Anthropic 客户端
 const anthropic = new Anthropic({
@@ -101,6 +102,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create prompt for Claude
+    const hotelPreferencesText = formData.hotel_preferences && formData.hotel_preferences.length > 0
+      ? `\n酒店偏好：${formData.hotel_preferences.join('、')}`
+      : ''
+
     const prompt = `你是一个专业的旅行规划师。根据以下信息生成详细的旅行计划：
 
 出发地：${formData.origin || '未指定'}
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
 日期：${formData.start_date} 至 ${formData.end_date}（共 ${days} 天）
 预算：¥${formData.budget}
 人数：${formData.travelers} 人（成人 ${formData.adult_count} 人，儿童 ${formData.child_count} 人）
-偏好：${formData.preferences.join('、') || '无特殊偏好'}
+偏好：${formData.preferences.join('、') || '无特殊偏好'}${hotelPreferencesText}
 ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''}${weatherInfo}
 
 请生成一个详细的旅行计划，以 JSON 格式返回，包含以下内容：
@@ -163,12 +168,12 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
         "lat": 纬度,
         "lng": 经度
       },
-      "check_in": "入住日期",
-      "check_out": "退房日期",
-      "price_per_night": 每晚价格,
-      "total_price": 总价,
-      "rating": 评分（1-5）,
-      "amenities": ["设施1", "设施2"]
+      "check_in": "入住日期（YYYY-MM-DD）",
+      "check_out": "退房日期（YYYY-MM-DD）",
+      "price_per_night": 每晚价格（数字）,
+      "total_price": 总价（数字）,
+      "rating": 评分（1-5，数字）,
+      "amenities": ["免费WiFi", "空调", "早餐", "停车场", "健身房", "游泳池等"]
     }
   ],
   "transportation": {
@@ -210,7 +215,22 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
 7. **非常重要：每个活动和餐厅的 location 必须包含真实准确的经纬度坐标（lat, lng）**
 8. 经纬度必须是数字类型，不能是字符串或 null
 9. 请使用真实存在的景点和餐厅，并提供准确的地理坐标
-10. 请直接返回 JSON，不要包含任何其他文字说明`
+10. **地理位置优化建议：**
+    - 同一天内，相邻的景点应该在地理位置上相对靠近（距离在 1-2 公里以内最佳）
+    - 避免早上在 A 区域，中午跳到 B 区域，下午又回到 A 区域的往返情况
+    - 按合理的地理动线安排景点顺序，形成顺畅的游览路线，节省交通时间
+    - 餐厅应选择靠近当天景点的位置
+11. **酒店推荐策略：**
+    - **短途行程（1-3天）**：推荐1个交通便利、靠近主要景点的酒店，全程入住
+    - **中等行程（4-6天）**：可以推荐1-2个酒店，如果行程跨越不同区域，建议在不同区域各住一个酒店
+    - **长途行程（7天以上）**：建议根据行程路线推荐2-3个不同位置的酒店，每个酒店覆盖附近几天的行程
+    - 选择酒店位置时，优先考虑靠近当天及次日主要活动区域，减少往返时间
+    - 每个酒店的 check_in 和 check_out 日期必须连续且合理
+    - 酒店价格应根据预算合理分配，避免超出总预算
+    - type 字段可以是: "hotel"（酒店）, "hostel"（青年旅舍）, "apartment"（公寓）, "resort"（度假村）
+    - 推荐的酒店应该真实存在，评分应该合理（3.5-5.0）
+    - amenities（设施）应该根据酒店类型和价格档次合理设置
+12. 请直接返回 JSON，不要包含任何其他文字说明`
 
     // Call AI API (根据选择的模型)
     let responseText = ''
@@ -270,6 +290,10 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
         { status: 500 }
       )
     }
+
+    // 执行地理位置聚类优化，将相近的景点安排在一起
+    console.log('Applying geographic clustering optimization...')
+    itinerary = optimizeItineraryByClustering(itinerary, 1000) // 1000米聚类阈值
 
     // 创建带有用户认证的 Supabase 客户端
     const authHeader = request.headers.get('authorization')
