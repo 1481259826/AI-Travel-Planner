@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Activity } from '@/types/trip'
+import { Activity } from '@/types'
 import { WeatherDaily } from '@/lib/weather'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
@@ -131,19 +131,60 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
     const newMarkers: any[] = []
 
     locatedActivities.forEach((activity, index) => {
+      // 创建自定义的SVG标记图标（数字直接绘制在SVG中）
+      const svgIcon = `
+        <svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="shadow-day-${index}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="2" result="offsetblur"/>
+              <feComponentTransfer>
+                <feFuncA type="linear" slope="0.3"/>
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <linearGradient id="grad-day-${index}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.9" />
+            </linearGradient>
+          </defs>
+          <!-- 标记主体 -->
+          <path
+            d="M15 2 C8.373 2 3 7.373 3 14 C3 22 15 38 15 38 S27 22 27 14 C27 7.373 21.627 2 15 2 Z"
+            fill="url(#grad-day-${index})"
+            stroke="white"
+            stroke-width="2"
+            filter="url(#shadow-day-${index})"
+          />
+          <!-- 内圆 -->
+          <circle cx="15" cy="14" r="7" fill="white" opacity="0.9"/>
+          <!-- 数字背景 -->
+          <circle cx="15" cy="14" r="6" fill="#3b82f6"/>
+          <!-- 数字文本 -->
+          <text x="15" y="14" text-anchor="middle" dominant-baseline="central"
+                fill="white" font-size="10" font-weight="bold" font-family="Arial, sans-serif">
+            ${index + 1}
+          </text>
+        </svg>
+      `
+
+      const iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon)
+
       const marker = new window.AMap.Marker({
         position: [activity.location!.lng, activity.location!.lat],
         map: mapInstance,
         title: activity.name,
-        label: {
-          content: `<div style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">${index + 1}</div>`,
-          offset: new window.AMap.Pixel(0, -35),
-        },
         icon: new window.AMap.Icon({
-          image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
-          size: new window.AMap.Size(25, 34),
-          imageSize: new window.AMap.Size(25, 34),
+          image: iconUrl,
+          size: new window.AMap.Size(30, 40),
+          imageSize: new window.AMap.Size(30, 40),
+          imageOffset: new window.AMap.Pixel(0, 0),
+          anchor: new window.AMap.Pixel(15, 38),
         }),
+        anchor: 'bottom-center',
       })
 
       // 添加信息窗口 - 增强版，包含图片、评分、价格、tips
@@ -247,7 +288,7 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
             <MapPin className="w-4 h-4" />
             <span className="text-sm font-medium">第 {dayNumber} 天行程</span>
             <span className="text-xs opacity-80">
-              {activities.filter(a => a.location?.coordinates).length} 个景点
+              {activities.filter(a => a.location && a.location.lat && a.location.lng).length} 个景点
             </span>
           </div>
 
@@ -292,6 +333,13 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
             ))}
         </div>
       </div>
+
+      {/* 隐藏高德地图默认的label */}
+      <style jsx global>{`
+        .amap-marker-label {
+          display: none !important;
+        }
+      `}</style>
     </div>
   )
 }

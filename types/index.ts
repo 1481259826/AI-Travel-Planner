@@ -150,7 +150,6 @@ export interface VoiceRecognitionResult {
 
 // AI Model types
 export type AIModel =
-  | 'claude-haiku-4-5'
   | 'deepseek-chat'
   | 'deepseek-reasoner'
   | 'Qwen/Qwen2.5-72B-Instruct'
@@ -187,7 +186,6 @@ export type ApiKeyService =
   | 'modelscope'
   | 'map'
   | 'voice'
-  | 'unsplash'
 
 export interface ApiKey {
   id: string

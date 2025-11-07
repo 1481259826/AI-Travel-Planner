@@ -51,12 +51,6 @@ const services: ServiceInfo[] = [
     placeholder: '您的讯飞语音 API Key',
     helpText: '在讯飞开放平台获取语音听写 API Key',
   },
-  {
-    id: 'unsplash',
-    name: 'Unsplash 图片',
-    placeholder: 'your_unsplash_access_key',
-    helpText: '在 Unsplash Developers 获取 Access Key',
-  },
 ]
 
 export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKeyModalProps) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Activity } from '@/types/trip'
+import { Activity } from '@/types'
 import { X, MapPin, Navigation, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
 

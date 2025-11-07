@@ -167,10 +167,6 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
         hostname: 'api.mapbox.com',
       },
       // 高德地图照片域名（需要同时支持 HTTP 和 HTTPS）

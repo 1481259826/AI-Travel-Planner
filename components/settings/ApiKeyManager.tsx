@@ -254,13 +254,6 @@ export default function ApiKeyManager() {
       userKeys: apiKeys.filter((k) => k.service === 'voice'),
       systemKeys: systemKeys.filter((k) => k.service === 'voice'),
     },
-    {
-      id: 'unsplash',
-      name: 'Unsplash 图片',
-      icon: '🖼️',
-      userKeys: apiKeys.filter((k) => k.service === 'unsplash'),
-      systemKeys: systemKeys.filter((k) => k.service === 'unsplash'),
-    },
   ]
 
   if (loading) {

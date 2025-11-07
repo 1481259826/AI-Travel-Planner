@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import config from '@/lib/config'
 import { getUserApiKey } from '@/lib/api-keys'
@@ -83,40 +82,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2) 如果高德地图没有照片，使用 Unsplash 作为备选
-    if (images.length === 0) {
-      let query = ''
-
-      // 优化搜索策略：使用更通用的关键词
-      if (destination && name) {
-        const cleanedName = name
-          .replace(/酒店|宾馆|餐厅|饭店|商场|购物中心/g, '')
-          .replace(/\d+号|店|馆/g, '')
-          .trim()
-
-        query = `${destination} ${cleanedName}`.trim()
-      } else if (destination) {
-        query = `${destination} landmarks tourist attractions`
-      } else {
-        query = name || 'China tourist attractions'
-      }
-
-      const unsplashKey = process.env.UNSPLASH_ACCESS_KEY || ''
-      if (unsplashKey) {
-        try {
-          const resp = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${count}`, {
-            headers: { 'Authorization': `Client-ID ${unsplashKey}` },
-          })
-          if (resp.ok) {
-            const data = await resp.json()
-            images = (data.results || []).map((r: any) => r.urls?.small).filter(Boolean)
-            console.log(`Unsplash 找到 ${images.length} 张景点照片`)
-          }
-        } catch (e) {
-          console.warn('Unsplash fetch failed:', e)
-        }
-      }
-    }
 
     // 2) 生成 AI 描述（优先 ModelScope → DeepSeek → Anthropic）
     let description = ''
@@ -124,7 +89,6 @@ export async function POST(request: NextRequest) {
     // 检查用户或系统的 Key
     const userModelScopeKey = await getUserApiKey(user.id, 'modelscope')
     const userDeepSeekKey = await getUserApiKey(user.id, 'deepseek')
-    const userAnthropicKey = await getUserApiKey(user.id, 'anthropic')
 
     const modelscopeClient = new OpenAI({
       apiKey: userModelScopeKey || config.modelscope.apiKey,
@@ -133,10 +97,6 @@ export async function POST(request: NextRequest) {
     const deepseekClient = new OpenAI({
       apiKey: userDeepSeekKey || config.deepseek.apiKey,
       baseURL: config.deepseek.baseURL,
-    })
-    const anthropicClient = new Anthropic({
-      apiKey: userAnthropicKey || config.anthropic.apiKey,
-      baseURL: config.anthropic.baseURL,
     })
 
     const prompt = `你是一名旅行作家，请为下面的景点生成一段个性化、引人入胜的中文描述（约200-300字），突出特色、氛围、适合人群和小贴士，避免重复和模板化。
@@ -155,7 +115,6 @@ export async function POST(request: NextRequest) {
       // 判断模型所属的 provider
       let useModelScope = false
       let useDeepSeek = false
-      let useAnthropic = false
       let finalModel = ''
 
       if (selectedModel?.includes('Qwen')) {
@@ -170,25 +129,16 @@ export async function POST(request: NextRequest) {
           useDeepSeek = true
           finalModel = selectedModel
         }
-      } else if (selectedModel?.includes('claude')) {
-        // 指定了 Anthropic 模型
-        if (userAnthropicKey || config.anthropic.apiKey) {
-          useAnthropic = true
-          finalModel = selectedModel
-        }
       }
 
       // 如果未指定模型或指定的模型没有可用的 Key，按优先级选择
-      if (!useModelScope && !useDeepSeek && !useAnthropic) {
+      if (!useModelScope && !useDeepSeek) {
         if (userModelScopeKey || config.modelscope.apiKey) {
           useModelScope = true
           finalModel = config.modelscope.model
         } else if (userDeepSeekKey || config.deepseek.apiKey) {
           useDeepSeek = true
           finalModel = config.deepseek.model
-        } else if (userAnthropicKey || config.anthropic.apiKey) {
-          useAnthropic = true
-          finalModel = config.anthropic.model
         }
       }
 
@@ -207,13 +157,6 @@ export async function POST(request: NextRequest) {
           max_tokens: 600,
         })
         description = completion.choices?.[0]?.message?.content || ''
-      } else if (useAnthropic) {
-        const message = await anthropicClient.messages.create({
-          model: finalModel,
-          max_tokens: 600,
-          messages: [{ role: 'user', content: prompt }],
-        })
-        description = message.content[0].type === 'text' ? (message.content[0] as any).text : ''
       } else {
         // 没有任何可用的 API Key
         console.warn('No available API key for AI description generation')

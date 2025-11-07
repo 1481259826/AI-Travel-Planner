@@ -9,6 +9,8 @@ import { getModelById } from '@/lib/models'
 import { getUserApiKey } from '@/lib/api-keys'
 import { getWeatherByCityName } from '@/lib/weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
+import { smartGeocode } from '@/lib/amap-geocoding'
+import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
 
 // 初始化 Anthropic 客户端
 const anthropic = new Anthropic({
@@ -27,6 +29,159 @@ const modelscope = new OpenAI({
   apiKey: config.modelscope.apiKey,
   baseURL: config.modelscope.baseURL,
 })
+
+/**
+ * 修正行程中的坐标
+ * 策略：
+ * 1. 优先使用高德地图 API 获取准确的 GCJ-02 坐标
+ * 2. 如果 API 调用失败，则将 WGS84 坐标转换为 GCJ-02
+ */
+async function correctItineraryCoordinates(itinerary: Itinerary, destination: string): Promise<Itinerary> {
+  console.log('Starting coordinate correction...')
+
+  let apiCallCount = 0
+  const maxApiCalls = 30 // 限制API调用次数，避免超出配额
+
+  // 遍历每一天的行程
+  for (const day of itinerary.days) {
+    // 修正活动景点坐标
+    if (day.activities && day.activities.length > 0) {
+      for (const activity of day.activities) {
+        if (activity.location && activity.location.lat && activity.location.lng) {
+          // 尝试使用高德地图API获取准确坐标（有次数限制）
+          if (apiCallCount < maxApiCalls) {
+            try {
+              // 添加延迟避免API限流
+              if (apiCallCount > 0) {
+                await new Promise(resolve => setTimeout(resolve, 300))
+              }
+
+              const result = await smartGeocode(activity.name, destination)
+              apiCallCount++
+
+              if (result) {
+                console.log(`✓ Corrected coordinates for ${activity.name}: (${activity.location.lat}, ${activity.location.lng}) → (${result.lat}, ${result.lng})`)
+                activity.location.lat = result.lat
+                activity.location.lng = result.lng
+                if (result.formattedAddress) {
+                  activity.location.address = result.formattedAddress
+                }
+                continue
+              }
+            } catch (error) {
+              console.warn(`Failed to geocode ${activity.name}, falling back to coordinate conversion:`, error)
+            }
+          }
+
+          // API调用失败或超出次数限制，使用坐标转换
+          const converted = wgs84ToGcj02(activity.location.lng, activity.location.lat)
+          const offsetDistance = Math.sqrt(
+            Math.pow((converted.lng - activity.location.lng) * 111000, 2) +
+            Math.pow((converted.lat - activity.location.lat) * 111000, 2)
+          )
+
+          // 只有偏移超过10米才进行转换（避免重复转换已经是GCJ-02的坐标）
+          if (offsetDistance > 10) {
+            console.log(`→ Converted coordinates for ${activity.name}: (${activity.location.lat}, ${activity.location.lng}) → (${converted.lat}, ${converted.lng})`)
+            activity.location.lat = converted.lat
+            activity.location.lng = converted.lng
+          }
+        }
+      }
+    }
+
+    // 修正餐饮地点坐标
+    if (day.meals && day.meals.length > 0) {
+      for (const meal of day.meals) {
+        if (meal.location && meal.location.lat && meal.location.lng) {
+          // 尝试使用高德地图API获取准确坐标
+          if (apiCallCount < maxApiCalls) {
+            try {
+              if (apiCallCount > 0) {
+                await new Promise(resolve => setTimeout(resolve, 300))
+              }
+
+              const result = await smartGeocode(meal.restaurant, destination)
+              apiCallCount++
+
+              if (result) {
+                console.log(`✓ Corrected coordinates for ${meal.restaurant}: (${meal.location.lat}, ${meal.location.lng}) → (${result.lat}, ${result.lng})`)
+                meal.location.lat = result.lat
+                meal.location.lng = result.lng
+                if (result.formattedAddress) {
+                  meal.location.address = result.formattedAddress
+                }
+                continue
+              }
+            } catch (error) {
+              console.warn(`Failed to geocode ${meal.restaurant}, falling back to coordinate conversion:`, error)
+            }
+          }
+
+          // API调用失败或超出次数限制，使用坐标转换
+          const converted = wgs84ToGcj02(meal.location.lng, meal.location.lat)
+          const offsetDistance = Math.sqrt(
+            Math.pow((converted.lng - meal.location.lng) * 111000, 2) +
+            Math.pow((converted.lat - meal.location.lat) * 111000, 2)
+          )
+
+          if (offsetDistance > 10) {
+            console.log(`→ Converted coordinates for ${meal.restaurant}: (${meal.location.lat}, ${meal.location.lng}) → (${converted.lat}, ${converted.lng})`)
+            meal.location.lat = converted.lat
+            meal.location.lng = converted.lng
+          }
+        }
+      }
+    }
+  }
+
+  // 修正住宿坐标
+  if (itinerary.accommodation && itinerary.accommodation.length > 0) {
+    for (const hotel of itinerary.accommodation) {
+      if (hotel.location && hotel.location.lat && hotel.location.lng) {
+        // 尝试使用高德地图API获取准确坐标
+        if (apiCallCount < maxApiCalls) {
+          try {
+            if (apiCallCount > 0) {
+              await new Promise(resolve => setTimeout(resolve, 300))
+            }
+
+            const result = await smartGeocode(hotel.name, destination)
+            apiCallCount++
+
+            if (result) {
+              console.log(`✓ Corrected coordinates for hotel ${hotel.name}: (${hotel.location.lat}, ${hotel.location.lng}) → (${result.lat}, ${result.lng})`)
+              hotel.location.lat = result.lat
+              hotel.location.lng = result.lng
+              if (result.formattedAddress) {
+                hotel.location.address = result.formattedAddress
+              }
+              continue
+            }
+          } catch (error) {
+            console.warn(`Failed to geocode ${hotel.name}, falling back to coordinate conversion:`, error)
+          }
+        }
+
+        // API调用失败或超出次数限制，使用坐标转换
+        const converted = wgs84ToGcj02(hotel.location.lng, hotel.location.lat)
+        const offsetDistance = Math.sqrt(
+          Math.pow((converted.lng - hotel.location.lng) * 111000, 2) +
+          Math.pow((converted.lat - hotel.location.lat) * 111000, 2)
+        )
+
+        if (offsetDistance > 10) {
+          console.log(`→ Converted coordinates for hotel ${hotel.name}: (${hotel.location.lat}, ${hotel.location.lng}) → (${converted.lat}, ${converted.lng})`)
+          hotel.location.lat = converted.lat
+          hotel.location.lng = converted.lng
+        }
+      }
+    }
+  }
+
+  console.log(`Coordinate correction completed. API calls used: ${apiCallCount}/${maxApiCalls}`)
+  return itinerary
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -290,6 +445,10 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
         { status: 500 }
       )
     }
+
+    // 修正坐标：WGS84 -> GCJ-02 或使用高德地图API获取准确坐标
+    console.log('Correcting coordinates...')
+    itinerary = await correctItineraryCoordinates(itinerary, formData.destination)
 
     // 执行地理位置聚类优化，将相近的景点安排在一起
     console.log('Applying geographic clustering optimization...')

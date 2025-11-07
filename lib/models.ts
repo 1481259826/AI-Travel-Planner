@@ -19,14 +19,6 @@ export const availableModels: AIModelConfig[] = [
     enabled: true,
   },
   {
-    id: 'claude-haiku-4-5',
-    name: 'Claude Haiku 4.5',
-    provider: 'anthropic',
-    description: '快速且经济的模型，适合日常使用',
-    maxTokens: 8000,
-    enabled: true,
-  },
-  {
     id: 'Qwen/Qwen2.5-72B-Instruct',
     name: 'Qwen2.5 72B Instruct (ModelScope)',
     provider: 'modelscope',

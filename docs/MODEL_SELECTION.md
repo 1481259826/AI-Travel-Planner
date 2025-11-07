@@ -6,23 +6,35 @@
 
 ## 支持的模型
 
-### 1. Claude Haiku 4.5
-- **提供商**: Anthropic
-- **特点**: 快速且经济
-- **推荐场景**: 日常使用、快速生成
-- **最大 tokens**: 8000
-
-### 2. Claude 3.5 Sonnet
-- **提供商**: Anthropic
-- **特点**: 平衡性能和成本
-- **推荐场景**: 复杂行程规划
-- **最大 tokens**: 8000
-
-### 3. DeepSeek Chat
+### 1. DeepSeek Chat
 - **提供商**: DeepSeek
-- **特点**: 中文支持优秀
-- **推荐场景**: 中文旅行规划
+- **特点**: 中文支持优秀，性价比高
+- **推荐场景**: 日常使用、中文旅行规划
 - **最大 tokens**: 8000
+- **优势**:
+  - 优秀的中文理解和生成能力
+  - 快速响应
+  - 高性价比
+
+### 2. DeepSeek Reasoner
+- **提供商**: DeepSeek
+- **特点**: 深度推理能力强
+- **推荐场景**: 复杂行程规划、多约束条件优化
+- **最大 tokens**: 8000
+- **优势**:
+  - 强大的逻辑推理能力
+  - 适合复杂多日行程
+  - 更好的预算和时间优化
+
+### 3. Qwen2.5 72B Instruct (ModelScope)
+- **提供商**: ModelScope（阿里巴巴）
+- **特点**: 开源大模型，中文能力强
+- **推荐场景**: 中文旅行规划、详细行程描述
+- **最大 tokens**: 8000
+- **优势**:
+  - 阿里巴巴开源大模型
+  - 优秀的中文理解能力
+  - 免费API额度（ModelScope平台）
 
 ## 配置说明
 
@@ -31,35 +43,74 @@
 在 `.env.local` 文件中配置：
 
 ```env
-# Anthropic Claude API
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-BASE_URL=https://api.anthropic.com
-
-# DeepSeek API（可选）
+# DeepSeek API（必需）
 DEEPSEEK_API_KEY=sk-xxxxx
 DEEPSEEK_BASE_URL=https://api.deepseek.com
+
+# ModelScope API（可选）
+MODELSCOPE_API_KEY=ms-xxxxx
+MODELSCOPE_BASE_URL=https://api-inference.modelscope.cn/v1/
 ```
 
 ### 获取 API Key
 
-#### Anthropic Claude
-1. 访问 https://console.anthropic.com
-2. 注册/登录账号
-3. 进入 API Keys 页面
-4. 创建新密钥
-
-#### DeepSeek
+#### DeepSeek (必需)
 1. 访问 https://platform.deepseek.com
 2. 注册/登录账号
 3. 进入 API Keys 页面
 4. 创建新密钥
+5. 复制密钥到 `.env.local` 的 `DEEPSEEK_API_KEY`
+
+**费用说明**：
+- 首次注册送免费额度
+- DeepSeek Chat: 约 ¥0.001/千tokens
+- DeepSeek Reasoner: 约 ¥0.014/千tokens
+
+#### ModelScope (可选)
+1. 访问 https://modelscope.cn
+2. 注册/登录账号（支持支付宝、手机号）
+3. 进入「体验平台」→「API 推理服务」
+4. 创建并获取 API Key
+5. 复制密钥到 `.env.local` 的 `MODELSCOPE_API_KEY`
+
+**费用说明**：
+- 提供免费API额度
+- Qwen系列模型免费或低成本
+- 适合开发测试使用
 
 ## 使用方法
 
-1. 打开创建行程页面：http://localhost:3003/dashboard/create
-2. 填写行程信息（目的地、日期、预算等）
+### 方法1：创建行程时选择
+1. 打开创建行程页面：http://localhost:3008/dashboard/create
+2. 填写行程信息（出发地、目的地、日期、预算等）
 3. 在页面底部选择想要使用的 AI 模型
 4. 点击"生成旅行计划"按钮
+
+### 方法2：设置默认模型
+1. 进入用户设置页面：http://localhost:3008/dashboard/settings
+2. 在「偏好设置」中选择默认 AI 模型
+3. 保存设置
+4. 之后创建行程时会自动使用默认模型
+
+## 模型选择建议
+
+### 日常使用场景
+**推荐**: DeepSeek Chat
+- 快速响应
+- 中文表达自然
+- 费用经济
+
+### 复杂行程规划
+**推荐**: DeepSeek Reasoner
+- 多约束条件优化
+- 更好的时间和预算分配
+- 适合长途多日行程
+
+### 预算有限场景
+**推荐**: Qwen2.5 72B (ModelScope)
+- 免费API额度
+- 中文能力强
+- 适合开发测试
 
 ## 常见问题
 
@@ -111,44 +162,61 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 
 1. 前端发送包含 `model` 字段的表单数据
 2. API 路由根据模型选择对应的客户端：
-   - **Anthropic**: 使用 `@anthropic-ai/sdk`
-   - **DeepSeek**: 使用 `openai` SDK（OpenAI 兼容）
-3. 调用相应的 AI API 生成行程
-4. 解析 JSON 响应
-5. 保存到 Supabase 数据库
+   - **DeepSeek**: 使用 `openai` SDK（OpenAI 兼容接口）
+   - **ModelScope**: 使用 `openai` SDK（OpenAI 兼容接口）
+3. 优先使用用户自定义的 API Key（如果已配置）
+4. 调用相应的 AI API 生成行程
+5. 解析 JSON 响应
+6. 保存到 Supabase 数据库
 
 ### 添加新模型
 
-1. 在 `types/index.ts` 中添加模型类型：
+如果要添加新的 AI 模型支持：
+
+1. **添加类型定义** (`types/index.ts`)：
    ```typescript
-   export type AIModel = 'claude-haiku-4-5' | 'your-new-model'
+   export type AIModel =
+     | 'deepseek-chat'
+     | 'deepseek-reasoner'
+     | 'Qwen/Qwen2.5-72B-Instruct'
+     | 'your-new-model'  // 新增
    ```
 
-2. 在 `lib/models.ts` 中添加模型配置：
+2. **添加模型配置** (`lib/models.ts`)：
    ```typescript
    {
      id: 'your-new-model',
-     name: '模型名称',
+     name: '模型显示名称',
      provider: 'provider-name',
-     description: '模型描述',
+     description: '模型特点和适用场景',
      maxTokens: 8000,
      enabled: true,
    }
    ```
 
-3. 在 `lib/config.ts` 中添加配置：
+3. **添加环境变量配置** (`lib/config.ts`)：
    ```typescript
    yourProvider: {
      apiKey: process.env.YOUR_API_KEY || '',
-     baseURL: process.env.YOUR_BASE_URL || '',
+     baseURL: process.env.YOUR_BASE_URL || 'https://api.example.com',
      model: 'your-model-name',
      maxTokens: 8000,
    }
    ```
 
-4. 在 `app/api/generate-itinerary/route.ts` 中添加调用逻辑
+4. **更新API路由** (`app/api/generate-itinerary/route.ts`)：
+   - 添加新的客户端初始化逻辑
+   - 添加模型选择分支
+   - 实现API调用逻辑
 
 ## 更新日志
+
+### 2025-01-07
+- ✅ 移除 Anthropic Claude 模型依赖
+- ✅ 添加 DeepSeek Reasoner 推理模型
+- ✅ 集成 ModelScope (Qwen2.5 72B) 模型
+- ✅ 优化模型选择界面
+- ✅ 更新文档说明
 
 ### 2025-10-21
 - ✅ 添加模型选择功能

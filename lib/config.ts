@@ -7,14 +7,6 @@ export const config = {
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   },
 
-  // Anthropic/Claude
-  anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY || '',
-    baseURL: process.env.BASE_URL || 'https://api.anthropic.com',
-    model: 'claude-haiku-4-5',
-    maxTokens: 8000,  // 增加到 8000，避免长行程被截断
-  },
-
   // DeepSeek
   deepseek: {
     apiKey: process.env.DEEPSEEK_API_KEY || '',
@@ -43,16 +35,6 @@ export const config = {
     webServiceKey: process.env.AMAP_WEB_SERVICE_KEY || '', // Web服务API Key（后端使用）
   },
 
-  // Image Service
-  unsplash: {
-    accessKey: process.env.UNSPLASH_ACCESS_KEY || '',
-  },
-
-  // Weather Service (QWeather/和风天气)
-  qweather: {
-    apiKey: process.env.QWEATHER_API_KEY || '',
-    baseURL: process.env.QWEATHER_BASE_URL || 'https://devapi.qweather.com',
-  },
 }
 
 export default config

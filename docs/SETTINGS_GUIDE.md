@@ -55,7 +55,7 @@ ALTER TABLE public.profiles
 CREATE TABLE public.api_keys (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  service TEXT CHECK (service IN ('anthropic', 'deepseek', 'map')),
+  service TEXT CHECK (service IN ('anthropic', 'deepseek', 'modelscope', 'map', 'voice')),
   key_name TEXT NOT NULL,
   encrypted_key TEXT NOT NULL,
   key_prefix TEXT NOT NULL,
@@ -178,9 +178,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ##### 🤖 默认 AI 模型
 选择创建行程时的默认模型：
-- Claude 3.5 Haiku
-- DeepSeek Chat
-- DeepSeek Reasoner
+- DeepSeek Chat - 快速高效，中文支持优秀
+- DeepSeek Reasoner - 深度推理，复杂行程规划
+- Qwen2.5 72B (ModelScope) - 阿里巴巴开源大模型
 
 ##### 💰 默认预算
 设置常用的旅行预算，创建行程时自动填充
@@ -225,9 +225,10 @@ saveThemeToProfile(theme)
 添加您自己的 API Keys，系统生成行程时将**优先使用您的 Key**，而不是系统默认配置。
 
 #### 支持的服务
-- 🤖 **Anthropic Claude** - Claude AI 模型
 - 🧠 **DeepSeek** - DeepSeek Chat 和 Reasoner
+- 🌐 **ModelScope** - Qwen 系列开源大模型
 - 🗺️ **高德地图** - 地图显示和路线规划
+- 🎤 **科大讯飞语音** - 语音识别服务（可选）
 
 #### 功能特性
 - ✅ 多 Key 管理 - 每个服务可添加多个备用 Key
@@ -240,7 +241,7 @@ saveThemeToProfile(theme)
 
 ##### 添加 API Key
 1. 点击「添加 Key」按钮
-2. 选择服务类型（Anthropic / DeepSeek / 高德地图）
+2. 选择服务类型（DeepSeek / ModelScope / 高德地图 / 科大讯飞语音）
 3. 输入 Key 名称（如"我的主要 Key"）
 4. 粘贴 API Key
 5. 点击「添加 API Key」
@@ -268,19 +269,21 @@ saveThemeToProfile(theme)
 
 #### 获取 API Keys
 
-##### Anthropic Claude
-1. 访问 https://console.anthropic.com/
-2. 注册/登录账号
-3. 进入 API Keys 页面
-4. 创建新的 API Key
-5. 复制 Key（格式：`sk-ant-api03-...`）
-
-##### DeepSeek
+##### DeepSeek (推荐)
 1. 访问 https://platform.deepseek.com/
 2. 注册/登录账号
 3. 进入 API Keys 管理
 4. 创建新的 API Key
 5. 复制 Key（格式：`sk-...`）
+6. **费用说明**：首次注册送免费额度，DeepSeek Chat 约 ¥0.001/千tokens
+
+##### ModelScope (Qwen)
+1. 访问 https://modelscope.cn/
+2. 注册/登录账号（支持支付宝、手机号）
+3. 进入「体验平台」→「API 推理服务」
+4. 创建并获取 API Key
+5. 复制 Key（格式：`ms-...`）
+6. **费用说明**：提供免费API额度，适合开发测试
 
 ##### 高德地图
 1. 访问 https://console.amap.com/
@@ -288,6 +291,13 @@ saveThemeToProfile(theme)
 3. 进入应用管理
 4. 创建新应用或选择现有应用
 5. 获取 **Web 服务 API Key**（不是 Web 端 Key）
+
+##### 科大讯飞语音 (可选)
+1. 访问 https://www.xfyun.cn/
+2. 注册/登录账号
+3. 进入控制台 → 语音听写
+4. 创建应用并获取 API Key
+5. **注意**：需要同时配置 APP ID 和 API Secret
 
 #### 工作原理
 
@@ -310,24 +320,31 @@ await supabase.from('api_keys').insert({
 ##### 行程生成时使用
 ```typescript
 // 检查用户是否有自己的 Key
-const userKey = await getUserApiKey(userId, 'anthropic')
+const userDeepSeekKey = await getUserApiKey(userId, 'deepseek')
+const userModelScopeKey = await getUserApiKey(userId, 'modelscope')
 
 // 优先使用用户 Key
-const client = userKey
-  ? new Anthropic({ apiKey: userKey })
-  : anthropic // 回退到系统默认
+const deepseekClient = new OpenAI({
+  apiKey: userDeepSeekKey || config.deepseek.apiKey,
+  baseURL: config.deepseek.baseURL,
+})
+
+const modelscopeClient = new OpenAI({
+  apiKey: userModelScopeKey || config.modelscope.apiKey,
+  baseURL: config.modelscope.baseURL,
+})
 ```
 
 ##### Key 测试流程
 ```typescript
-// Anthropic
-const response = await fetch('https://api.anthropic.com/v1/messages', {
-  headers: { 'x-api-key': apiKey }
+// DeepSeek
+const response = await fetch('https://api.deepseek.com/chat/completions', {
+  headers: { 'Authorization': `Bearer ${apiKey}` }
 })
 return response.ok // 200 = 有效，401/403 = 无效
 
-// DeepSeek
-const response = await fetch('https://api.deepseek.com/chat/completions', {
+// ModelScope
+const response = await fetch('https://api-inference.modelscope.cn/v1/chat/completions', {
   headers: { 'Authorization': `Bearer ${apiKey}` }
 })
 return response.ok
@@ -336,6 +353,10 @@ return response.ok
 const response = await fetch(`https://restapi.amap.com/v3/ip?key=${apiKey}`)
 const data = await response.json()
 return data.status === '1'
+
+// 科大讯飞语音
+// 简单格式验证（实际需要在服务端完整验证）
+return apiKey && apiKey.length >= 16
 ```
 
 #### 技术实现

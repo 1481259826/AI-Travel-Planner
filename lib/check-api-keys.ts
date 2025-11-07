@@ -161,32 +161,6 @@ export async function checkVoiceKeyOptional(
 }
 
 /**
- * 检查 Unsplash Key 是否配置（可选）
- * @param userId 用户 ID
- * @param token 用户认证 token
- * @returns 是否可用及提示信息
- */
-export async function checkUnsplashKeyOptional(
-  userId?: string,
-  token?: string
-): Promise<{ available: boolean; message: string }> {
-  const result = await checkApiKeyAvailable('unsplash', userId, token)
-
-  if (!result.available) {
-    return {
-      available: false,
-      message:
-        '未配置 Unsplash API Key，将无法自动获取目的地图片。您可以在设置页面添加 Unsplash API Key 以获得更好的视觉体验。',
-    }
-  }
-
-  return {
-    available: true,
-    message: result.message || '使用 Unsplash API Key',
-  }
-}
-
-/**
  * 获取服务中文名称
  */
 function getServiceName(service: ApiKeyService): string {
@@ -196,7 +170,6 @@ function getServiceName(service: ApiKeyService): string {
     modelscope: 'ModelScope',
     map: '高德地图',
     voice: '科大讯飞语音',
-    unsplash: 'Unsplash 图片',
   }
   return names[service]
 }

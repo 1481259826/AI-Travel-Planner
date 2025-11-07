@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { DayPlan, Activity, Accommodation } from '@/types'
-import { Loader2, MapPin, Navigation } from 'lucide-react'
+import { Loader2, MapPin, Navigation, ChevronDown, ChevronUp } from 'lucide-react'
 import config from '@/lib/config'
 
 // 声明高德地图全局类型
@@ -72,6 +72,7 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
   const [selectedDay, setSelectedDay] = useState<number | 'accommodation'>(1) // 默认选中第1天，也可以选择住宿
   const [dayMarkers, setDayMarkers] = useState<Map<number, any[]>>(new Map()) // 存储每天的 markers
   const [accommodationMarkers, setAccommodationMarkers] = useState<any[]>([]) // 存储酒店 markers
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false) // 控制工具栏收起/展开
 
   // 加载高德地图API
   useEffect(() => {
@@ -160,19 +161,61 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
     allActivities.forEach(({ activity, dayNumber, indexInDay }, globalIdx) => {
       const dayColor = DAY_COLORS[(dayNumber - 1) % DAY_COLORS.length]
 
+      // 创建自定义的SVG标记图标（数字直接绘制在SVG中）
+      const svgIcon = `
+        <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="shadow-${dayNumber}-${indexInDay}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="2" result="offsetblur"/>
+              <feComponentTransfer>
+                <feFuncA type="linear" slope="0.3"/>
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <linearGradient id="grad-${dayNumber}-${indexInDay}" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:${dayColor};stop-opacity:1" />
+              <stop offset="100%" style="stop-color:${dayColor};stop-opacity:0.8" />
+            </linearGradient>
+          </defs>
+          <!-- 标记主体 -->
+          <path
+            d="M16 2 C8.82 2 3 7.82 3 15 C3 24 16 40 16 40 S29 24 29 15 C29 7.82 23.18 2 16 2 Z"
+            fill="url(#grad-${dayNumber}-${indexInDay})"
+            stroke="white"
+            stroke-width="2"
+            filter="url(#shadow-${dayNumber}-${indexInDay})"
+          />
+          <!-- 内圆 -->
+          <circle cx="16" cy="15" r="8" fill="white" opacity="0.9"/>
+          <!-- 数字背景 -->
+          <circle cx="16" cy="15" r="7" fill="${dayColor}"/>
+          <!-- 数字文本 -->
+          <text x="16" y="15" text-anchor="middle" dominant-baseline="central"
+                fill="white" font-size="11" font-weight="bold" font-family="Arial, sans-serif">
+            ${indexInDay + 1}
+          </text>
+        </svg>
+      `
+
+      // 将SVG转换为Data URL
+      const iconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgIcon)
+
       const marker = new window.AMap.Marker({
         position: [activity.location!.lng, activity.location!.lat],
         map: mapInstance,
         title: activity.name,
-        label: {
-          content: `<div style="background: ${dayColor}; color: white; padding: 3px 9px; border-radius: 14px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${dayNumber}-${indexInDay + 1}</div>`,
-          offset: new window.AMap.Pixel(0, -38),
-        },
         icon: new window.AMap.Icon({
-          image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
-          size: new window.AMap.Size(28, 36),
-          imageSize: new window.AMap.Size(28, 36),
+          image: iconUrl,
+          size: new window.AMap.Size(32, 42),
+          imageSize: new window.AMap.Size(32, 42),
+          imageOffset: new window.AMap.Pixel(0, 0),
+          anchor: new window.AMap.Pixel(16, 40), // 设置锚点在底部尖端
         }),
+        anchor: 'bottom-center', // 标记锚点在底部中心
       })
 
       // 添加信息窗口 - 增强版
@@ -243,19 +286,60 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
         !isNaN(hotel.location.lat) &&
         !isNaN(hotel.location.lng)
       ) {
+        // 创建酒店自定义SVG标记（emoji直接绘制在SVG中）
+        const hotelSvgIcon = `
+          <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="shadow-hotel-${hotel.name.replace(/[^a-zA-Z0-9]/g, '')}" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                <feOffset dx="0" dy="2" result="offsetblur"/>
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.3"/>
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <linearGradient id="grad-hotel-${hotel.name.replace(/[^a-zA-Z0-9]/g, '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:0.9" />
+              </linearGradient>
+            </defs>
+            <!-- 标记主体 -->
+            <path
+              d="M16 2 C8.82 2 3 7.82 3 15 C3 24 16 40 16 40 S29 24 29 15 C29 7.82 23.18 2 16 2 Z"
+              fill="url(#grad-hotel-${hotel.name.replace(/[^a-zA-Z0-9]/g, '')})"
+              stroke="white"
+              stroke-width="2"
+              filter="url(#shadow-hotel-${hotel.name.replace(/[^a-zA-Z0-9]/g, '')})"
+            />
+            <!-- 内圆 -->
+            <circle cx="16" cy="15" r="8" fill="white" opacity="0.9"/>
+            <!-- 酒店图标背景 -->
+            <circle cx="16" cy="15" r="7" fill="#dc2626"/>
+            <!-- 酒店图标文本 -->
+            <text x="16" y="15" text-anchor="middle" dominant-baseline="central"
+                  font-size="13" font-family="Arial, sans-serif">
+              🏨
+            </text>
+          </svg>
+        `
+
+        const hotelIconUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(hotelSvgIcon)
+
         const hotelMarker = new window.AMap.Marker({
           position: [hotel.location.lng, hotel.location.lat],
           map: mapInstance,
           title: hotel.name,
-          label: {
-            content: `<div style="background: #dc2626; color: white; padding: 3px 9px; border-radius: 14px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏨</div>`,
-            offset: new window.AMap.Pixel(0, -38),
-          },
           icon: new window.AMap.Icon({
-            image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
-            size: new window.AMap.Size(28, 36),
-            imageSize: new window.AMap.Size(28, 36),
+            image: hotelIconUrl,
+            size: new window.AMap.Size(32, 42),
+            imageSize: new window.AMap.Size(32, 42),
+            imageOffset: new window.AMap.Pixel(0, 0),
+            anchor: new window.AMap.Pixel(16, 40),
           }),
+          anchor: 'bottom-center',
         })
 
         // 创建酒店信息窗口
@@ -464,87 +548,135 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
   }
 
   return (
-    <div className={`relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm ${className}`}>
-      {/* 地图容器 */}
-      <div ref={mapRef} className="w-full h-[600px]" />
-
-      {/* 顶部工具栏 */}
-      <div className="absolute top-3 left-3 right-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg p-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">景点地图</span>
-          </div>
-
-          {routeLines.length > 0 && (
-            <button
-              onClick={toggleRoutes}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                showRoutes
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <Navigation className="w-4 h-4" />
-              {showRoutes ? '隐藏路线' : '显示路线'}
-            </button>
-          )}
-        </div>
-
-        {/* 天数切换按钮 */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-          <div className="flex flex-wrap gap-2">
-            {days.map((day) => {
-              const dayColor = DAY_COLORS[(day.day - 1) % DAY_COLORS.length]
-              const isSelected = selectedDay === day.day
-
-              return (
-                <button
-                  key={day.day}
-                  onClick={() => switchToDay(day.day)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    isSelected
-                      ? 'text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  style={isSelected ? { backgroundColor: dayColor } : {}}
-                >
-                  第{day.day}天
-                </button>
-              )
-            })}
-
-            {/* 住宿按钮 */}
-            {accommodation.length > 0 && (
+    <div className={`rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm ${className}`}>
+      {/* 顶部工具栏 - 在地图外部 */}
+      <div className="bg-white dark:bg-gray-800 rounded-t-lg transition-all border-b border-gray-200 dark:border-gray-700">
+        {toolbarCollapsed ? (
+          // 收起状态：紧凑视图
+          <div className="p-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-gray-900 dark:text-white">景点地图</span>
+                {/* 显示当前选中的天数 */}
+                {selectedDay === 'accommodation' ? (
+                  <span className="text-xs text-gray-600 dark:text-gray-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded">
+                    🏨 住宿
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-600 dark:text-gray-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                    第{selectedDay}天
+                  </span>
+                )}
+              </div>
               <button
-                onClick={switchToAccommodation}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  selectedDay === 'accommodation'
-                    ? 'text-white shadow-md'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-                style={selectedDay === 'accommodation' ? { backgroundColor: '#dc2626' } : {}}
+                onClick={() => setToolbarCollapsed(false)}
+                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="展开工具栏"
               >
-                🏨 住宿
+                <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               </button>
-            )}
-          </div>
-        </div>
-
-        {/* 路线图例 */}
-        {showRoutes && routeLines.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-wrap gap-2">
-              {routeLines.map(({ dayNumber, color }) => (
-                <div key={dayNumber} className="flex items-center gap-1.5">
-                  <div className="w-8 h-1 rounded-full" style={{ backgroundColor: color }}></div>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">第{dayNumber}天</span>
-                </div>
-              ))}
             </div>
+          </div>
+        ) : (
+          // 展开状态：完整视图
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">景点地图</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {routeLines.length > 0 && (
+                  <button
+                    onClick={toggleRoutes}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      showRoutes
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <Navigation className="w-4 h-4" />
+                    {showRoutes ? '隐藏路线' : '显示路线'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setToolbarCollapsed(true)}
+                  className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="收起工具栏"
+                >
+                  <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* 天数切换按钮 */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+              <div className="flex flex-wrap gap-2">
+                {days.map((day) => {
+                  const dayColor = DAY_COLORS[(day.day - 1) % DAY_COLORS.length]
+                  const isSelected = selectedDay === day.day
+
+                  return (
+                    <button
+                      key={day.day}
+                      onClick={() => switchToDay(day.day)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'text-white shadow-md'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      style={isSelected ? { backgroundColor: dayColor } : {}}
+                    >
+                      第{day.day}天
+                    </button>
+                  )
+                })}
+
+                {/* 住宿按钮 */}
+                {accommodation.length > 0 && (
+                  <button
+                    onClick={switchToAccommodation}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedDay === 'accommodation'
+                        ? 'text-white shadow-md'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    style={selectedDay === 'accommodation' ? { backgroundColor: '#dc2626' } : {}}
+                  >
+                    🏨 住宿
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 路线图例 */}
+            {showRoutes && routeLines.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-wrap gap-2">
+                  {routeLines.map(({ dayNumber, color }) => (
+                    <div key={dayNumber} className="flex items-center gap-1.5">
+                      <div className="w-8 h-1 rounded-full" style={{ backgroundColor: color }}></div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">第{dayNumber}天</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* 地图容器 - 移至工具栏下方 */}
+      <div ref={mapRef} className="w-full h-[600px]" />
+
+      {/* 隐藏高德地图默认的label */}
+      <style jsx global>{`
+        .amap-marker-label {
+          display: none !important;
+        }
+      `}</style>
     </div>
   )
 }

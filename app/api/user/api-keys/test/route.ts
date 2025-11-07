@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { decrypt } from '@/lib/encryption'
-import { testAnthropicKey, testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey, testUnsplashKey } from '@/lib/api-keys'
+import { testAnthropicKey, testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey } from '@/lib/api-keys'
 import type { ApiKeyService } from '@/types'
 
 /**
@@ -76,10 +76,6 @@ export async function POST(request: NextRequest) {
         case 'voice':
           isValid = await testVoiceKey(decryptedKey)
           errorMessage = isValid ? '' : '科大讯飞语音 API Key 格式无效'
-          break
-        case 'unsplash':
-          isValid = await testUnsplashKey(decryptedKey)
-          errorMessage = isValid ? '' : 'Unsplash API Key 无效或无权限'
           break
         default:
           return NextResponse.json({ error: '不支持的服务类型' }, { status: 400 })

@@ -136,28 +136,6 @@ export async function testVoiceKey(apiKey: string): Promise<boolean> {
 }
 
 /**
- * 测试 Unsplash API Key 是否有效
- * @param apiKey Unsplash Access Key
- * @returns 是否有效
- */
-export async function testUnsplashKey(apiKey: string): Promise<boolean> {
-  try {
-    // 使用一个简单的 API 调用来验证 Key
-    const response = await fetch('https://api.unsplash.com/photos/random?count=1', {
-      headers: {
-        'Authorization': `Client-ID ${apiKey}`,
-      },
-    })
-
-    // 200 表示成功，401/403 表示认证失败
-    return response.ok
-  } catch (error) {
-    console.error('Test Unsplash key error:', error)
-    return false
-  }
-}
-
-/**
  * 获取用户指定服务的激活 API Key
  * @param userId 用户 ID
  * @param service 服务类型
@@ -165,7 +143,7 @@ export async function testUnsplashKey(apiKey: string): Promise<boolean> {
  */
 export async function getUserApiKey(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice' | 'unsplash'
+  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice'
 ): Promise<string | null> {
   try {
     const { supabase } = await import('@/lib/supabase')

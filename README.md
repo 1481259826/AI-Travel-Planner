@@ -7,7 +7,7 @@
 ### 已实现功能
 
 - **🎤 语音输入** - 基于 Web Speech API 的语音识别，支持中文语音输入
-- **🤖 多 AI 模型支持** - 支持 Claude Haiku 4.5、Claude 3.5 Sonnet、DeepSeek Chat
+- **🤖 多 AI 模型支持** - 支持 DeepSeek Chat、DeepSeek Reasoner、Qwen2.5 72B (ModelScope)
 - **📋 智能行程规划** - AI 生成详细旅行计划，包含每日行程、景点推荐、餐厅推荐
 - **💰 费用预估** - 智能预算分析和费用估算
 - **🔐 用户认证** - Supabase 认证集成，支持邮箱/密码注册登录
@@ -57,16 +57,17 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # 分享功能必需
 
-# Anthropic Claude API（必需）
-ANTHROPIC_API_KEY=your_anthropic_api_key
-BASE_URL=https://api.anthropic.com
-
-# DeepSeek API（可选）
+# DeepSeek API（必需 - AI 行程生成）
 DEEPSEEK_API_KEY=your_deepseek_api_key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 
+# ModelScope API（可选 - Qwen 模型）
+MODELSCOPE_API_KEY=your_modelscope_api_key
+MODELSCOPE_BASE_URL=https://api-inference.modelscope.cn/v1/
+
 # 高德地图 API（必需 - 用于行程地图显示）
 NEXT_PUBLIC_MAP_API_KEY=your_amap_api_key
+AMAP_WEB_SERVICE_KEY=your_amap_web_service_key  # Web服务API Key（后端使用）
 
 # 数据加密密钥（必需 - 用于 API Key 加密存储）
 ENCRYPTION_KEY=your_32_char_or_longer_encryption_key_here
@@ -76,7 +77,6 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3008  # 开发环境；生产环境改为�
 
 # 其他可选服务
 VOICE_API_KEY=your_voice_api_key
-UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 ```
 
 #### 获取 API Key
@@ -89,17 +89,19 @@ UNSPLASH_ACCESS_KEY=your_unsplash_access_key
    - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` ⚠️ 保密！仅服务端使用
 
-**Anthropic Claude:**
-1. 访问 [console.anthropic.com](https://console.anthropic.com)
-2. 创建 API Key
-
-**DeepSeek (可选):**
+**DeepSeek (必需):**
 1. 访问 [platform.deepseek.com](https://platform.deepseek.com)
 2. 创建 API Key
+3. DeepSeek 提供优秀的中文支持和高性价比
+
+**ModelScope (可选):**
+1. 访问 [modelscope.cn](https://modelscope.cn)
+2. 进入体验平台 → API 推理服务
+3. 创建并获取 API Key（支持 Qwen 系列模型）
 
 **高德地图 (必需):**
 1. 访问 [lbs.amap.com](https://lbs.amap.com)
-2. 创建应用并获取 Web 端（JS API）Key
+2. 创建应用并获取 Web 端（JS API）Key 和 Web 服务 API Key
 3. 详细说明查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md)
 
 **加密密钥 (必需):**
@@ -176,7 +178,7 @@ npm run dev:pm2
    - 设置默认 AI 模型
    - 设置默认预算和出发地
 5. **API Keys 管理**：
-   - 添加您自己的 Anthropic/DeepSeek/高德地图 API Keys
+   - 添加您自己的 DeepSeek/ModelScope/高德地图 API Keys
    - 系统将优先使用您的 Keys（AES-256 加密存储）
    - 测试 Key 有效性，管理多个备用 Keys
 
@@ -200,9 +202,9 @@ npm run dev:pm2
 
 本项目支持多个 AI 模型，可根据需求选择：
 
-- **Claude Haiku 4.5** - 快速且经济，适合日常使用
-- **Claude 3.5 Sonnet** - 平衡性能和成本，推荐使用
-- **DeepSeek Chat** - 中文支持优秀，适合中文旅行规划
+- **DeepSeek Chat** - 中文支持优秀，性价比高，推荐日常使用
+- **DeepSeek Reasoner** - 深度推理模型，适合复杂行程规划
+- **Qwen2.5 72B (ModelScope)** - 阿里巴巴开源大模型，中文能力强
 
 详细说明请查看 [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md)
 
@@ -224,8 +226,9 @@ npm run dev:pm2
 - **API**: Next.js API Routes
 
 ### AI 集成
-- **大语言模型**: Claude (Anthropic) + DeepSeek
+- **大语言模型**: DeepSeek + ModelScope (Qwen)
 - **语音识别**: Web Speech API
+- **图片服务**: 高德地图 POI 照片
 
 ### 开发工具
 - **进程管理**: PM2（生产级进程管理）
@@ -360,7 +363,7 @@ ai-travel-planner/
 
 ### api_keys 表
 - 用户自定义 API Keys（AES-256 加密存储）
-- 服务类型：anthropic / deepseek / map
+- 服务类型：anthropic / deepseek / modelscope / map / voice
 - 字段：encrypted_key（加密密钥）、key_prefix（显示前缀）、is_active（是否激活）
 
 详细的数据库设置请查看 [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md)
