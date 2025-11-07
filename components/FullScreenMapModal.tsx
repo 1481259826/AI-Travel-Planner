@@ -20,6 +20,31 @@ interface FullScreenMapModalProps {
   dayNumber: number
 }
 
+// 获取景点类型对应的 emoji
+function getTypeEmoji(type: Activity['type']): string {
+  const emojiMap = {
+    'attraction': '🎯',
+    'shopping': '🛍️',
+    'entertainment': '🎭',
+    'relaxation': '🧘'
+  }
+  return emojiMap[type] || '📍'
+}
+
+// 交通站点关键词列表
+const TRANSPORTATION_KEYWORDS = [
+  '站', '机场', '火车站', '高铁站', '动车站',
+  '地铁站', '汽车站', '客运站', '码头', '港口',
+  'station', 'airport', 'railway', 'terminal', 'port'
+]
+
+// 判断是否为交通站点
+function isTransportationActivity(activity: Activity): boolean {
+  return TRANSPORTATION_KEYWORDS.some(keyword =>
+    activity.name.includes(keyword)
+  )
+}
+
 /**
  * 全屏地图模态框
  * 显示当天所有景点的详细地图和路线规划
@@ -85,9 +110,10 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
       return
     }
 
-    // 过滤出有位置信息的活动
+    // 过滤出有位置信息的活动（排除交通站点）
     const locatedActivities = activities.filter(
-      activity => activity.location &&
+      activity => !isTransportationActivity(activity) &&  // 过滤掉交通站点
+      activity.location &&
       typeof activity.location.lat === 'number' &&
       typeof activity.location.lng === 'number' &&
       !isNaN(activity.location.lat) &&
@@ -126,17 +152,41 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
         }),
       })
 
-      // 添加信息窗口
+      // 添加信息窗口 - 增强版，包含图片、评分、价格、tips
       const infoWindow = new window.AMap.InfoWindow({
         content: `
-          <div style="padding: 12px; min-width: 200px;">
-            <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">${activity.name}</h4>
-            <div style="font-size: 13px; color: #6b7280; line-height: 1.5;">
-              ${activity.location?.address ? `<p style="margin: 4px 0;">${activity.location.address}</p>` : ''}
-              ${activity.time ? `<p style="margin: 4px 0; color: #3b82f6;"><strong>时间：</strong>${activity.time}</p>` : ''}
-              ${activity.duration ? `<p style="margin: 4px 0; color: #3b82f6;"><strong>时长：</strong>${activity.duration}</p>` : ''}
-              ${activity.description ? `<p style="margin: 8px 0 4px 0; color: #4b5563;">${activity.description}</p>` : ''}
+          <div style="padding: 12px; min-width: 250px; max-width: 300px;">
+            ${activity.photos && activity.photos.length > 0 ? `
+              <img
+                src="${activity.photos[0]}"
+                alt="${activity.name}"
+                style="width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;"
+                onerror="this.style.display='none'"
+              />
+            ` : ''}
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 18px;">${getTypeEmoji(activity.type)}</span>
+              <h4 style="margin: 0; font-size: 15px; font-weight: bold; flex: 1; color: #1f2937;">${activity.name}</h4>
             </div>
+            ${activity.rating ? `
+              <div style="color: #f59e0b; font-size: 12px; margin-bottom: 4px;">
+                ${'★'.repeat(Math.floor(activity.rating))}${'☆'.repeat(5 - Math.floor(activity.rating))} ${activity.rating.toFixed(1)}
+              </div>
+            ` : ''}
+            <p style="margin: 4px 0; font-size: 12px; color: #666;">${activity.location?.address || ''}</p>
+            ${activity.time ? `<p style="margin: 4px 0; font-size: 12px; color: #3b82f6;">⏰ ${activity.time}</p>` : ''}
+            ${activity.duration ? `<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">🕐 游玩时长：${activity.duration}</p>` : ''}
+            ${activity.ticket_price !== undefined && activity.ticket_price !== null ? `
+              <p style="margin: 4px 0; font-size: 12px; color: #10b981; font-weight: 500;">
+                💰 门票：${activity.ticket_price === 0 ? '免费' : '¥' + activity.ticket_price}
+              </p>
+            ` : ''}
+            ${activity.description ? `<p style="margin: 8px 0 4px 0; font-size: 12px; color: #4b5563; line-height: 1.4;">${activity.description}</p>` : ''}
+            ${activity.tips ? `
+              <div style="margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.4;">💡 ${activity.tips}</p>
+              </div>
+            ` : ''}
           </div>
         `,
         offset: new window.AMap.Pixel(0, -40),
@@ -169,7 +219,8 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
     if (!map) return
 
     const locatedActivities = activities.filter(
-      activity => activity.location &&
+      activity => !isTransportationActivity(activity) &&  // 过滤掉交通站点
+      activity.location &&
       typeof activity.location.lat === 'number' &&
       typeof activity.location.lng === 'number'
     )

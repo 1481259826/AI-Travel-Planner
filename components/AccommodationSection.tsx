@@ -26,7 +26,7 @@ export default function AccommodationSection({ accommodations, onShowHotelOnMap,
   const totalCost = accommodations.reduce((sum, hotel) => sum + hotel.total_price, 0)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" id="accommodation-section">
       {/* 标题和总费用 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

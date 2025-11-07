@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Map, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -19,8 +19,9 @@ import ItineraryNav from '@/components/ItineraryNav'
 import EditModeControls from '@/components/EditModeControls'
 import AddItemModal from '@/components/AddItemModal'
 import WeatherCard from '@/components/WeatherCard'
-import DayMapPreview from '@/components/DayMapPreview'
 import FullScreenMapModal from '@/components/FullScreenMapModal'
+import TripInfoPanel from '@/components/TripInfoPanel'
+import TripOverviewMap from '@/components/TripOverviewMap'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -454,6 +455,14 @@ export default function TripDetailPage() {
     }, 100)
   }
 
+  // 处理点击地图上的酒店标记
+  const handleHotelMarkerClick = (hotel: Accommodation) => {
+    const section = document.getElementById('accommodation-section')
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   // 处理添加活动
   const handleAddActivity = (activity: Activity) => {
     addActivity(addModalDayIndex, activity)
@@ -621,150 +630,16 @@ export default function TripDetailPage() {
                 />
               )}
 
-              {/* Trip Info Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>行程概览</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">目的地</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{trip.destination}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">天数</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {Math.ceil(
-                            (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) /
-                              (1000 * 60 * 60 * 24)
-                          ) + 1} 天
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">人数</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{trip.travelers} 人</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">预算</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">¥{trip.budget.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
+              {/* 行程信息面板 - 独立一行 */}
+              <TripInfoPanel trip={trip} />
 
-                  {trip.preferences && trip.preferences.length > 0 && (
-                    <div className="mt-4 pt-4 border-t dark:border-gray-700">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">旅行偏好</p>
-                      <div className="flex flex-wrap gap-2">
-                        {trip.preferences.map((pref) => (
-                          <span
-                            key={pref}
-                            className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
-                          >
-                            {pref}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Itinerary Summary */}
-              {displayTrip?.itinerary?.summary && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>行程概述</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300">{displayTrip.itinerary.summary}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Map View */}
+              {/* 全行程地图 - 独立一行，全宽显示 */}
               {displayTrip?.itinerary?.days && displayTrip.itinerary.days.length > 0 && (
-                <Card id="trip-map-section">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Map className="w-5 h-5" />
-                        行程地图
-                      </CardTitle>
-                      {allLocations.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant={showMap ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setShowMap(!showMap)}
-                          >
-                            {showMap ? '隐藏地图' : '显示地图'}
-                          </Button>
-                          {showMap && allLocations.length > 1 && (
-                            <Button
-                              variant={showRoute ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setShowRoute(!showRoute)}
-                            >
-                              {showRoute ? '隐藏路线' : '显示路线'}
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {allLocations.length > 0 ? (
-                      <>
-                        {showMap ? (
-                          <>
-                            <MapView
-                              locations={allLocations}
-                              showRoute={showRoute}
-                              className="w-full"
-                            />
-                            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                              <p className="text-sm text-blue-800 dark:text-blue-300">
-                                <strong>提示：</strong> 点击地图上的标记查看详细信息。
-                                {allLocations.length > 1 && '开启路线规划可查看推荐行进路线。'}
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                            点击"显示地图"查看行程地图
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">地图数据不可用</h3>
-                            <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
-                              当前行程中没有包含地理位置信息（经纬度坐标）。
-                            </p>
-                            <p className="text-sm text-amber-700 dark:text-amber-300">
-                              建议：重新生成行程时，AI 可能会自动添加位置信息。如果问题持续存在，请检查 AI 模型配置。
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <TripOverviewMap
+                  days={displayTrip.itinerary.days}
+                  accommodation={displayTrip.itinerary?.accommodation || []}
+                  onHotelClick={handleHotelMarkerClick}
+                />
               )}
 
               {/* Accommodation Section */}
@@ -820,22 +695,6 @@ export default function TripDetailPage() {
                           />
                         </div>
 
-                        {/* Day Map Preview */}
-                        {day.activities && day.activities.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                              <Map className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                              景点地图
-                            </h4>
-                            <DayMapPreview
-                              activities={day.activities}
-                              weather={weatherData.find(w => w.fxDate === day.date) || null}
-                              dayNumber={day.day}
-                              onExpandMap={() => setFullScreenMapDay({ dayNumber: day.day, activities: day.activities })}
-                            />
-                          </div>
-                        )}
-
                         {/* Activities */}
                         {day.activities && day.activities.length > 0 && (
                           <div>
@@ -885,43 +744,6 @@ export default function TripDetailPage() {
                     </Card>
                   ))}
                 </div>
-              )}
-
-              {/* Cost Breakdown */}
-              {displayTrip?.itinerary?.estimated_cost && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>费用预估</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">住宿</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.accommodation.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">交通</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.transportation.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">餐饮</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.food.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">景点门票</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.attractions.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">其他</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">¥{displayTrip.itinerary.estimated_cost.other.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t dark:border-gray-700 font-bold text-lg">
-                        <span className="text-gray-900 dark:text-white">总计</span>
-                        <span className="text-blue-600 dark:text-blue-400">¥{displayTrip.itinerary.estimated_cost.total.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
             </>
           ) : activeTab === 'expenses' ? (
