@@ -35,8 +35,15 @@ export default function TripInfoPanel({ trip }: TripInfoPanelProps) {
             <div>
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">日期</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {trip.start_date} 至 {trip.end_date}
+                {trip.start_date}{trip.start_time ? ` ${trip.start_time}` : ''} 至 {trip.end_date}{trip.end_time ? ` ${trip.end_time}` : ''}
               </p>
+              {(trip.start_time || trip.end_time) && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {trip.start_time && `到达: ${trip.start_time}`}
+                  {trip.start_time && trip.end_time && ' / '}
+                  {trip.end_time && `离开: ${trip.end_time}`}
+                </p>
+              )}
             </div>
           </div>
 

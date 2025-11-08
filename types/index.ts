@@ -11,9 +11,12 @@ export interface User {
 export interface Trip {
   id: string
   user_id: string
+  origin?: string
   destination: string
   start_date: string
   end_date: string
+  start_time?: string
+  end_time?: string
   budget: number
   travelers: number
   preferences: string[]
@@ -127,10 +130,12 @@ export interface Expense {
 
 // Trip planning form types
 export interface TripFormData {
-  origin: string
+  origin?: string
   destination: string
   start_date: string
   end_date: string
+  start_time?: string
+  end_time?: string
   budget: number
   travelers: number
   adult_count: number

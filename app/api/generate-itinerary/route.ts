@@ -254,15 +254,28 @@ export async function POST(request: NextRequest) {
       ? `\n酒店偏好：${formData.hotel_preferences.join('、')}`
       : ''
 
+    // 构建时间信息
+    const timeInfo = []
+    if (formData.start_time) {
+      timeInfo.push(`到达时间：${formData.start_time}`)
+    }
+    if (formData.end_time) {
+      timeInfo.push(`离开时间：${formData.end_time}`)
+    }
+    const timeInfoText = timeInfo.length > 0 ? `\n${timeInfo.join('，')}` : ''
+
     const prompt = `你是一个专业的旅行规划师。根据以下信息生成详细的旅行计划：
 
 出发地：${formData.origin || '未指定'}
 目的地：${formData.destination}
-日期：${formData.start_date} 至 ${formData.end_date}（共 ${days} 天）
+日期：${formData.start_date} 至 ${formData.end_date}（共 ${days} 天）${timeInfoText}
 预算：¥${formData.budget}
 人数：${formData.travelers} 人（成人 ${formData.adult_count} 人，儿童 ${formData.child_count} 人）
 偏好：${formData.preferences.join('、') || '无特殊偏好'}${hotelPreferencesText}
 ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''}${weatherInfo}
+
+${formData.start_time ? `注意：第一天的行程需要考虑到达时间${formData.start_time}，请合理安排首日活动的开始时间。` : ''}
+${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${formData.end_time}，请确保在此之前完成所有活动并留出前往机场/车站的时间。` : ''}
 
 请生成一个详细的旅行计划，以 JSON 格式返回，包含以下内容：
 
@@ -501,9 +514,17 @@ ${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''
         status: 'planned',
     }
 
-    // 如果提供了 origin，则添加（需要先在数据库中添加该列）
+    // 如果提供了 origin，则添加
     if (formData.origin) {
       tripData.origin = formData.origin
+    }
+
+    // 如果提供了时间，则添加
+    if (formData.start_time) {
+      tripData.start_time = formData.start_time
+    }
+    if (formData.end_time) {
+      tripData.end_time = formData.end_time
     }
 
     const { data: trip, error: dbError } = await supabase

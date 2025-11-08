@@ -62,6 +62,8 @@ export default function CreateTripPage() {
     destination: '',
     start_date: '',
     end_date: '',
+    start_time: '',
+    end_time: '',
     budget: 5000,
     travelers: 1,
     adult_count: 1,
@@ -269,13 +271,14 @@ export default function CreateTripPage() {
                 {/* Origin and Destination */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-900 dark:text-white">出发地 *</label>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
+                      出发地 <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">（可选）</span>
+                    </label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="例如: 上海、深圳、广州"
                         value={formData.origin}
                         onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                        required
                       />
                       <VoiceInput
                         onTranscript={(text) => setFormData({ ...formData, origin: text })}
@@ -308,6 +311,54 @@ export default function CreateTripPage() {
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                       required
                     />
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                        到达时间（可选）
+                      </label>
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={formData.start_time ? formData.start_time.split(':')[0] : ''}
+                          onChange={(e) => {
+                            const hour = e.target.value
+                            if (!hour) {
+                              setFormData({ ...formData, start_time: '' })
+                            } else {
+                              const minute = formData.start_time ? formData.start_time.split(':')[1] : '00'
+                              setFormData({ ...formData, start_time: `${hour}:${minute}` })
+                            }
+                          }}
+                          className="flex-1 h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">--</option>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i.toString().padStart(2, '0')}>
+                              {i.toString().padStart(2, '0')}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-gray-500 text-sm">时</span>
+                        <select
+                          value={formData.start_time ? formData.start_time.split(':')[1] : ''}
+                          onChange={(e) => {
+                            const minute = e.target.value
+                            const hour = formData.start_time ? formData.start_time.split(':')[0] : '00'
+                            if (hour && minute) {
+                              setFormData({ ...formData, start_time: `${hour}:${minute}` })
+                            }
+                          }}
+                          disabled={!formData.start_time || !formData.start_time.split(':')[0]}
+                          className="flex-1 h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">--</option>
+                          {[0, 15, 30, 45].map((i) => (
+                            <option key={i} value={i.toString().padStart(2, '0')}>
+                              {i.toString().padStart(2, '0')}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-gray-500 text-sm">分</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-900 dark:text-white">返回日期 *</label>
@@ -317,6 +368,54 @@ export default function CreateTripPage() {
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                       required
                     />
+                    <div className="mt-2">
+                      <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                        离开时间（可选）
+                      </label>
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={formData.end_time ? formData.end_time.split(':')[0] : ''}
+                          onChange={(e) => {
+                            const hour = e.target.value
+                            if (!hour) {
+                              setFormData({ ...formData, end_time: '' })
+                            } else {
+                              const minute = formData.end_time ? formData.end_time.split(':')[1] : '00'
+                              setFormData({ ...formData, end_time: `${hour}:${minute}` })
+                            }
+                          }}
+                          className="flex-1 h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">--</option>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i.toString().padStart(2, '0')}>
+                              {i.toString().padStart(2, '0')}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-gray-500 text-sm">时</span>
+                        <select
+                          value={formData.end_time ? formData.end_time.split(':')[1] : ''}
+                          onChange={(e) => {
+                            const minute = e.target.value
+                            const hour = formData.end_time ? formData.end_time.split(':')[0] : '00'
+                            if (hour && minute) {
+                              setFormData({ ...formData, end_time: `${hour}:${minute}` })
+                            }
+                          }}
+                          disabled={!formData.end_time || !formData.end_time.split(':')[0]}
+                          className="flex-1 h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">--</option>
+                          {[0, 15, 30, 45].map((i) => (
+                            <option key={i} value={i.toString().padStart(2, '0')}>
+                              {i.toString().padStart(2, '0')}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-gray-500 text-sm">分</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

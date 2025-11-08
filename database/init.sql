@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS public.trips (
   destination TEXT NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  start_time TIME,
+  end_time TIME,
   budget DECIMAL(10, 2) NOT NULL,
   travelers INTEGER NOT NULL DEFAULT 1,
   adult_count INTEGER NOT NULL DEFAULT 1,
@@ -134,6 +136,24 @@ BEGIN
   ) THEN
     ALTER TABLE public.trips ADD COLUMN origin TEXT;
     RAISE NOTICE '✅ 添加 origin 字段';
+  END IF;
+
+  -- 添加 start_time 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'trips' AND column_name = 'start_time'
+  ) THEN
+    ALTER TABLE public.trips ADD COLUMN start_time TIME;
+    RAISE NOTICE '✅ 添加 start_time 字段';
+  END IF;
+
+  -- 添加 end_time 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'trips' AND column_name = 'end_time'
+  ) THEN
+    ALTER TABLE public.trips ADD COLUMN end_time TIME;
+    RAISE NOTICE '✅ 添加 end_time 字段';
   END IF;
 
   -- 添加 share_token 列
