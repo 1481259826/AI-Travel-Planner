@@ -82,11 +82,12 @@ docker run -d \
 
 | Secret 名称 | 说明 | 示例 |
 |------------|------|------|
-| `ALIYUN_USERNAME` | 阿里云容器镜像服务用户名 | `your-aliyun-account` |
+| `ALIYUN_USERNAME` | 阿里云容器镜像服务用户名 | `whyxingren` |
 | `ALIYUN_PASSWORD` | 阿里云容器镜像服务密码 | `your-password` |
-| `ALIYUN_NAMESPACE` | 阿里云命名空间名称 | `your-namespace` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | `https://xxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | `eyJhbGciOiJIUzI1NiIs...` |
+
+**注意**：本项目使用阿里云个人版容器镜像服务，仓库地址已在 workflow 中配置为 `crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com`，无需配置 `ALIYUN_NAMESPACE`。
 
 ### 配置步骤
 
@@ -145,13 +146,11 @@ GitHub Actions 会在以下情况下自动执行：
 ### 从阿里云拉取镜像
 
 ```bash
-# 登录阿里云镜像仓库
-docker login registry.cn-hangzhou.aliyuncs.com \
-  -u <ALIYUN_USERNAME> \
-  -p <ALIYUN_PASSWORD>
+# 登录阿里云镜像仓库（个人版）
+docker login --username=whyxingren crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com
 
 # 拉取最新镜像
-docker pull registry.cn-hangzhou.aliyuncs.com/<namespace>/ai-travel-planner:latest
+docker pull crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner:latest
 ```
 
 ### 运行容器
@@ -163,7 +162,7 @@ docker run -d \
   -p 3008:3008 \
   --name ai-travel-planner \
   --restart unless-stopped \
-  registry.cn-hangzhou.aliyuncs.com/<namespace>/ai-travel-planner:latest
+  crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner:latest
 ```
 
 #### 方式 2: 使用 Docker Compose
@@ -175,7 +174,7 @@ version: '3.8'
 
 services:
   ai-travel-planner:
-    image: registry.cn-hangzhou.aliyuncs.com/<namespace>/ai-travel-planner:latest
+    image: crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner:latest
     container_name: ai-travel-planner
     ports:
       - "3008:3008"
@@ -194,7 +193,7 @@ docker-compose up -d
 
 ```bash
 # 拉取最新镜像
-docker pull registry.cn-hangzhou.aliyuncs.com/<namespace>/ai-travel-planner:latest
+docker pull crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner:latest
 
 # 停止并删除旧容器
 docker stop ai-travel-planner
@@ -205,7 +204,7 @@ docker run -d \
   -p 3008:3008 \
   --name ai-travel-planner \
   --restart unless-stopped \
-  registry.cn-hangzhou.aliyuncs.com/<namespace>/ai-travel-planner:latest
+  crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner:latest
 ```
 
 或使用 Docker Compose:
