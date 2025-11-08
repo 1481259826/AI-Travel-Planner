@@ -31,8 +31,20 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Debug: Print environment variables (remove after testing)
 RUN echo "Building with Supabase URL: ${NEXT_PUBLIC_SUPABASE_URL:0:30}..." || true
 
-# Build the application with error handling
-RUN npm run build 2>&1 | tee build.log || (cat build.log && exit 1)
+# Build the application
+RUN npm run build
+
+# Debug: Check if standalone output was created
+RUN ls -la .next/ && \
+    if [ -d ".next/standalone" ]; then \
+      echo "✅ Standalone output created successfully"; \
+      ls -la .next/standalone/; \
+    else \
+      echo "❌ ERROR: Standalone output not found!"; \
+      echo "Contents of .next directory:"; \
+      ls -la .next/; \
+      exit 1; \
+    fi
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -47,13 +59,13 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
+# Copy standalone folder contents to app root
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

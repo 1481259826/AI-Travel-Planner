@@ -60,8 +60,6 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # 增加构建超时时间
-          timeout-minutes: 20
 
       - name: Image digest
         run: echo ${{ steps.meta.outputs.tags }}
