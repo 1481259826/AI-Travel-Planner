@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { Cloud, CloudRain, Sun, Wind, Droplets } from 'lucide-react'
-import { WeatherDaily } from '@/types'
-import { getWeatherAdvice } from '@/lib/amap-weather'
+import { AmapWeatherForecast, getWeatherAdvice } from '@/lib/amap-weather'
 import Image from 'next/image'
 
 /**
@@ -43,7 +42,7 @@ function getWeatherIconUrl(weatherText: string): string {
 
 interface WeatherCardProps {
   date: string // 日期 YYYY-MM-DD
-  weather: WeatherDaily | null
+  weather: AmapWeatherForecast | null
   isLoading?: boolean
 }
 
@@ -77,11 +76,11 @@ export default function WeatherCard({ date, weather, isLoading = false }: Weathe
   }
 
   // 获取天气建议
-  const advice = getWeatherAdvice(weather.textDay)
+  const advice = getWeatherAdvice(weather.dayweather)
 
   // 判断天气类型用于背景色
   const getWeatherGradient = () => {
-    const text = weather.textDay.toLowerCase()
+    const text = weather.dayweather.toLowerCase()
     if (text.includes('雨') || text.includes('rain')) {
       return 'from-gray-100 to-blue-100 dark:from-gray-800/50 dark:to-blue-900/20'
     } else if (text.includes('晴') || text.includes('sunny') || text.includes('clear')) {
@@ -104,8 +103,8 @@ export default function WeatherCard({ date, weather, isLoading = false }: Weathe
             {!imageError ? (
               <div className="relative w-10 h-10 flex-shrink-0">
                 <Image
-                  src={getWeatherIconUrl(weather.iconDay)}
-                  alt={weather.textDay}
+                  src={getWeatherIconUrl(weather.dayweather)}
+                  alt={weather.dayweather}
                   width={40}
                   height={40}
                   onError={() => setImageError(true)}
@@ -114,9 +113,9 @@ export default function WeatherCard({ date, weather, isLoading = false }: Weathe
               </div>
             ) : (
               <div className="flex-shrink-0">
-                {weather.textDay.includes('雨') ? (
+                {weather.dayweather.includes('雨') ? (
                   <CloudRain className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                ) : weather.textDay.includes('晴') ? (
+                ) : weather.dayweather.includes('晴') ? (
                   <Sun className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
                 ) : (
                   <Cloud className="w-8 h-8 text-gray-600 dark:text-gray-400" />
@@ -127,13 +126,13 @@ export default function WeatherCard({ date, weather, isLoading = false }: Weathe
             {/* 温度范围 */}
             <div>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {weather.tempMax}°
+                {weather.daytemp}°
                 <span className="text-lg text-gray-500 dark:text-gray-400 ml-1">
-                  / {weather.tempMin}°
+                  / {weather.nighttemp}°
                 </span>
               </div>
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {weather.textDay}
+                {weather.dayweather}
               </div>
             </div>
           </div>
@@ -150,34 +149,10 @@ export default function WeatherCard({ date, weather, isLoading = false }: Weathe
         {/* 右侧：详细信息 */}
         <div className="ml-4 space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
           {/* 风力 */}
-          {weather.windDirDay && weather.windScaleDay && (
+          {weather.daywind && weather.daypower && (
             <div className="flex items-center gap-1.5">
               <Wind className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{weather.windDirDay} {weather.windScaleDay}级</span>
-            </div>
-          )}
-
-          {/* 湿度 */}
-          {weather.humidity && (
-            <div className="flex items-center gap-1.5">
-              <Droplets className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>湿度 {weather.humidity}%</span>
-            </div>
-          )}
-
-          {/* 降水量 */}
-          {weather.precip && parseFloat(weather.precip) > 0 && (
-            <div className="flex items-center gap-1.5">
-              <CloudRain className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>降水 {weather.precip}mm</span>
-            </div>
-          )}
-
-          {/* 紫外线 */}
-          {weather.uvIndex && (
-            <div className="flex items-center gap-1.5">
-              <Sun className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>UV {weather.uvIndex}</span>
+              <span>{weather.daywind} {weather.daypower}级</span>
             </div>
           )}
         </div>

@@ -1,30 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getWeatherByCityName, AmapWeatherForecast } from '@/lib/amap-weather'
-import { WeatherDaily } from '@/types'
-
-/**
- * 将高德地图天气数据转换为统一的WeatherDaily格式
- */
-function convertAmapToWeatherDaily(amapData: AmapWeatherForecast): WeatherDaily {
-  return {
-    fxDate: amapData.date,
-    tempMax: amapData.daytemp,
-    tempMin: amapData.nighttemp,
-    textDay: amapData.dayweather,
-    textNight: amapData.nightweather,
-    iconDay: '', // 高德地图不提供图标代码，使用空字符串
-    iconNight: '',
-    wind360Day: '',
-    windDirDay: amapData.daywind,
-    windScaleDay: amapData.daypower,
-    windSpeedDay: '',
-    humidity: '', // 高德地图预报数据不含湿度
-    precip: '',
-    pressure: '',
-    uvIndex: '',
-    vis: '',
-  }
-}
+import { getWeatherByCityName } from '@/lib/amap-weather'
 
 /**
  * GET /api/weather?city=北京
@@ -52,16 +27,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 转换为统一格式
+    // 返回高德地图天气数据
     if (weatherData.forecasts && weatherData.forecasts.length > 0) {
       const forecast = weatherData.forecasts[0]
-      const daily = forecast.casts.map(convertAmapToWeatherDaily)
 
       return NextResponse.json({
         code: '200',
         updateTime: forecast.reporttime,
-        fxLink: '',
-        daily,
+        city: forecast.city,
+        province: forecast.province,
+        casts: forecast.casts,
       })
     }
 

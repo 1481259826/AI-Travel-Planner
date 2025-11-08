@@ -92,18 +92,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 检查 Unsplash Access Key
-    if (process.env.UNSPLASH_ACCESS_KEY) {
-      const key = process.env.UNSPLASH_ACCESS_KEY
-      systemKeys.push({
-        service: 'unsplash',
-        key_name: '系统默认 (Unsplash)',
-        key_prefix: key.substring(0, 12) + '...',
-        is_active: true,
-        is_system: true,
-      })
-    }
-
     return NextResponse.json({ systemKeys })
   } catch (error) {
     console.error('Get system API keys error:', error)

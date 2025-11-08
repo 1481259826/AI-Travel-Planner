@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Activity, WeatherDaily } from '@/types'
+import { Activity } from '@/types'
+import { AmapWeatherForecast } from '@/lib/amap-weather'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
 
@@ -15,7 +16,7 @@ declare global {
 
 interface DayMapPreviewProps {
   activities: Activity[]
-  weather?: WeatherDaily | null
+  weather?: AmapWeatherForecast | null
   dayNumber: number
   onExpandMap?: () => void
 }
@@ -294,8 +295,8 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
           {weather && (
             <div className="flex items-center gap-2 text-white text-xs bg-black/30 px-2 py-1 rounded-full">
               <Cloud className="w-3 h-3" />
-              <span>{weather.textDay}</span>
-              <span className="font-medium">{weather.tempMax}°/{weather.tempMin}°</span>
+              <span>{weather.dayweather}</span>
+              <span className="font-medium">{weather.daytemp}°/{weather.nighttemp}°</span>
             </div>
           )}
         </div>

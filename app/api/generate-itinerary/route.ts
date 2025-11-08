@@ -200,23 +200,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查用户是否有自己的 API Key
-    let userAnthropicKey: string | null = null
     let userDeepSeekKey: string | null = null
     let userModelScopeKey: string | null = null
 
-    if (modelConfig.provider === 'anthropic') {
-      userAnthropicKey = await getUserApiKey(user.id, 'anthropic')
-    } else if (modelConfig.provider === 'deepseek') {
+    if (modelConfig.provider === 'deepseek') {
       userDeepSeekKey = await getUserApiKey(user.id, 'deepseek')
     } else if (modelConfig.provider === 'modelscope') {
       userModelScopeKey = await getUserApiKey(user.id, 'modelscope')
     }
 
     // 如果用户有自己的 Key，创建新的客户端实例
-    const anthropicClient = userAnthropicKey
-      ? new Anthropic({ apiKey: userAnthropicKey, baseURL: config.anthropic.baseURL })
-      : anthropic
-
     const deepseekClient = userDeepSeekKey
       ? new OpenAI({ apiKey: userDeepSeekKey, baseURL: config.deepseek.baseURL })
       : deepseek
@@ -234,16 +227,16 @@ export async function POST(request: NextRequest) {
     let weatherInfo = ''
     try {
       const weatherData = await getWeatherByCityName(formData.destination)
-      if (weatherData && weatherData.daily) {
-        weatherInfo = '\n天气预报信息：\n'
-        weatherData.daily.slice(0, days).forEach((day, index) => {
-          weatherInfo += `${day.fxDate}: ${day.textDay}，温度 ${day.tempMin}°C - ${day.tempMax}°C，${day.windDirDay}风${day.windScaleDay}级`
-          if (parseFloat(day.precip) > 0) {
-            weatherInfo += `，降水${day.precip}mm`
-          }
-          weatherInfo += '\n'
-        })
-        weatherInfo += '\n请根据天气情况合理安排活动，如遇雨天建议安排室内活动，晴天适合户外游览。\n'
+      if (weatherData && weatherData.forecasts && weatherData.forecasts.length > 0) {
+        const forecast = weatherData.forecasts[0]
+        if (forecast.casts && forecast.casts.length > 0) {
+          weatherInfo = '\n天气预报信息：\n'
+          forecast.casts.slice(0, days).forEach((day) => {
+            weatherInfo += `${day.date} ${day.week}: 白天${day.dayweather}，${day.daytemp}°C，${day.daywind}风${day.daypower}级；`
+            weatherInfo += `晚上${day.nightweather}，${day.nighttemp}°C，${day.nightwind}风${day.nightpower}级\n`
+          })
+          weatherInfo += '\n请根据天气情况合理安排活动，如遇雨天建议安排室内活动，晴天适合户外游览。\n'
+        }
       }
     } catch (error) {
       console.error('Failed to fetch weather, continuing without weather data:', error)
@@ -423,18 +416,10 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
       })
       responseText = completion.choices[0]?.message?.content || ''
     } else {
-      // Anthropic Claude API（使用用户 Key 或系统默认）
-      const message = await anthropicClient.messages.create({
-        model: selectedModel,
-        max_tokens: modelConfig.maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      })
-      responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+      return NextResponse.json(
+        { error: `Unsupported AI provider: ${modelConfig.provider}` },
+        { status: 400 }
+      )
     }
 
     // Try to extract JSON from the response

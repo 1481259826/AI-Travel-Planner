@@ -27,7 +27,7 @@ import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
 import { cacheExpensesFromServer } from '@/lib/sync'
 import { useItineraryStore } from '@/lib/stores/itinerary-store'
-import { WeatherDaily } from '@/types'
+import { AmapWeatherForecast } from '@/lib/amap-weather'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -59,7 +59,7 @@ export default function TripDetailPage() {
   const [addModalDayIndex, setAddModalDayIndex] = useState(0)
 
   // 天气数据状态
-  const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
+  const [weatherData, setWeatherData] = useState<AmapWeatherForecast[]>([])
   const [loadingWeather, setLoadingWeather] = useState(false)
 
   // 全屏地图状态
@@ -690,7 +690,7 @@ export default function TripDetailPage() {
                           </h4>
                           <WeatherCard
                             date={day.date}
-                            weather={weatherData.find(w => w.fxDate === day.date) || null}
+                            weather={weatherData.find(w => w.date === day.date) || null}
                             isLoading={loadingWeather}
                           />
                         </div>

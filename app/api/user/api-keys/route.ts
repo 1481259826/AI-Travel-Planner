@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证 service 类型
-    const validServices: ApiKeyService[] = ['anthropic', 'deepseek', 'modelscope', 'map', 'voice', 'unsplash']
+    const validServices: ApiKeyService[] = ['deepseek', 'modelscope', 'map', 'voice']
     if (!validServices.includes(service)) {
       return NextResponse.json({ error: '无效的服务类型' }, { status: 400 })
     }
