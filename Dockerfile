@@ -23,12 +23,16 @@ ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # Set environment variables for build
+ENV NODE_ENV=production
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application
-RUN npm run build
+# Debug: Print environment variables (remove after testing)
+RUN echo "Building with Supabase URL: ${NEXT_PUBLIC_SUPABASE_URL:0:30}..." || true
+
+# Build the application with error handling
+RUN npm run build 2>&1 | tee build.log || (cat build.log && exit 1)
 
 # Production image, copy all the files and run next
 FROM base AS runner
