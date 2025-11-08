@@ -1,10 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Cloud, CloudRain, Sun, Wind, Droplets } from 'lucide-react'
-import { WeatherDaily } from '@/lib/weather'
-import { getWeatherIconUrl, getWeatherAdvice } from '@/lib/weather'
+import { WeatherDaily } from '@/types'
+import { getWeatherAdvice } from '@/lib/amap-weather'
 import Image from 'next/image'
+
+/**
+ * 获取天气图标 URL（使用emoji生成SVG）
+ * @param weatherText 天气文本
+ * @returns 图标 data URI
+ */
+function getWeatherIconUrl(weatherText: string): string {
+  // 根据天气文本获取emoji
+  let emoji = '🌤️' // 默认
+
+  if (weatherText.includes('晴')) {
+    emoji = '☀️'
+  } else if (weatherText.includes('云') || weatherText.includes('阴')) {
+    emoji = '☁️'
+  } else if (weatherText.includes('雨')) {
+    emoji = '🌧️'
+  } else if (weatherText.includes('雪')) {
+    emoji = '❄️'
+  } else if (weatherText.includes('雷')) {
+    emoji = '⛈️'
+  } else if (weatherText.includes('雾') || weatherText.includes('霾')) {
+    emoji = '🌫️'
+  }
+
+  // 生成包含emoji的SVG
+  const svg = `
+    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <text x="20" y="20" text-anchor="middle" dominant-baseline="central" font-size="32">
+        ${emoji}
+      </text>
+    </svg>
+  `
+
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
+}
 
 interface WeatherCardProps {
   date: string // 日期 YYYY-MM-DD

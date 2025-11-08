@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Activity } from '@/types'
-import { WeatherDaily } from '@/lib/weather'
+import { Activity, WeatherDaily } from '@/types'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
 

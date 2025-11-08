@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getWeatherByCityName, AmapWeatherForecast } from '@/lib/amap-weather'
-import { WeatherDaily } from '@/lib/weather'
+import { WeatherDaily } from '@/types'
 
 /**
  * 将高德地图天气数据转换为统一的WeatherDaily格式

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { getAuthUser } from '@/lib/auth-helpers'
@@ -7,16 +6,10 @@ import config from '@/lib/config'
 import { TripFormData, Itinerary, AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
 import { getUserApiKey } from '@/lib/api-keys'
-import { getWeatherByCityName } from '@/lib/weather'
+import { getWeatherByCityName } from '@/lib/amap-weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
 import { smartGeocode } from '@/lib/amap-geocoding'
 import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
-
-// 初始化 Anthropic 客户端
-const anthropic = new Anthropic({
-  apiKey: config.anthropic.apiKey,
-  baseURL: config.anthropic.baseURL,
-})
 
 // 初始化 DeepSeek 客户端（使用 OpenAI 兼容 API）
 const deepseek = new OpenAI({

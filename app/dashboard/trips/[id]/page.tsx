@@ -27,7 +27,7 @@ import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
 import { cacheExpensesFromServer } from '@/lib/sync'
 import { useItineraryStore } from '@/lib/stores/itinerary-store'
-import { WeatherDaily } from '@/lib/weather'
+import { WeatherDaily } from '@/types'
 
 export default function TripDetailPage() {
   const router = useRouter()
