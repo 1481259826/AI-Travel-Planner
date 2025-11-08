@@ -11,8 +11,6 @@ on:
 env:
   # 阿里云镜像仓库地址（个人版）
   REGISTRY: crpi-iow4r6khsrrml7t4.cn-shanghai.personal.cr.aliyuncs.com
-  # 镜像仓库名称（包含命名空间）
-  IMAGE_NAME: ${{ secrets.ALIYUN_NAMESPACE }}/ai-travel-planner
 
 jobs:
   build-and-push:
@@ -36,7 +34,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/ai-travel-planner
           tags: |
             # 对于 tag 推送，使用 tag 名称
             type=ref,event=tag
