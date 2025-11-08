@@ -28,23 +28,11 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Debug: Print environment variables (remove after testing)
-RUN echo "Building with Supabase URL: ${NEXT_PUBLIC_SUPABASE_URL:0:30}..." || true
-
 # Build the application
 RUN npm run build
 
-# Debug: Check if standalone output was created
-RUN ls -la .next/ && \
-    if [ -d ".next/standalone" ]; then \
-      echo "✅ Standalone output created successfully"; \
-      ls -la .next/standalone/; \
-    else \
-      echo "❌ ERROR: Standalone output not found!"; \
-      echo "Contents of .next directory:"; \
-      ls -la .next/; \
-      exit 1; \
-    fi
+# Verify standalone output was created
+RUN test -d .next/standalone || (echo "ERROR: Standalone output not found" && exit 1)
 
 # Production image, copy all the files and run next
 FROM base AS runner
