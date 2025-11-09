@@ -480,7 +480,15 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
 
       if (profileError) {
         console.error('Failed to create profile:', profileError)
-        // 不阻止流程，继续尝试插入 trip
+        return NextResponse.json(
+          {
+            error: 'Failed to create user profile',
+            details: profileError.message,
+            code: profileError.code,
+            hint: '请检查数据库 profiles 表的 RLS 策略'
+          },
+          { status: 500 }
+        )
       }
     }
 
@@ -521,7 +529,14 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
     if (dbError) {
       console.error('Database error:', dbError)
       return NextResponse.json(
-        { error: 'Failed to save trip', details: dbError.message },
+        {
+          error: 'Failed to save trip',
+          details: dbError.message,
+          code: dbError.code,
+          hint: dbError.message.includes('row-level security')
+            ? '数据库 RLS 策略错误，请检查 trips 表的插入权限'
+            : '保存行程到数据库失败'
+        },
         { status: 500 }
       )
     }

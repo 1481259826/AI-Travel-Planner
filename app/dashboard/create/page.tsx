@@ -229,7 +229,10 @@ export default function CreateTripPage() {
         router.push(`/dashboard/trips/${data.trip_id}`)
       } else {
         const error = await response.json()
-        alert(error.error || '生成行程失败，请重试')
+        const errorMsg = error.details
+          ? `${error.error}\n\n详细信息：${error.details}${error.hint ? `\n\n提示：${error.hint}` : ''}`
+          : (error.error || '生成行程失败，请重试')
+        alert(errorMsg)
         setShowProgress(false)
       }
     } catch (error) {
