@@ -38,8 +38,15 @@ RUN test -d .next/standalone || (echo "ERROR: Standalone output not found" && ex
 FROM base AS runner
 WORKDIR /app
 
+# Re-declare build arguments for runtime
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Set environment variables for runtime
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
