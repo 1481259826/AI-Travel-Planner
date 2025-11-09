@@ -60,6 +60,11 @@ jobs:
             ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
             NEXT_PUBLIC_MAP_API_KEY=${{ secrets.NEXT_PUBLIC_MAP_API_KEY }}
             NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+            DEEPSEEK_BASE_URL=${{ secrets.DEEPSEEK_BASE_URL }}
+            MODELSCOPE_API_KEY=${{ secrets.MODELSCOPE_API_KEY }}
+            MODELSCOPE_BASE_URL=${{ secrets.MODELSCOPE_BASE_URL }}
+            AMAP_WEB_SERVICE_KEY=${{ secrets.AMAP_WEB_SERVICE_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
