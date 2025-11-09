@@ -24,6 +24,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWithAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    )
+
     const { id } = await params
     const { is_active } = await request.json()
 
@@ -33,7 +47,7 @@ export async function PUT(
     }
 
     // 更新（只允许更新自己的 key）
-    const { data: updatedKey, error: updateError } = await supabase
+    const { data: updatedKey, error: updateError } = await supabaseWithAuth
       .from('api_keys')
       .update({ is_active })
       .eq('id', id)
@@ -83,10 +97,24 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWithAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    )
+
     const { id } = await params
 
     // 删除（只允许删除自己的 key）
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseWithAuth
       .from('api_keys')
       .delete()
       .eq('id', id)

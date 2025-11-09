@@ -23,8 +23,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWithAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    )
+
     // 查询用户的 API Keys
-    const { data: apiKeys, error: queryError } = await supabase
+    const { data: apiKeys, error: queryError } = await supabaseWithAuth
       .from('api_keys')
       .select('*')
       .eq('user_id', user.id)
@@ -65,6 +79,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWithAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    )
+
     const { service, key_name, api_key } = await request.json()
 
     // 验证输入
@@ -94,8 +122,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // 插入数据库
-    const { data: newKey, error: insertError } = await supabase
+    // 插入数据库（使用带有用户 token 的客户端以通过 RLS）
+    const { data: newKey, error: insertError } = await supabaseWithAuth
       .from('api_keys')
       .insert({
         user_id: user.id,
