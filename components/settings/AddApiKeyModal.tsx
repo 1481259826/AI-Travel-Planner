@@ -87,7 +87,10 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || '添加失败')
+        const errorMsg = data.details
+          ? `${data.error}: ${data.details}`
+          : (data.error || '添加失败')
+        throw new Error(errorMsg)
       }
 
       // 重置表单

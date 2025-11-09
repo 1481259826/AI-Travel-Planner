@@ -79,8 +79,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 加密 API Key
-    const encryptedKey = encrypt(api_key)
-    const keyPrefix = getKeyPrefix(api_key, 8)
+    let encryptedKey: string
+    let keyPrefix: string
+
+    try {
+      encryptedKey = encrypt(api_key)
+      keyPrefix = getKeyPrefix(api_key, 8)
+    } catch (encryptError) {
+      console.error('Encryption error:', encryptError)
+      return NextResponse.json({
+        error: '加密失败',
+        details: encryptError instanceof Error ? encryptError.message : '未知加密错误',
+        hint: '请检查 ENCRYPTION_KEY 环境变量是否配置'
+      }, { status: 500 })
+    }
 
     // 插入数据库
     const { data: newKey, error: insertError } = await supabase
@@ -98,7 +110,11 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Insert API key error:', insertError)
-      return NextResponse.json({ error: '创建失败' }, { status: 500 })
+      return NextResponse.json({
+        error: '创建失败',
+        details: insertError.message,
+        code: insertError.code
+      }, { status: 500 })
     }
 
     return NextResponse.json({
