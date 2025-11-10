@@ -59,6 +59,7 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
             NEXT_PUBLIC_MAP_API_KEY=${{ secrets.NEXT_PUBLIC_MAP_API_KEY }}
+            NEXT_PUBLIC_MAP_SECURITY_KEY=${{ secrets.NEXT_PUBLIC_MAP_SECURITY_KEY }}
             NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}
             DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
             DEEPSEEK_BASE_URL=${{ secrets.DEEPSEEK_BASE_URL }}
