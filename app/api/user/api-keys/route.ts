@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    const { service, key_name, api_key } = await request.json()
+    const { service, key_name, api_key, base_url, extra_config } = await request.json()
 
     // 验证输入
     if (!service || !key_name || !api_key) {
@@ -104,6 +104,15 @@ export async function POST(request: NextRequest) {
     const validServices: ApiKeyService[] = ['deepseek', 'modelscope', 'map', 'voice']
     if (!validServices.includes(service)) {
       return NextResponse.json({ error: '无效的服务类型' }, { status: 400 })
+    }
+
+    // 验证 extra_config 格式（如果提供）
+    if (extra_config) {
+      try {
+        JSON.parse(extra_config)
+      } catch {
+        return NextResponse.json({ error: 'extra_config 必须是有效的 JSON 字符串' }, { status: 400 })
+      }
     }
 
     // 加密 API Key
@@ -122,17 +131,29 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+    // 准备插入数据
+    const insertData: any = {
+      user_id: user.id,
+      service,
+      key_name,
+      encrypted_key: encryptedKey,
+      key_prefix: keyPrefix,
+      is_active: true,
+    }
+
+    // 添加可选字段
+    if (base_url && base_url.trim()) {
+      insertData.base_url = base_url.trim()
+    }
+
+    if (extra_config && extra_config.trim()) {
+      insertData.extra_config = extra_config.trim()
+    }
+
     // 插入数据库（使用带有用户 token 的客户端以通过 RLS）
     const { data: newKey, error: insertError } = await supabaseWithAuth
       .from('api_keys')
-      .insert({
-        user_id: user.id,
-        service,
-        key_name,
-        encrypted_key: encryptedKey,
-        key_prefix: keyPrefix,
-        is_active: true,
-      })
+      .insert(insertData)
       .select()
       .single()
 

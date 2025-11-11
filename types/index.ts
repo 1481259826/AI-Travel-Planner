@@ -186,7 +186,6 @@ export interface UserProfile {
 
 // API Key types
 export type ApiKeyService =
-  | 'anthropic'
   | 'deepseek'
   | 'modelscope'
   | 'map'
@@ -199,6 +198,8 @@ export interface ApiKey {
   key_name: string
   encrypted_key: string
   key_prefix: string
+  base_url?: string | null          // API 基础 URL（用于自定义端点）
+  extra_config?: string | null       // 额外配置 JSON（如 app_id, web_service_key 等）
   is_active: boolean
   last_used_at?: string
   created_at: string

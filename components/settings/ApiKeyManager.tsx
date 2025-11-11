@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Loader2, Key, Trash2, Check, X, TestTube, Upload, Shield } from 'lucide-react'
+import { Plus, Loader2, Key, Trash2, Check, X, TestTube, Upload, Shield, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AddApiKeyModal from './AddApiKeyModal'
 import { supabase } from '@/lib/supabase'
@@ -220,13 +220,6 @@ export default function ApiKeyManager() {
   // 按服务分组
   const serviceGroups: ServiceGroup[] = [
     {
-      id: 'anthropic',
-      name: 'Anthropic Claude',
-      icon: '🤖',
-      userKeys: apiKeys.filter((k) => k.service === 'anthropic'),
-      systemKeys: systemKeys.filter((k) => k.service === 'anthropic'),
-    },
-    {
       id: 'deepseek',
       name: 'DeepSeek',
       icon: '🧠',
@@ -242,7 +235,7 @@ export default function ApiKeyManager() {
     },
     {
       id: 'map',
-      name: '高德地图',
+      name: '高德地图 Web 服务',
       icon: '🗺️',
       userKeys: apiKeys.filter((k) => k.service === 'map'),
       systemKeys: systemKeys.filter((k) => k.service === 'map'),
@@ -255,6 +248,15 @@ export default function ApiKeyManager() {
       systemKeys: systemKeys.filter((k) => k.service === 'voice'),
     },
   ]
+
+  // 检测未配置的关键服务
+  const mapSystemKeys = systemKeys.filter((k) => k.service === 'map')
+  const hasFrontendMapKey = mapSystemKeys.some((k) => k.key_name.includes('前端'))
+  const hasBackendMapKey = mapSystemKeys.some((k) => k.key_name.includes('后端'))
+  const mapUserKeys = apiKeys.filter((k) => k.service === 'map')
+
+  // 判断是否缺少后端地图 Key（前端 Key 必须在 .env.local 配置，后端 Key 可选）
+  const missingBackendMapKey = !hasBackendMapKey && mapUserKeys.length === 0
 
   if (loading) {
     return (
@@ -305,6 +307,50 @@ export default function ApiKeyManager() {
         onChange={handleFileSelect}
         className="hidden"
       />
+
+      {/* Missing Configuration Warnings */}
+      {(missingBackendMapKey || !hasFrontendMapKey) && (
+        <div className="space-y-3">
+          {!hasFrontendMapKey && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-red-900 dark:text-red-300 mb-1">
+                    ⚠️ 未配置高德地图前端 JS API Key
+                  </h4>
+                  <p className="text-sm text-red-800 dark:text-red-400">
+                    地图功能将无法使用。请在 <code className="bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded">.env.local</code> 文件中配置 <code className="bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded">NEXT_PUBLIC_MAP_API_KEY</code>，然后重启开发服务器。
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {missingBackendMapKey && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-1">
+                    ⚠️ 未配置高德地图 Web 服务 API Key
+                  </h4>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-2">
+                    将影响以下功能：景点坐标准确度、景点真实照片获取、地理编码服务。
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-500">
+                    您可以：
+                    <br />
+                    1. 在下方"高德地图 Web 服务"区域点击"添加 Key"按钮配置
+                    <br />
+                    2. 或在 <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded">.env.local</code> 文件中配置 <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded">AMAP_WEB_SERVICE_KEY</code>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Service Groups */}
       <div className="space-y-6">
@@ -395,6 +441,23 @@ export default function ApiKeyManager() {
                           <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             {key.key_prefix}
                           </div>
+                          {key.base_url && (
+                            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              URL: {key.base_url}
+                            </div>
+                          )}
+                          {key.extra_config && (() => {
+                            try {
+                              const config = JSON.parse(key.extra_config)
+                              return (
+                                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                  {Object.keys(config).length > 0 && `额外配置: ${Object.keys(config).join(', ')}`}
+                                </div>
+                              )
+                            } catch {
+                              return null
+                            }
+                          })()}
                           {key.last_used_at && (
                             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                               最后使用: {new Date(key.last_used_at).toLocaleString('zh-CN')}
@@ -462,6 +525,27 @@ export default function ApiKeyManager() {
           <li>Key 使用 AES-256 加密存储，安全可靠</li>
           <li>点击测试按钮可以验证 Key 是否有效</li>
         </ul>
+      </div>
+
+      {/* Map Service Info */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-amber-900 dark:text-amber-300 mb-2">
+          🗺️ 关于高德地图配置
+        </h4>
+        <div className="text-sm text-amber-800 dark:text-amber-400 space-y-2">
+          <p>高德地图需要两个不同的 API Key：</p>
+          <ul className="space-y-1 list-disc list-inside ml-2">
+            <li>
+              <strong>前端 JS API Key</strong>：用于地图显示、路线规划（必须在 .env.local 中配置）
+            </li>
+            <li>
+              <strong>后端 Web 服务 Key</strong>：用于地理编码、POI 搜索、景点照片（在此处配置）
+            </li>
+          </ul>
+          <p className="text-xs mt-2">
+            💡 提示：如果不配置后端 Key，地图仍可显示，但景点坐标可能不够准确，且无法获取真实照片。
+          </p>
+        </div>
       </div>
 
       {/* Add Modal */}

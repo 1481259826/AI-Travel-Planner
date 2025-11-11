@@ -5,23 +5,32 @@ import { getAuthUser } from '@/lib/auth-helpers'
 import config from '@/lib/config'
 import { TripFormData, Itinerary, AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
-import { getUserApiKey } from '@/lib/api-keys'
+import { getUserApiKey, getUserApiKeyConfig } from '@/lib/api-keys'
 import { getWeatherByCityName } from '@/lib/amap-weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
 import { smartGeocode } from '@/lib/amap-geocoding'
 import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
 
 // 初始化 DeepSeek 客户端（使用 OpenAI 兼容 API）
-const deepseek = new OpenAI({
-  apiKey: config.deepseek.apiKey,
-  baseURL: config.deepseek.baseURL,
-})
+// 如果没有系统 Key，则设置为 null，稍后会检查用户 Key
+const deepseek = config.deepseek.apiKey
+  ? new OpenAI({
+      apiKey: config.deepseek.apiKey,
+      baseURL: config.deepseek.baseURL,
+    })
+  : null
 
 // 初始化 ModelScope 客户端（使用 OpenAI 兼容 API）
-const modelscope = new OpenAI({
-  apiKey: config.modelscope.apiKey,
-  baseURL: config.modelscope.baseURL,
-})
+const modelscope = config.modelscope.apiKey
+  ? new OpenAI({
+      apiKey: config.modelscope.apiKey,
+      baseURL: config.modelscope.baseURL,
+    })
+  : null
+
+// 启动时日志
+console.log('System DeepSeek Key:', config.deepseek.apiKey ? '✅ Configured' : '❌ Not configured')
+console.log('System ModelScope Key:', config.modelscope.apiKey ? '✅ Configured' : '❌ Not configured')
 
 /**
  * 修正行程中的坐标
@@ -199,24 +208,70 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 检查用户是否有自己的 API Key
-    let userDeepSeekKey: string | null = null
-    let userModelScopeKey: string | null = null
+    // 创建已认证的 Supabase 客户端（用于查询用户的 API Keys）
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '') || ''
+
+    const supabaseAuth = createClient(
+      config.supabase.url,
+      config.supabase.anonKey,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    )
+
+    // 检查用户是否有自己的 API Key（包含 base_url 配置）
+    let userDeepSeekConfig: { apiKey: string; baseUrl?: string } | null = null
+    let userModelScopeConfig: { apiKey: string; baseUrl?: string } | null = null
 
     if (modelConfig.provider === 'deepseek') {
-      userDeepSeekKey = await getUserApiKey(user.id, 'deepseek')
+      userDeepSeekConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabaseAuth)
+      console.log('DeepSeek user config:', userDeepSeekConfig ? '✅ Found' : '❌ Not found')
     } else if (modelConfig.provider === 'modelscope') {
-      userModelScopeKey = await getUserApiKey(user.id, 'modelscope')
+      userModelScopeConfig = await getUserApiKeyConfig(user.id, 'modelscope', supabaseAuth)
+      console.log('ModelScope user config:', userModelScopeConfig ? '✅ Found' : '❌ Not found')
     }
 
     // 如果用户有自己的 Key，创建新的客户端实例
-    const deepseekClient = userDeepSeekKey
-      ? new OpenAI({ apiKey: userDeepSeekKey, baseURL: config.deepseek.baseURL })
+    // 如果用户没有 Key 且系统也没有 Key，则返回错误
+    const deepseekClient = userDeepSeekConfig
+      ? new OpenAI({
+          apiKey: userDeepSeekConfig.apiKey,
+          baseURL: userDeepSeekConfig.baseUrl || config.deepseek.baseURL,
+        })
       : deepseek
 
-    const modelscopeClient = userModelScopeKey
-      ? new OpenAI({ apiKey: userModelScopeKey, baseURL: config.modelscope.baseURL })
+    const modelscopeClient = userModelScopeConfig
+      ? new OpenAI({
+          apiKey: userModelScopeConfig.apiKey,
+          baseURL: userModelScopeConfig.baseUrl || config.modelscope.baseURL,
+        })
       : modelscope
+
+    // 验证所选模型的客户端是否可用
+    if (modelConfig.provider === 'deepseek' && !deepseekClient) {
+      return NextResponse.json(
+        {
+          error: '未配置 DeepSeek API Key',
+          details: '请在"设置 → API Key 管理"中添加 DeepSeek API Key，或在 .env.local 中配置 DEEPSEEK_API_KEY'
+        },
+        { status: 400 }
+      )
+    }
+
+    if (modelConfig.provider === 'modelscope' && !modelscopeClient) {
+      return NextResponse.json(
+        {
+          error: '未配置 ModelScope API Key',
+          details: '请在"设置 → API Key 管理"中添加 ModelScope API Key，或在 .env.local 中配置 MODELSCOPE_API_KEY'
+        },
+        { status: 400 }
+      )
+    }
 
     // Calculate trip duration
     const startDate = new Date(formData.start_date)
@@ -445,24 +500,8 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
     console.log('Applying geographic clustering optimization...')
     itinerary = optimizeItineraryByClustering(itinerary, 1000) // 1000米聚类阈值
 
-    // 创建带有用户认证的 Supabase 客户端
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '') || ''
-
-    const supabase = createClient(
-      config.supabase.url,
-      config.supabase.anonKey,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    )
-
-    // 确保 profile 记录存在
-    const { data: existingProfile } = await supabase
+    // 确保 profile 记录存在（使用前面创建的 supabaseAuth 客户端）
+    const { data: existingProfile } = await supabaseAuth
       .from('profiles')
       .select('id')
       .eq('id', user.id)
@@ -470,7 +509,7 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
 
     if (!existingProfile) {
       // 如果 profile 不存在，创建一个
-      const { error: profileError } = await supabase
+      const { error: profileError } = await supabaseAuth
         .from('profiles')
         .insert({
           id: user.id,
@@ -520,7 +559,7 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
       tripData.end_time = formData.end_time
     }
 
-    const { data: trip, error: dbError } = await supabase
+    const { data: trip, error: dbError } = await supabaseAuth
       .from('trips')
       .insert(tripData)
       .select()

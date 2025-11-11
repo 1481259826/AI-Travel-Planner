@@ -139,14 +139,16 @@ export async function testVoiceKey(apiKey: string): Promise<boolean> {
  * 获取用户指定服务的激活 API Key
  * @param userId 用户 ID
  * @param service 服务类型
+ * @param supabaseClient 可选的已认证 Supabase 客户端（如果不提供则使用全局客户端）
  * @returns 解密后的 API Key，如果没有则返回 null
  */
 export async function getUserApiKey(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice'
+  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice',
+  supabaseClient?: any
 ): Promise<string | null> {
   try {
-    const { supabase } = await import('@/lib/supabase')
+    const supabase = supabaseClient || (await import('@/lib/supabase')).supabase
     const { decrypt } = await import('@/lib/encryption')
 
     // 查询用户的激活 API Key
@@ -158,7 +160,7 @@ export async function getUserApiKey(
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()  // 使用 maybeSingle() 而不是 single()，避免在没有数据时抛出错误
 
     if (!apiKey) return null
 
@@ -166,6 +168,71 @@ export async function getUserApiKey(
     return decrypt(apiKey.encrypted_key)
   } catch (error) {
     console.error('Get user API key error:', error)
+    return null
+  }
+}
+
+/**
+ * 获取用户指定服务的激活 API Key 及配置
+ * @param userId 用户 ID
+ * @param service 服务类型
+ * @param supabaseClient 可选的已认证 Supabase 客户端（如果不提供则使用全局客户端）
+ * @returns 包含解密后的 API Key、base_url 和 extra_config 的对象，如果没有则返回 null
+ */
+export async function getUserApiKeyConfig(
+  userId: string,
+  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice',
+  supabaseClient?: any
+): Promise<{ apiKey: string; baseUrl?: string; extraConfig?: any } | null> {
+  try {
+    const supabase = supabaseClient || (await import('@/lib/supabase')).supabase
+    const { decrypt } = await import('@/lib/encryption')
+
+    console.log(`[getUserApiKeyConfig] Querying for userId: ${userId}, service: ${service}`)
+
+    // 查询用户的激活 API Key
+    const { data: apiKeyData, error: queryError } = await supabase
+      .from('api_keys')
+      .select('encrypted_key, base_url, extra_config')
+      .eq('user_id', userId)
+      .eq('service', service)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()  // 使用 maybeSingle() 而不是 single()，避免在没有数据时抛出错误
+
+    if (queryError) {
+      console.error(`[getUserApiKeyConfig] Query error:`, queryError)
+      return null
+    }
+
+    if (!apiKeyData) {
+      console.log(`[getUserApiKeyConfig] No API key found for service: ${service}`)
+      return null
+    }
+
+    console.log(`[getUserApiKeyConfig] Found API key, base_url: ${apiKeyData.base_url || 'not set'}`)
+
+    // 解密 API Key
+    const apiKey = decrypt(apiKeyData.encrypted_key)
+
+    // 解析 extra_config（如果存在）
+    let extraConfig = null
+    if (apiKeyData.extra_config) {
+      try {
+        extraConfig = JSON.parse(apiKeyData.extra_config)
+      } catch {
+        console.warn('Failed to parse extra_config')
+      }
+    }
+
+    return {
+      apiKey,
+      baseUrl: apiKeyData.base_url || undefined,
+      extraConfig,
+    }
+  } catch (error) {
+    console.error('Get user API key config error:', error)
     return null
   }
 }

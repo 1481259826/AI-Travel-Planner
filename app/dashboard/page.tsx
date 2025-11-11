@@ -13,6 +13,8 @@ import { useOfflineTrips } from '@/hooks/useOfflineTrips'
 import { useServerStatus } from '@/hooks/useServerStatus'
 import { offlineData } from '@/lib/offline'
 import CacheManager from '@/components/CacheManager'
+import ApiKeySetupModal from '@/components/ApiKeySetupModal'
+import { useApiKeyCheck } from '@/hooks/useApiKeyCheck'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showCacheManager, setShowCacheManager] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showApiKeySetup, setShowApiKeySetup] = useState(false)
 
   // Check if server is actually reachable
   const { isServerOnline } = useServerStatus()
@@ -28,10 +31,29 @@ export default function DashboardPage() {
   // Use offline-first hook for trips
   const { trips, isLoading: tripsLoading, error, refetch, fromCache } = useOfflineTrips(user?.id || null)
 
+  // Check API Keys configuration
+  const { isChecking, missingRequired, missingOptional, hasChecked } = useApiKeyCheck()
+
   useEffect(() => {
     setMounted(true)
     checkAuth()
   }, [])
+
+  // 当 API Key 检查完成后，决定是否显示配置弹窗
+  useEffect(() => {
+    if (!hasChecked || authLoading) return
+
+    // 检查是否已经跳过配置
+    const hasSkipped = localStorage.getItem('apiKeySetupSkipped') === 'true'
+
+    // 如果有必需的配置缺失，始终弹出（不管是否跳过）
+    if (missingRequired.length > 0) {
+      setShowApiKeySetup(true)
+    } else if (!hasSkipped && missingOptional.length > 0) {
+      // 如果只有可选配置缺失，且用户未跳过，则弹出
+      setShowApiKeySetup(true)
+    }
+  }, [hasChecked, missingRequired, missingOptional, authLoading])
 
   const checkAuth = async () => {
     try {
@@ -300,6 +322,14 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* API Key Setup Modal */}
+      <ApiKeySetupModal
+        isOpen={showApiKeySetup}
+        onClose={() => setShowApiKeySetup(false)}
+        missingRequired={missingRequired}
+        missingOptional={missingOptional}
+      />
     </div>
   )
 }

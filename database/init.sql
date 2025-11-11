@@ -1,9 +1,12 @@
 -- ============================================
 -- AI 旅行规划师 - Supabase 数据库完整初始化脚本
 -- ============================================
--- 版本：v3.0
+-- 版本：v3.1
 -- 说明：在 Supabase SQL Editor 中运行此脚本来初始化所有表和策略
 -- 包含：基础表结构 + 分享功能 + 费用追踪 + 用户设置 + API Keys 管理
+-- 更新日志：
+--   v3.1 (2025-01-11): 添加 API Keys 表的 base_url 和 extra_config 字段，
+--                       更新 service 约束（添加 modelscope，移除 anthropic/unsplash）
 -- ============================================
 
 -- 启用 UUID 扩展
@@ -294,15 +297,58 @@ CREATE POLICY "Users can delete expenses for their trips"
 CREATE TABLE IF NOT EXISTS public.api_keys (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('anthropic', 'deepseek', 'map', 'voice', 'unsplash')),
+  service TEXT NOT NULL CHECK (service IN ('anthropic', 'deepseek', 'modelscope', 'map', 'voice')),
   key_name TEXT NOT NULL,
   encrypted_key TEXT NOT NULL,
   key_prefix TEXT NOT NULL,
+  base_url TEXT,
+  extra_config TEXT,
   is_active BOOLEAN DEFAULT TRUE NOT NULL,
   last_used_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- 如果表已存在，添加缺失的列（向后兼容）
+DO $$
+BEGIN
+  -- 添加 base_url 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'api_keys' AND column_name = 'base_url'
+  ) THEN
+    ALTER TABLE public.api_keys ADD COLUMN base_url TEXT;
+    RAISE NOTICE '✅ 添加 base_url 字段';
+  END IF;
+
+  -- 添加 extra_config 列
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'api_keys' AND column_name = 'extra_config'
+  ) THEN
+    ALTER TABLE public.api_keys ADD COLUMN extra_config TEXT;
+    RAISE NOTICE '✅ 添加 extra_config 字段';
+  END IF;
+
+  -- 更新 service 约束（如果需要）
+  -- 注意：PostgreSQL 不直接支持 ALTER CONSTRAINT，需要先删除再添加
+  -- 这里我们检查是否需要更新约束
+  IF EXISTS (
+    SELECT 1 FROM information_schema.constraint_column_usage
+    WHERE table_name = 'api_keys' AND constraint_name LIKE '%service%check'
+  ) THEN
+    -- 先删除旧约束
+    ALTER TABLE public.api_keys DROP CONSTRAINT IF EXISTS api_keys_service_check;
+    -- 添加新约束（包含 modelscope，移除 unsplash）
+    ALTER TABLE public.api_keys ADD CONSTRAINT api_keys_service_check
+      CHECK (service IN ('anthropic', 'deepseek', 'modelscope', 'map', 'voice'));
+    RAISE NOTICE '✅ 更新 service 约束';
+  END IF;
+END $$;
+
+-- 添加字段注释
+COMMENT ON COLUMN public.api_keys.base_url IS 'Custom API base URL for services that support it (e.g., DeepSeek, ModelScope)';
+COMMENT ON COLUMN public.api_keys.extra_config IS 'Additional service-specific configuration stored as JSON string (e.g., app_id for voice service, web_key for map service)';
 
 -- 启用行级安全策略
 ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;

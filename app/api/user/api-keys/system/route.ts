@@ -32,18 +32,6 @@ export async function GET(request: NextRequest) {
 
     const systemKeys: SystemApiKey[] = []
 
-    // 检查 Anthropic API Key
-    if (process.env.ANTHROPIC_API_KEY) {
-      const key = process.env.ANTHROPIC_API_KEY
-      systemKeys.push({
-        service: 'anthropic',
-        key_name: '系统默认 (Anthropic)',
-        key_prefix: key.substring(0, 12) + '...',
-        is_active: true,
-        is_system: true,
-      })
-    }
-
     // 检查 DeepSeek API Key
     if (process.env.DEEPSEEK_API_KEY) {
       const key = process.env.DEEPSEEK_API_KEY
@@ -68,12 +56,24 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 检查高德地图 API Key
+    // 检查高德地图前端 API Key
     if (process.env.NEXT_PUBLIC_MAP_API_KEY) {
       const key = process.env.NEXT_PUBLIC_MAP_API_KEY
       systemKeys.push({
         service: 'map',
-        key_name: '系统默认 (高德地图)',
+        key_name: '系统默认 (前端 JS API)',
+        key_prefix: key.substring(0, 12) + '...',
+        is_active: true,
+        is_system: true,
+      })
+    }
+
+    // 检查高德地图后端 Web 服务 API Key
+    if (process.env.AMAP_WEB_SERVICE_KEY) {
+      const key = process.env.AMAP_WEB_SERVICE_KEY
+      systemKeys.push({
+        service: 'map',
+        key_name: '系统默认 (后端 Web 服务)',
         key_prefix: key.substring(0, 12) + '...',
         is_active: true,
         is_system: true,

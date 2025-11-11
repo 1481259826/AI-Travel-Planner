@@ -13,43 +13,59 @@ interface AddApiKeyModalProps {
   onSuccess: () => void
 }
 
-interface ServiceInfo {
+interface ServiceConfig {
   id: ApiKeyService
   name: string
   placeholder: string
   helpText: string
+  defaultBaseUrl?: string
+  showBaseUrl: boolean
+  extraFields?: {
+    key: string
+    label: string
+    placeholder: string
+    helpText: string
+  }[]
 }
 
-const services: ServiceInfo[] = [
-  {
-    id: 'anthropic',
-    name: 'Anthropic Claude',
-    placeholder: 'sk-ant-api03-...',
-    helpText: '在 Anthropic Console 获取 API Key',
-  },
+const serviceConfigs: ServiceConfig[] = [
   {
     id: 'deepseek',
     name: 'DeepSeek',
     placeholder: 'sk-...',
     helpText: '在 DeepSeek Platform 获取 API Key',
+    defaultBaseUrl: 'https://api.deepseek.com',
+    showBaseUrl: true,
   },
   {
     id: 'modelscope',
     name: 'ModelScope (Qwen)',
-    placeholder: 'ms-...',
-    helpText: '在 ModelScope 体验平台获取 API Key',
+    placeholder: 'sk-...',
+    helpText: '在 ModelScope 控制台获取 API Key',
+    defaultBaseUrl: 'https://api-inference.modelscope.cn/v1/',
+    showBaseUrl: true,
   },
   {
     id: 'map',
-    name: '高德地图',
+    name: '高德地图 Web 服务',
     placeholder: '您的高德地图 Web 服务 Key',
-    helpText: '在高德开放平台获取 Web 服务 API Key',
+    helpText: '在高德开放平台获取 Web 服务 API Key（用于后端地理编码、POI 搜索、景点照片获取等）',
+    showBaseUrl: false,
   },
   {
     id: 'voice',
     name: '科大讯飞语音',
     placeholder: '您的讯飞语音 API Key',
     helpText: '在讯飞开放平台获取语音听写 API Key',
+    showBaseUrl: false,
+    extraFields: [
+      {
+        key: 'app_id',
+        label: 'APP ID',
+        placeholder: '您的讯飞应用 APP ID',
+        helpText: '在讯飞开放平台创建应用后获得',
+      },
+    ],
   },
 ]
 
@@ -57,12 +73,26 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
   const [loading, setLoading] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [formData, setFormData] = useState({
-    service: 'anthropic' as ApiKeyService,
+    service: 'deepseek' as ApiKeyService,
     key_name: '',
     api_key: '',
+    base_url: '',
+    extra_fields: {} as Record<string, string>,
   })
 
-  const selectedService = services.find((s) => s.id === formData.service)
+  const selectedConfig = serviceConfigs.find((s) => s.id === formData.service)
+
+  // 当切换服务时，重置表单
+  const handleServiceChange = (newService: ApiKeyService) => {
+    const newConfig = serviceConfigs.find((s) => s.id === newService)
+    setFormData({
+      service: newService,
+      key_name: '',
+      api_key: '',
+      base_url: newConfig?.defaultBaseUrl || '',
+      extra_fields: {},
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,13 +106,37 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
         return
       }
 
+      // 构建请求数据
+      const requestData: any = {
+        service: formData.service,
+        key_name: formData.key_name,
+        api_key: formData.api_key,
+      }
+
+      // 添加 base_url（如果有）
+      if (formData.base_url && formData.base_url.trim()) {
+        requestData.base_url = formData.base_url.trim()
+      }
+
+      // 添加额外字段（如果有）
+      if (Object.keys(formData.extra_fields).length > 0) {
+        // 过滤掉空值
+        const filteredExtra = Object.entries(formData.extra_fields)
+          .filter(([_, value]) => value && value.trim())
+          .reduce((acc, [key, value]) => ({ ...acc, [key]: value.trim() }), {})
+
+        if (Object.keys(filteredExtra).length > 0) {
+          requestData.extra_config = JSON.stringify(filteredExtra)
+        }
+      }
+
       const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestData),
       })
 
       if (!response.ok) {
@@ -95,9 +149,11 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
 
       // 重置表单
       setFormData({
-        service: 'anthropic',
+        service: 'deepseek',
         key_name: '',
         api_key: '',
+        base_url: 'https://api.deepseek.com',
+        extra_fields: {},
       })
 
       onSuccess()
@@ -136,18 +192,18 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
             </label>
             <select
               value={formData.service}
-              onChange={(e) => setFormData({ ...formData, service: e.target.value as ApiKeyService })}
+              onChange={(e) => handleServiceChange(e.target.value as ApiKeyService)}
               className="flex h-10 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-white"
               required
             >
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
+              {serviceConfigs.map((config) => (
+                <option key={config.id} value={config.id}>
+                  {config.name}
                 </option>
               ))}
             </select>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {selectedService?.helpText}
+              {selectedConfig?.helpText}
             </p>
           </div>
 
@@ -178,7 +234,7 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
                 type={showKey ? 'text' : 'password'}
                 value={formData.api_key}
                 onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                placeholder={selectedService?.placeholder}
+                placeholder={selectedConfig?.placeholder}
                 required
                 className="pr-10"
               />
@@ -194,6 +250,50 @@ export default function AddApiKeyModal({ isOpen, onClose, onSuccess }: AddApiKey
               ⚠️ Key 将使用 AES-256 加密存储，添加后无法查看完整内容
             </p>
           </div>
+
+          {/* Base URL (如果支持) */}
+          {selectedConfig?.showBaseUrl && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                API 基础 URL（可选）
+              </label>
+              <Input
+                type="url"
+                value={formData.base_url}
+                onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
+                placeholder={selectedConfig.defaultBaseUrl}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                如果使用代理或自定义端点，可在此修改。留空则使用默认 URL
+              </p>
+            </div>
+          )}
+
+          {/* 额外字段 */}
+          {selectedConfig?.extraFields?.map((field) => (
+            <div key={field.key} className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {field.label}
+              </label>
+              <Input
+                type="text"
+                value={formData.extra_fields[field.key] || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    extra_fields: {
+                      ...formData.extra_fields,
+                      [field.key]: e.target.value,
+                    },
+                  })
+                }
+                placeholder={field.placeholder}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {field.helpText}
+              </p>
+            </div>
+          ))}
 
           {/* 提交按钮 */}
           <div className="flex items-center gap-3 pt-4">
