@@ -155,8 +155,9 @@ export default function TripDetailPage() {
 
       if (response.ok) {
         const data = await response.json()
-        if (data.daily) {
-          setWeatherData(data.daily)
+        // 修复: API 返回的是 casts 数组,不是 daily
+        if (data.casts && Array.isArray(data.casts)) {
+          setWeatherData(data.casts)
         }
       } else {
         console.error('Failed to fetch weather data')
