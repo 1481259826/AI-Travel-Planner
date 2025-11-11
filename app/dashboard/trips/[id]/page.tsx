@@ -535,11 +535,10 @@ export default function TripDetailPage() {
               <EditModeControls trip={trip} onSaveSuccess={handleSaveSuccess} />
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <ExportPdfButton trip={trip} />
-              <Button
-                variant="outline"
+              <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (
                   <>
@@ -552,7 +551,7 @@ export default function TripDetailPage() {
                     删除行程
                   </>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

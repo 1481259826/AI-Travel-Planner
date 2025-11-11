@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import { Trip } from '@/types';
 import { ExportOptions, PdfGenerationProgress } from '@/types/pdf';
-import { exportTripToPDF } from '@/lib/exportTripToPDF';
-import { generatePdfFilename, downloadFile, openPdfInNewWindow, isMobileDevice } from '@/lib/pdfHelpers';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { FileText, Loader2, Eye, Download, Printer } from 'lucide-react';
+import { Loader2, Printer } from 'lucide-react';
 
 interface ExportPdfDialogProps {
   trip: Trip;
@@ -47,10 +45,6 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
     completed: false,
   });
 
-  // 预览状态
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
   // 更新选项
   const updateOption = (key: keyof ExportOptions, value: boolean) => {
@@ -64,59 +58,6 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
     }));
   };
 
-  // 生成 PDF
-  const generatePdf = async (preview: boolean = false) => {
-    setIsGenerating(true);
-    setProgress({
-      step: '开始生成...',
-      progress: 0,
-      completed: false,
-    });
-
-    try {
-      const blob = await exportTripToPDF(trip, options, setProgress);
-      setPdfBlob(blob);
-
-      if (preview) {
-        // 预览模式
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        setShowPreview(true);
-      } else {
-        // 直接下载
-        const filename = generatePdfFilename(trip.destination, trip.start_date);
-        downloadFile(blob, filename);
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('PDF 生成失败:', error);
-      setProgress({
-        step: '生成失败',
-        progress: 0,
-        completed: false,
-        error: error instanceof Error ? error.message : '未知错误',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // 下载已生成的 PDF
-  const downloadGeneratedPdf = () => {
-    if (pdfBlob) {
-      const filename = generatePdfFilename(trip.destination, trip.start_date);
-      downloadFile(pdfBlob, filename);
-      onOpenChange(false);
-    }
-  };
-
-  // 在新窗口打开 PDF（移动端）
-  const openPdfInNew = () => {
-    if (pdfBlob) {
-      openPdfInNewWindow(pdfBlob);
-      onOpenChange(false);
-    }
-  };
 
   // 打开打印优化版（完美支持中文）
   const openPrintVersion = () => {
@@ -125,24 +66,9 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
     onOpenChange(false);
   };
 
-  // 清理资源
-  React.useEffect(() => {
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-    };
-  }, [pdfUrl]);
-
   // 重置状态
   const handleClose = () => {
     if (!isGenerating) {
-      setShowPreview(false);
-      setPdfBlob(null);
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-      }
       setProgress({
         step: '',
         progress: 0,
@@ -151,52 +77,6 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
       onOpenChange(false);
     }
   };
-
-  // 如果正在显示预览
-  if (showPreview && pdfUrl) {
-    return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>PDF 预览</DialogTitle>
-            <DialogDescription>
-              预览生成的旅行计划文档
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogBody>
-            <div className="w-full h-[60vh] border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-              <iframe
-                src={pdfUrl}
-                className="w-full h-full"
-                title="PDF Preview"
-              />
-            </div>
-          </DialogBody>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPreview(false)}
-            >
-              返回
-            </Button>
-            {isMobileDevice() ? (
-              <Button onClick={openPdfInNew}>
-                <Eye className="w-4 h-4 mr-2" />
-                在新窗口打开
-              </Button>
-            ) : (
-              <Button onClick={downloadGeneratedPdf}>
-                <Download className="w-4 h-4 mr-2" />
-                下载 PDF
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   // 导出选项界面
   return (
@@ -211,17 +91,16 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
 
         <DialogBody>
           <div className="space-y-6">
-            {/* 推荐提示 */}
+            {/* 提示信息 */}
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Printer className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    💡 推荐使用打印优化版
+                    💡 打印为 PDF
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    打印优化版完美支持中文显示，通过浏览器打印功能（Ctrl/Cmd+P）保存为 PDF，格式清晰、内容完整。
-                    直接下载的 PDF 因字体限制，中文显示可能不完整。
+                    点击"打印"按钮将在新窗口打开打印页面，通过浏览器打印功能（Ctrl/Cmd+P）保存为 PDF，格式清晰、内容完整，完美支持中文显示。
                   </p>
                 </div>
               </div>
@@ -342,40 +221,7 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
             disabled={isGenerating}
           >
             <Printer className="w-4 h-4 mr-2" />
-            打印优化版（推荐）
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => generatePdf(true)}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4 mr-2" />
-                预览
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => generatePdf(false)}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                直接下载
-              </>
-            )}
+            打印
           </Button>
         </DialogFooter>
       </DialogContent>
