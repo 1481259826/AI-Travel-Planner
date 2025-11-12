@@ -66,6 +66,8 @@ jobs:
             MODELSCOPE_API_KEY=${{ secrets.MODELSCOPE_API_KEY }}
             MODELSCOPE_BASE_URL=${{ secrets.MODELSCOPE_BASE_URL }}
             AMAP_WEB_SERVICE_KEY=${{ secrets.AMAP_WEB_SERVICE_KEY }}
+            VOICE_API_KEY=${{ secrets.VOICE_API_KEY }}
+            VOICE_APP_ID=${{ secrets.VOICE_APP_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
