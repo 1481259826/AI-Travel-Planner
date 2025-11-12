@@ -56,7 +56,7 @@ const serviceConfigs: ServiceConfig[] = [
     id: 'voice',
     name: '科大讯飞语音',
     placeholder: '您的讯飞语音 API Key',
-    helpText: '在讯飞开放平台获取语音听写 API Key',
+    helpText: '在讯飞开放平台获取语音听写 API Key，用于实时语音识别',
     showBaseUrl: false,
     extraFields: [
       {
@@ -64,6 +64,12 @@ const serviceConfigs: ServiceConfig[] = [
         label: 'APP ID',
         placeholder: '您的讯飞应用 APP ID',
         helpText: '在讯飞开放平台创建应用后获得',
+      },
+      {
+        key: 'api_secret',
+        label: 'API Secret',
+        placeholder: '您的讯飞应用 API Secret',
+        helpText: 'WebSocket 语音识别需要 API Secret 进行鉴权签名',
       },
     ],
   },

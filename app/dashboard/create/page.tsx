@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import VoiceInput from '@/components/VoiceInput'
+import SmartVoiceFillForm from '@/components/SmartVoiceFillForm'
 import ModelSelector from '@/components/ModelSelector'
 import ProgressModal, { GenerationStage } from '@/components/ProgressModal'
 import { supabase } from '@/lib/supabase'
@@ -154,6 +155,17 @@ export default function CreateTripPage() {
     }))
   }
 
+  // 处理智能语音填表
+  const handleVoiceFillForm = (data: Partial<TripFormData>) => {
+    setFormData(prev => ({
+      ...prev,
+      ...data,
+      // 确保数组类型字段正确合并
+      preferences: data.preferences || prev.preferences,
+      hotel_preferences: data.hotel_preferences || prev.hotel_preferences,
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -271,6 +283,24 @@ export default function CreateTripPage() {
 
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
+                {/* Smart Voice Fill Form */}
+                <SmartVoiceFillForm
+                  onFillForm={handleVoiceFillForm}
+                  className="mb-6"
+                />
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                      或手动填写表单
+                    </span>
+                  </div>
+                </div>
+
                 {/* Origin and Destination */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">

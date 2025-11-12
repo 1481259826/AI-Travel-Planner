@@ -153,6 +153,38 @@ export interface VoiceRecognitionResult {
   is_final: boolean
 }
 
+export interface VoiceParseResult {
+  destination?: string
+  origin?: string
+  start_date?: string
+  end_date?: string
+  duration?: number
+  budget?: number
+  travelers?: number
+  adult_count?: number
+  child_count?: number
+  preferences?: string[]
+  hotel_preferences?: string[]
+  additional_notes?: string
+}
+
+export interface VoiceParseResponse {
+  success: boolean
+  data?: VoiceParseResult
+  raw_text?: string
+  raw_ai_response?: string
+  error?: string
+  message?: string
+}
+
+export interface XFYunVoiceConfig {
+  appId: string
+  apiKey: string
+  apiSecret?: string
+}
+
+export type VoiceMode = 'web' | 'xfyun'
+
 // AI Model types
 export type AIModel =
   | 'deepseek-chat'
