@@ -259,7 +259,8 @@ export class AudioProcessor {
       // 转换为 16bit PCM
       const pcmData = this.floatTo16BitPCM(inputData);
 
-      this.onAudioDataCallback?.(pcmData.buffer);
+      // 确保传递的是 ArrayBuffer 类型
+      this.onAudioDataCallback?.(pcmData.buffer as ArrayBuffer);
     };
 
     this.sourceNode.connect(this.processorNode);

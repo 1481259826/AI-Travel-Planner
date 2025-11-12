@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
 
     // 获取 AI API 配置
     const userConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabaseWithAuth);
-    const apiKey = userConfig?.decrypted_key || config.deepseek.apiKey;
-    const baseURL = userConfig?.base_url || config.deepseek.baseURL;
+    const apiKey = userConfig?.apiKey || config.deepseek.apiKey;
+    const baseURL = userConfig?.baseUrl || config.deepseek.baseURL;
 
     if (!apiKey) {
       return NextResponse.json(
