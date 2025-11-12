@@ -446,6 +446,9 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
 
     if (modelConfig.provider === 'deepseek') {
       // DeepSeek 使用 OpenAI 兼容的 API（使用用户 Key 或系统默认）
+      if (!deepseekClient) {
+        throw new Error('DeepSeek client not initialized')
+      }
       const completion = await deepseekClient.chat.completions.create({
         model: config.deepseek.model,
         messages: [
@@ -459,6 +462,9 @@ ${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${f
       responseText = completion.choices[0]?.message?.content || ''
     } else if (modelConfig.provider === 'modelscope') {
       // ModelScope (Qwen) 使用 OpenAI 兼容的 API
+      if (!modelscopeClient) {
+        throw new Error('ModelScope client not initialized')
+      }
       const completion = await modelscopeClient.chat.completions.create({
         model: selectedModel,
         messages: [

@@ -165,7 +165,6 @@ export async function checkVoiceKeyOptional(
  */
 function getServiceName(service: ApiKeyService): string {
   const names: Record<ApiKeyService, string> = {
-    anthropic: 'Anthropic Claude',
     deepseek: 'DeepSeek',
     modelscope: 'ModelScope',
     map: '高德地图',

@@ -17,7 +17,6 @@ function parseEnvContent(content: string): ParsedKey[] {
   const lines = content.split('\n')
 
   const keyMapping: Record<string, { service: ApiKeyService; name: string }> = {
-    'ANTHROPIC_API_KEY': { service: 'anthropic', name: 'Anthropic Claude (从 .env.local 导入)' },
     'DEEPSEEK_API_KEY': { service: 'deepseek', name: 'DeepSeek (从 .env.local 导入)' },
     'MODELSCOPE_API_KEY': { service: 'modelscope', name: 'ModelScope (从 .env.local 导入)' },
     'NEXT_PUBLIC_MAP_API_KEY': { service: 'map', name: '高德地图 (从 .env.local 导入)' },

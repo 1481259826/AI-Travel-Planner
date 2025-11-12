@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { decrypt } from '@/lib/encryption'
-import { testAnthropicKey, testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey } from '@/lib/api-keys'
+import { testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey } from '@/lib/api-keys'
 import type { ApiKeyService } from '@/types'
 
 /**
@@ -57,10 +57,6 @@ export async function POST(request: NextRequest) {
 
     try {
       switch (apiKey.service as ApiKeyService) {
-        case 'anthropic':
-          isValid = await testAnthropicKey(decryptedKey)
-          errorMessage = isValid ? '' : 'Anthropic API Key 无效或无权限'
-          break
         case 'deepseek':
           isValid = await testDeepSeekKey(decryptedKey)
           errorMessage = isValid ? '' : 'DeepSeek API Key 无效或无权限'

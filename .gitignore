@@ -36,6 +36,9 @@ next-env.d.ts
 # Playwright MCP
 .playwright-mcp/
 
+# Claude Code
+.claude/
+
 # Editor directories and files
 .vscode/
 .idea/
@@ -52,3 +55,9 @@ Thumbs.db
 /public/swe-worker-*.js
 /public/workbox-*.js
 logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
