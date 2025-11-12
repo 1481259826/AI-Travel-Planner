@@ -297,7 +297,7 @@ CREATE POLICY "Users can delete expenses for their trips"
 CREATE TABLE IF NOT EXISTS public.api_keys (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  service TEXT NOT NULL CHECK (service IN ('anthropic', 'deepseek', 'modelscope', 'map', 'voice')),
+  service TEXT NOT NULL CHECK (service IN ('deepseek', 'modelscope', 'map', 'voice')),
   key_name TEXT NOT NULL,
   encrypted_key TEXT NOT NULL,
   key_prefix TEXT NOT NULL,
@@ -339,9 +339,9 @@ BEGIN
   ) THEN
     -- 先删除旧约束
     ALTER TABLE public.api_keys DROP CONSTRAINT IF EXISTS api_keys_service_check;
-    -- 添加新约束（包含 modelscope，移除 unsplash）
+    -- 添加新约束（移除 anthropic 和 unsplash）
     ALTER TABLE public.api_keys ADD CONSTRAINT api_keys_service_check
-      CHECK (service IN ('anthropic', 'deepseek', 'modelscope', 'map', 'voice'));
+      CHECK (service IN ('deepseek', 'modelscope', 'map', 'voice'));
     RAISE NOTICE '✅ 更新 service 约束';
   END IF;
 END $$;
