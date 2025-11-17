@@ -42,7 +42,12 @@ export default function PreferencesForm() {
 
       if (!response.ok) throw new Error('Failed to load')
 
-      const { profile } = await response.json() as { profile: UserProfile }
+      const result = await response.json()
+      const profile = result.data?.profile
+
+      if (!profile) {
+        throw new Error('Profile data not found')
+      }
 
       setFormData({
         default_model: profile.default_model || '',
