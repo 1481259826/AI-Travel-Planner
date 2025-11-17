@@ -1,601 +1,231 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { createClient } from '@supabase/supabase-js'
-import { getAuthUser } from '@/lib/auth-helpers'
-import config from '@/lib/config'
-import { TripFormData, Itinerary, AIModel } from '@/types'
+/**
+ * API: /api/generate-itinerary
+ * AI 智能生成旅行行程
+ */
+
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
+import {
+  createAIClient,
+  buildItineraryPrompt,
+  generateItinerary,
+  correctItineraryCoordinates,
+} from '@/app/api/_utils'
+import { getUserApiKeyConfig } from '@/lib/api-keys'
 import { getModelById } from '@/lib/models'
-import { getUserApiKey, getUserApiKeyConfig } from '@/lib/api-keys'
 import { getWeatherByCityName } from '@/lib/amap-weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
-import { smartGeocode } from '@/lib/amap-geocoding'
-import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
-
-// 初始化 DeepSeek 客户端（使用 OpenAI 兼容 API）
-// 如果没有系统 Key，则设置为 null，稍后会检查用户 Key
-const deepseek = config.deepseek.apiKey
-  ? new OpenAI({
-      apiKey: config.deepseek.apiKey,
-      baseURL: config.deepseek.baseURL,
-    })
-  : null
-
-// 初始化 ModelScope 客户端（使用 OpenAI 兼容 API）
-const modelscope = config.modelscope.apiKey
-  ? new OpenAI({
-      apiKey: config.modelscope.apiKey,
-      baseURL: config.modelscope.baseURL,
-    })
-  : null
-
-// 启动时日志
-console.log('System DeepSeek Key:', config.deepseek.apiKey ? '✅ Configured' : '❌ Not configured')
-console.log('System ModelScope Key:', config.modelscope.apiKey ? '✅ Configured' : '❌ Not configured')
+import config from '@/lib/config'
+import type { TripFormData, Itinerary } from '@/types'
+import { ValidationError, ConfigurationError } from '@/lib/errors'
+import { logger } from '@/lib/utils/logger'
 
 /**
- * 修正行程中的坐标
- * 策略：
- * 1. 优先使用高德地图 API 获取准确的 GCJ-02 坐标
- * 2. 如果 API 调用失败，则将 WGS84 坐标转换为 GCJ-02
+ * 获取天气信息（可选，失败不影响主流程）
  */
-async function correctItineraryCoordinates(itinerary: Itinerary, destination: string): Promise<Itinerary> {
-  console.log('Starting coordinate correction...')
+async function fetchWeatherInfo(destination: string, days: number): Promise<string> {
+  try {
+    const weatherData = await getWeatherByCityName(destination)
 
-  let apiCallCount = 0
-  const maxApiCalls = 30 // 限制API调用次数，避免超出配额
+    if (weatherData?.forecasts?.[0]?.casts) {
+      const casts = weatherData.forecasts[0].casts
+      let weatherInfo = '\n天气预报信息：\n'
 
-  // 遍历每一天的行程
-  for (const day of itinerary.days) {
-    // 修正活动景点坐标
-    if (day.activities && day.activities.length > 0) {
-      for (const activity of day.activities) {
-        if (activity.location && activity.location.lat && activity.location.lng) {
-          // 尝试使用高德地图API获取准确坐标（有次数限制）
-          if (apiCallCount < maxApiCalls) {
-            try {
-              // 添加延迟避免API限流
-              if (apiCallCount > 0) {
-                await new Promise(resolve => setTimeout(resolve, 300))
-              }
+      casts.slice(0, days).forEach((day) => {
+        weatherInfo += `${day.date} ${day.week}: 白天${day.dayweather}，${day.daytemp}°C，${day.daywind}风${day.daypower}级；`
+        weatherInfo += `晚上${day.nightweather}，${day.nighttemp}°C，${day.nightwind}风${day.nightpower}级\n`
+      })
 
-              const result = await smartGeocode(activity.name, destination)
-              apiCallCount++
-
-              if (result) {
-                console.log(`✓ Corrected coordinates for ${activity.name}: (${activity.location.lat}, ${activity.location.lng}) → (${result.lat}, ${result.lng})`)
-                activity.location.lat = result.lat
-                activity.location.lng = result.lng
-                if (result.formattedAddress) {
-                  activity.location.address = result.formattedAddress
-                }
-                continue
-              }
-            } catch (error) {
-              console.warn(`Failed to geocode ${activity.name}, falling back to coordinate conversion:`, error)
-            }
-          }
-
-          // API调用失败或超出次数限制，使用坐标转换
-          const converted = wgs84ToGcj02(activity.location.lng, activity.location.lat)
-          const offsetDistance = Math.sqrt(
-            Math.pow((converted.lng - activity.location.lng) * 111000, 2) +
-            Math.pow((converted.lat - activity.location.lat) * 111000, 2)
-          )
-
-          // 只有偏移超过10米才进行转换（避免重复转换已经是GCJ-02的坐标）
-          if (offsetDistance > 10) {
-            console.log(`→ Converted coordinates for ${activity.name}: (${activity.location.lat}, ${activity.location.lng}) → (${converted.lat}, ${converted.lng})`)
-            activity.location.lat = converted.lat
-            activity.location.lng = converted.lng
-          }
-        }
-      }
+      weatherInfo += '\n请根据天气情况合理安排活动，如遇雨天建议安排室内活动，晴天适合户外游览。\n'
+      return weatherInfo
     }
-
-    // 修正餐饮地点坐标
-    if (day.meals && day.meals.length > 0) {
-      for (const meal of day.meals) {
-        if (meal.location && meal.location.lat && meal.location.lng) {
-          // 尝试使用高德地图API获取准确坐标
-          if (apiCallCount < maxApiCalls) {
-            try {
-              if (apiCallCount > 0) {
-                await new Promise(resolve => setTimeout(resolve, 300))
-              }
-
-              const result = await smartGeocode(meal.restaurant, destination)
-              apiCallCount++
-
-              if (result) {
-                console.log(`✓ Corrected coordinates for ${meal.restaurant}: (${meal.location.lat}, ${meal.location.lng}) → (${result.lat}, ${result.lng})`)
-                meal.location.lat = result.lat
-                meal.location.lng = result.lng
-                if (result.formattedAddress) {
-                  meal.location.address = result.formattedAddress
-                }
-                continue
-              }
-            } catch (error) {
-              console.warn(`Failed to geocode ${meal.restaurant}, falling back to coordinate conversion:`, error)
-            }
-          }
-
-          // API调用失败或超出次数限制，使用坐标转换
-          const converted = wgs84ToGcj02(meal.location.lng, meal.location.lat)
-          const offsetDistance = Math.sqrt(
-            Math.pow((converted.lng - meal.location.lng) * 111000, 2) +
-            Math.pow((converted.lat - meal.location.lat) * 111000, 2)
-          )
-
-          if (offsetDistance > 10) {
-            console.log(`→ Converted coordinates for ${meal.restaurant}: (${meal.location.lat}, ${meal.location.lng}) → (${converted.lat}, ${converted.lng})`)
-            meal.location.lat = converted.lat
-            meal.location.lng = converted.lng
-          }
-        }
-      }
-    }
+  } catch (error) {
+    logger.warn('获取天气信息失败，继续生成行程', { error })
   }
 
-  // 修正住宿坐标
-  if (itinerary.accommodation && itinerary.accommodation.length > 0) {
-    for (const hotel of itinerary.accommodation) {
-      if (hotel.location && hotel.location.lat && hotel.location.lng) {
-        // 尝试使用高德地图API获取准确坐标
-        if (apiCallCount < maxApiCalls) {
-          try {
-            if (apiCallCount > 0) {
-              await new Promise(resolve => setTimeout(resolve, 300))
-            }
-
-            const result = await smartGeocode(hotel.name, destination)
-            apiCallCount++
-
-            if (result) {
-              console.log(`✓ Corrected coordinates for hotel ${hotel.name}: (${hotel.location.lat}, ${hotel.location.lng}) → (${result.lat}, ${result.lng})`)
-              hotel.location.lat = result.lat
-              hotel.location.lng = result.lng
-              if (result.formattedAddress) {
-                hotel.location.address = result.formattedAddress
-              }
-              continue
-            }
-          } catch (error) {
-            console.warn(`Failed to geocode ${hotel.name}, falling back to coordinate conversion:`, error)
-          }
-        }
-
-        // API调用失败或超出次数限制，使用坐标转换
-        const converted = wgs84ToGcj02(hotel.location.lng, hotel.location.lat)
-        const offsetDistance = Math.sqrt(
-          Math.pow((converted.lng - hotel.location.lng) * 111000, 2) +
-          Math.pow((converted.lat - hotel.location.lat) * 111000, 2)
-        )
-
-        if (offsetDistance > 10) {
-          console.log(`→ Converted coordinates for hotel ${hotel.name}: (${hotel.location.lat}, ${hotel.location.lng}) → (${converted.lat}, ${converted.lng})`)
-          hotel.location.lat = converted.lat
-          hotel.location.lng = converted.lng
-        }
-      }
-    }
-  }
-
-  console.log(`Coordinate correction completed. API calls used: ${apiCallCount}/${maxApiCalls}`)
-  return itinerary
+  return ''
 }
 
+/**
+ * 确保用户 profile 存在
+ */
+async function ensureUserProfile(supabase: any, userId: string, email?: string): Promise<void> {
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .single()
+
+  if (!existingProfile) {
+    logger.info('创建用户 profile', { userId })
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        email: email || '',
+        name: email?.split('@')[0] || 'User',
+      })
+
+    if (profileError) {
+      logger.error('创建 profile 失败', { error: profileError })
+      throw new ConfigurationError('无法创建用户配置，请检查数据库 RLS 策略')
+    }
+  }
+}
+
+/**
+ * 保存行程到数据库
+ */
+async function saveTripToDatabase(
+  supabase: any,
+  userId: string,
+  formData: TripFormData,
+  itinerary: Itinerary
+) {
+  const tripData: any = {
+    user_id: userId,
+    destination: formData.destination,
+    start_date: formData.start_date,
+    end_date: formData.end_date,
+    budget: formData.budget,
+    travelers: formData.travelers,
+    adult_count: formData.adult_count,
+    child_count: formData.child_count,
+    preferences: formData.preferences,
+    itinerary,
+    status: 'planned',
+  }
+
+  // 添加可选字段
+  if (formData.origin) tripData.origin = formData.origin
+  if (formData.start_time) tripData.start_time = formData.start_time
+  if (formData.end_time) tripData.end_time = formData.end_time
+
+  const { data: trip, error } = await supabase
+    .from('trips')
+    .insert(tripData)
+    .select()
+    .single()
+
+  if (error) {
+    logger.error('保存行程失败', { error })
+    throw error
+  }
+
+  return trip
+}
+
+/**
+ * POST /api/generate-itinerary
+ * 生成 AI 旅行行程
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const { user, error: authError } = await getAuthUser(request)
+    // 认证
+    const { user, supabase } = await requireAuth(request)
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Parse request body
+    // 解析请求体
     const formData: TripFormData = await request.json()
+
+    // 验证必填字段
+    if (!formData.destination || !formData.start_date || !formData.end_date) {
+      throw new ValidationError('缺少必填字段：目的地、开始日期或结束日期')
+    }
 
     // 获取选择的模型配置
     const selectedModel = formData.model || 'claude-haiku-4-5'
     const modelConfig = getModelById(selectedModel)
 
     if (!modelConfig) {
-      return NextResponse.json(
-        { error: 'Invalid model selected' },
-        { status: 400 }
-      )
+      throw new ValidationError('无效的模型选择')
     }
 
-    // 创建已认证的 Supabase 客户端（用于查询用户的 API Keys）
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '') || ''
+    logger.info('开始生成行程', {
+      userId: user.id,
+      destination: formData.destination,
+      model: selectedModel,
+    })
 
-    const supabaseAuth = createClient(
-      config.supabase.url,
-      config.supabase.anonKey,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    )
-
-    // 检查用户是否有自己的 API Key（包含 base_url 配置）
-    let userDeepSeekConfig: { apiKey: string; baseUrl?: string } | null = null
-    let userModelScopeConfig: { apiKey: string; baseUrl?: string } | null = null
-
-    if (modelConfig.provider === 'deepseek') {
-      userDeepSeekConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabaseAuth)
-      console.log('DeepSeek user config:', userDeepSeekConfig ? '✅ Found' : '❌ Not found')
-    } else if (modelConfig.provider === 'modelscope') {
-      userModelScopeConfig = await getUserApiKeyConfig(user.id, 'modelscope', supabaseAuth)
-      console.log('ModelScope user config:', userModelScopeConfig ? '✅ Found' : '❌ Not found')
-    }
-
-    // 如果用户有自己的 Key，创建新的客户端实例
-    // 如果用户没有 Key 且系统也没有 Key，则返回错误
-    const deepseekClient = userDeepSeekConfig
-      ? new OpenAI({
-          apiKey: userDeepSeekConfig.apiKey,
-          baseURL: userDeepSeekConfig.baseUrl || config.deepseek.baseURL,
-        })
-      : deepseek
-
-    const modelscopeClient = userModelScopeConfig
-      ? new OpenAI({
-          apiKey: userModelScopeConfig.apiKey,
-          baseURL: userModelScopeConfig.baseUrl || config.modelscope.baseURL,
-        })
-      : modelscope
-
-    // 验证所选模型的客户端是否可用
-    if (modelConfig.provider === 'deepseek' && !deepseekClient) {
-      return NextResponse.json(
-        {
-          error: '未配置 DeepSeek API Key',
-          details: '请在"设置 → API Key 管理"中添加 DeepSeek API Key，或在 .env.local 中配置 DEEPSEEK_API_KEY'
-        },
-        { status: 400 }
-      )
-    }
-
-    if (modelConfig.provider === 'modelscope' && !modelscopeClient) {
-      return NextResponse.json(
-        {
-          error: '未配置 ModelScope API Key',
-          details: '请在"设置 → API Key 管理"中添加 ModelScope API Key，或在 .env.local 中配置 MODELSCOPE_API_KEY'
-        },
-        { status: 400 }
-      )
-    }
-
-    // Calculate trip duration
+    // 计算行程天数
     const startDate = new Date(formData.start_date)
     const endDate = new Date(formData.end_date)
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-    // 获取目的地天气预报（可选，失败不影响主流程）
-    let weatherInfo = ''
-    try {
-      const weatherData = await getWeatherByCityName(formData.destination)
-      if (weatherData && weatherData.forecasts && weatherData.forecasts.length > 0) {
-        const forecast = weatherData.forecasts[0]
-        if (forecast.casts && forecast.casts.length > 0) {
-          weatherInfo = '\n天气预报信息：\n'
-          forecast.casts.slice(0, days).forEach((day) => {
-            weatherInfo += `${day.date} ${day.week}: 白天${day.dayweather}，${day.daytemp}°C，${day.daywind}风${day.daypower}级；`
-            weatherInfo += `晚上${day.nightweather}，${day.nighttemp}°C，${day.nightwind}风${day.nightpower}级\n`
-          })
-          weatherInfo += '\n请根据天气情况合理安排活动，如遇雨天建议安排室内活动，晴天适合户外游览。\n'
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch weather, continuing without weather data:', error)
-    }
+    // 获取天气信息（可选）
+    const weatherInfo = await fetchWeatherInfo(formData.destination, days)
 
-    // Create prompt for Claude
-    const hotelPreferencesText = formData.hotel_preferences && formData.hotel_preferences.length > 0
-      ? `\n酒店偏好：${formData.hotel_preferences.join('、')}`
-      : ''
+    // 检查用户 API Key 配置
+    const userApiKeyConfig = await getUserApiKeyConfig(
+      user.id,
+      modelConfig.provider as 'deepseek' | 'modelscope',
+      supabase
+    )
 
-    // 构建时间信息
-    const timeInfo = []
-    if (formData.start_time) {
-      timeInfo.push(`到达时间：${formData.start_time}`)
-    }
-    if (formData.end_time) {
-      timeInfo.push(`离开时间：${formData.end_time}`)
-    }
-    const timeInfoText = timeInfo.length > 0 ? `\n${timeInfo.join('，')}` : ''
+    // 确定使用的 API Key
+    const apiKey = userApiKeyConfig?.apiKey ||
+      (modelConfig.provider === 'deepseek' ? config.deepseek.apiKey : config.modelscope.apiKey)
 
-    const prompt = `你是一个专业的旅行规划师。根据以下信息生成详细的旅行计划：
+    const baseURL = userApiKeyConfig?.baseUrl ||
+      (modelConfig.provider === 'deepseek' ? config.deepseek.baseURL : config.modelscope.baseURL)
 
-出发地：${formData.origin || '未指定'}
-目的地：${formData.destination}
-日期：${formData.start_date} 至 ${formData.end_date}（共 ${days} 天）${timeInfoText}
-预算：¥${formData.budget}
-人数：${formData.travelers} 人（成人 ${formData.adult_count} 人，儿童 ${formData.child_count} 人）
-偏好：${formData.preferences.join('、') || '无特殊偏好'}${hotelPreferencesText}
-${formData.additional_notes ? `补充说明：${formData.additional_notes}` : ''}${weatherInfo}
-
-${formData.start_time ? `注意：第一天的行程需要考虑到达时间${formData.start_time}，请合理安排首日活动的开始时间。` : ''}
-${formData.end_time ? `注意：最后一天的行程需要考虑离开时间${formData.end_time}，请确保在此之前完成所有活动并留出前往机场/车站的时间。` : ''}
-
-请生成一个详细的旅行计划，以 JSON 格式返回，包含以下内容：
-
-{
-  "summary": "行程总体概述（2-3句话）",
-  "days": [
-    {
-      "day": 1,
-      "date": "YYYY-MM-DD",
-      "activities": [
-        {
-          "time": "09:00",
-          "name": "活动名称",
-          "type": "attraction",
-          "location": {
-            "name": "地点名称",
-            "address": "详细地址",
-            "lat": 纬度,
-            "lng": 经度
-          },
-          "duration": "2小时",
-          "description": "活动描述",
-          "ticket_price": 门票价格（数字），
-          "tips": "游玩建议"
-        }
-      ],
-      "meals": [
-        {
-          "time": "12:00",
-          "restaurant": "餐厅名称",
-          "cuisine": "菜系",
-          "location": {
-            "name": "地点名称",
-            "address": "详细地址",
-            "lat": 纬度,
-            "lng": 经度
-          },
-          "avg_price": 人均价格（数字）,
-          "recommended_dishes": ["推荐菜品1", "推荐菜品2"]
-        }
-      ]
-    }
-  ],
-  "accommodation": [
-    {
-      "name": "酒店名称",
-      "type": "hotel",
-      "location": {
-        "name": "地点名称",
-        "address": "详细地址",
-        "lat": 纬度,
-        "lng": 经度
-      },
-      "check_in": "入住日期（YYYY-MM-DD）",
-      "check_out": "退房日期（YYYY-MM-DD）",
-      "price_per_night": 每晚价格（数字）,
-      "total_price": 总价（数字）,
-      "rating": 评分（1-5，数字）,
-      "amenities": ["免费WiFi", "空调", "早餐", "停车场", "健身房", "游泳池等"]
-    }
-  ],
-  "transportation": {
-    "to_destination": {
-      "method": "交通方式",
-      "details": "详细信息",
-      "cost": 费用
-    },
-    "from_destination": {
-      "method": "交通方式",
-      "details": "详细信息",
-      "cost": 费用
-    },
-    "local": {
-      "methods": ["地铁", "出租车"],
-      "estimated_cost": 预估费用
-    }
-  },
-  "estimated_cost": {
-    "accommodation": 住宿总费用,
-    "transportation": 交通总费用,
-    "food": 餐饮总费用,
-    "attractions": 景点总费用,
-    "other": 其他费用,
-    "total": 总费用
-  }
-}
-
-注意：
-1. 确保每日行程安排合理，时间不要太紧张
-2. 考虑景点之间的距离和交通时间
-3. 推荐当地特色美食和知名餐厅
-4. **费用估算要尽量准确，特别是交通费用：**
-   - 如果提供了出发地，请根据出发地到目的地的实际距离计算往返交通费用
-   - 飞机、高铁、汽车等交通方式要基于真实价格估算
-   - 目的地内部的交通费用也要准确计算
-5. 提供实用的旅行建议
-6. 所有价格都用人民币
-7. **非常重要：每个活动和餐厅的 location 必须包含真实准确的经纬度坐标（lat, lng）**
-8. 经纬度必须是数字类型，不能是字符串或 null
-9. 请使用真实存在的景点和餐厅，并提供准确的地理坐标
-10. **地理位置优化建议：**
-    - 同一天内，相邻的景点应该在地理位置上相对靠近（距离在 1-2 公里以内最佳）
-    - 避免早上在 A 区域，中午跳到 B 区域，下午又回到 A 区域的往返情况
-    - 按合理的地理动线安排景点顺序，形成顺畅的游览路线，节省交通时间
-    - 餐厅应选择靠近当天景点的位置
-11. **酒店推荐策略：**
-    - **短途行程（1-3天）**：推荐1个交通便利、靠近主要景点的酒店，全程入住
-    - **中等行程（4-6天）**：可以推荐1-2个酒店，如果行程跨越不同区域，建议在不同区域各住一个酒店
-    - **长途行程（7天以上）**：建议根据行程路线推荐2-3个不同位置的酒店，每个酒店覆盖附近几天的行程
-    - 选择酒店位置时，优先考虑靠近当天及次日主要活动区域，减少往返时间
-    - 每个酒店的 check_in 和 check_out 日期必须连续且合理
-    - 酒店价格应根据预算合理分配，避免超出总预算
-    - type 字段可以是: "hotel"（酒店）, "hostel"（青年旅舍）, "apartment"（公寓）, "resort"（度假村）
-    - 推荐的酒店应该真实存在，评分应该合理（3.5-5.0）
-    - amenities（设施）应该根据酒店类型和价格档次合理设置
-12. 请直接返回 JSON，不要包含任何其他文字说明`
-
-    // Call AI API (根据选择的模型)
-    let responseText = ''
-
-    if (modelConfig.provider === 'deepseek') {
-      // DeepSeek 使用 OpenAI 兼容的 API（使用用户 Key 或系统默认）
-      if (!deepseekClient) {
-        throw new Error('DeepSeek client not initialized')
-      }
-      const completion = await deepseekClient.chat.completions.create({
-        model: config.deepseek.model,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: modelConfig.maxTokens,
-      })
-      responseText = completion.choices[0]?.message?.content || ''
-    } else if (modelConfig.provider === 'modelscope') {
-      // ModelScope (Qwen) 使用 OpenAI 兼容的 API
-      if (!modelscopeClient) {
-        throw new Error('ModelScope client not initialized')
-      }
-      const completion = await modelscopeClient.chat.completions.create({
-        model: selectedModel,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: modelConfig.maxTokens,
-      })
-      responseText = completion.choices[0]?.message?.content || ''
-    } else {
-      return NextResponse.json(
-        { error: `Unsupported AI provider: ${modelConfig.provider}` },
-        { status: 400 }
+    if (!apiKey) {
+      throw new ConfigurationError(
+        `未配置 ${modelConfig.provider === 'deepseek' ? 'DeepSeek' : 'ModelScope'} API Key。` +
+        '请在"设置 → API Key 管理"中添加，或在环境变量中配置。'
       )
     }
 
-    // Try to extract JSON from the response
-    let itinerary: Itinerary
-    try {
-      // Remove markdown code blocks if present
-      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || responseText.match(/```\n([\s\S]*?)\n```/)
-      const jsonString = jsonMatch ? jsonMatch[1] : responseText
-      itinerary = JSON.parse(jsonString)
-    } catch (parseError) {
-      console.error('Failed to parse Claude response:', responseText)
-      return NextResponse.json(
-        { error: 'Failed to parse AI response', details: responseText },
-        { status: 500 }
-      )
-    }
+    logger.info('使用 API Key', {
+      provider: modelConfig.provider,
+      source: userApiKeyConfig ? '用户自定义' : '系统默认',
+    })
 
-    // 修正坐标：WGS84 -> GCJ-02 或使用高德地图API获取准确坐标
-    console.log('Correcting coordinates...')
+    // 创建 AI 客户端
+    const aiClient = createAIClient({ apiKey, baseURL })
+
+    // 构建提示词
+    const prompt = buildItineraryPrompt(formData, weatherInfo)
+
+    // 调用 AI 生成行程
+    logger.info('调用 AI 生成行程...')
+    let itinerary = await generateItinerary(
+      aiClient,
+      modelConfig.provider === 'deepseek' ? config.deepseek.model : selectedModel,
+      prompt,
+      modelConfig.maxTokens
+    )
+
+    // 修正坐标：WGS84 → GCJ-02
+    logger.info('修正坐标...')
     itinerary = await correctItineraryCoordinates(itinerary, formData.destination)
 
-    // 执行地理位置聚类优化，将相近的景点安排在一起
-    console.log('Applying geographic clustering optimization...')
-    itinerary = optimizeItineraryByClustering(itinerary, 1000) // 1000米聚类阈值
+    // 地理位置聚类优化
+    logger.info('应用地理聚类优化...')
+    itinerary = optimizeItineraryByClustering(itinerary, 1000)
 
-    // 确保 profile 记录存在（使用前面创建的 supabaseAuth 客户端）
-    const { data: existingProfile } = await supabaseAuth
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single()
+    // 确保 profile 存在
+    await ensureUserProfile(supabase, user.id, user.email)
 
-    if (!existingProfile) {
-      // 如果 profile 不存在，创建一个
-      const { error: profileError } = await supabaseAuth
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email: user.email || '',
-          name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-        })
+    // 保存到数据库
+    logger.info('保存行程到数据库...')
+    const trip = await saveTripToDatabase(supabase, user.id, formData, itinerary)
 
-      if (profileError) {
-        console.error('Failed to create profile:', profileError)
-        return NextResponse.json(
-          {
-            error: 'Failed to create user profile',
-            details: profileError.message,
-            code: profileError.code,
-            hint: '请检查数据库 profiles 表的 RLS 策略'
-          },
-          { status: 500 }
-        )
-      }
-    }
-
-    // Save trip to database
-    const tripData: any = {
-        user_id: user.id,
-        destination: formData.destination,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        budget: formData.budget,
-        travelers: formData.travelers,
-        adult_count: formData.adult_count,
-        child_count: formData.child_count,
-        preferences: formData.preferences,
-        itinerary: itinerary,
-        status: 'planned',
-    }
-
-    // 如果提供了 origin，则添加
-    if (formData.origin) {
-      tripData.origin = formData.origin
-    }
-
-    // 如果提供了时间，则添加
-    if (formData.start_time) {
-      tripData.start_time = formData.start_time
-    }
-    if (formData.end_time) {
-      tripData.end_time = formData.end_time
-    }
-
-    const { data: trip, error: dbError } = await supabaseAuth
-      .from('trips')
-      .insert(tripData)
-      .select()
-      .single()
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json(
-        {
-          error: 'Failed to save trip',
-          details: dbError.message,
-          code: dbError.code,
-          hint: dbError.message.includes('row-level security')
-            ? '数据库 RLS 策略错误，请检查 trips 表的插入权限'
-            : '保存行程到数据库失败'
-        },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      trip_id: trip.id,
-      itinerary: itinerary,
+    logger.info('行程生成成功', {
+      tripId: trip.id,
+      days: itinerary.days?.length || 0,
     })
-  } catch (error) {
-    console.error('Error generating itinerary:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+
+    return successResponse(
+      {
+        trip_id: trip.id,
+        itinerary,
+      },
+      '行程生成成功'
     )
+  } catch (error) {
+    return handleApiError(error, 'POST /api/generate-itinerary')
   }
 }
