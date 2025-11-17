@@ -36,19 +36,28 @@ export function encrypt(text: string): string {
  * 使用 AES-256 解密文本
  * @param encryptedText 要解密的密文
  * @returns 解密后的明文
+ * @throws Error 如果解密失败（可能是密钥不匹配或数据损坏）
  */
 export function decrypt(encryptedText: string): string {
   try {
+    if (!encryptedText || typeof encryptedText !== 'string') {
+      throw new Error('Invalid encrypted text: empty or not a string')
+    }
+
     const key = getEncryptionKey()
     const decrypted = CryptoJS.AES.decrypt(encryptedText, key)
     const plaintext = decrypted.toString(CryptoJS.enc.Utf8)
 
     if (!plaintext) {
-      throw new Error('Decryption resulted in empty string')
+      throw new Error('Decryption resulted in empty string - likely wrong encryption key or corrupted data')
     }
 
     return plaintext
   } catch (error) {
+    if (error instanceof Error) {
+      console.error('Decryption error:', error.message)
+      throw error
+    }
     console.error('Decryption error:', error)
     throw new Error('Failed to decrypt data')
   }

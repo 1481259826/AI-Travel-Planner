@@ -256,7 +256,18 @@ export async function getUserApiKeyConfig(
     logger.debug('找到用户 API Key', { userId, service, baseUrl: apiKeyData.base_url || 'not set' })
 
     // 解密 API Key
-    const apiKey = decrypt(apiKeyData.encrypted_key)
+    let apiKey: string
+    try {
+      apiKey = decrypt(apiKeyData.encrypted_key)
+    } catch (decryptError) {
+      logger.warn('解密用户 API Key 失败，可能是加密密钥已更改或数据损坏。将回退到系统默认配置。', {
+        userId,
+        service,
+        hint: '建议在设置页面重新保存 API Key'
+      })
+      // 解密失败时返回 null，让调用方回退到系统配置
+      return null
+    }
 
     // 解析 extra_config（如果存在）
     let extraConfig: Record<string, unknown> | null = null
