@@ -117,6 +117,16 @@ export class ServiceUnavailableError extends AppError {
   }
 }
 
+/**
+ * API 错误 - 通用 API 错误（可自定义状态码）
+ * 用于向后兼容
+ */
+export class APIError extends AppError {
+  constructor(message: string, statusCode: number = 500, context?: Record<string, unknown>) {
+    super(message, statusCode, true, context)
+  }
+}
+
 // ==================== 业务错误 ====================
 
 /**
