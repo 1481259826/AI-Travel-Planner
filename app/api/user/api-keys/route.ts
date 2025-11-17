@@ -1,61 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { encrypt, decrypt, getKeyPrefix } from '@/lib/encryption'
+/**
+ * API: /api/user/api-keys
+ * 用户 API Keys 管理
+ */
+
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
+import { encrypt, getKeyPrefix } from '@/lib/encryption'
 import type { ApiKeyService } from '@/types'
+import { ValidationError } from '@/lib/errors'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * GET /api/user/api-keys
- * 获取用户的所有 API Keys（返回时解密 key 用于显示前缀）
+ * 获取用户的所有 API Keys
  */
 export async function GET(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabaseWithAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
+    const { user, supabase } = await requireAuth(request)
 
     // 查询用户的 API Keys
-    const { data: apiKeys, error: queryError } = await supabaseWithAuth
+    const { data: apiKeys, error: queryError } = await supabase
       .from('api_keys')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (queryError) {
-      console.error('Query API keys error:', queryError)
-      return NextResponse.json({ error: 'Failed to fetch API keys' }, { status: 500 })
+      throw queryError
     }
 
-    // 返回（不包含完整的加密 key，只返回元数据）
-    return NextResponse.json({
-      apiKeys: apiKeys || []
-    })
+    return successResponse({ apiKeys: apiKeys || [] })
   } catch (error) {
-    console.error('Get API keys error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'GET /api/user/api-keys')
   }
 }
 
@@ -65,45 +43,19 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabaseWithAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
+    const { user, supabase } = await requireAuth(request)
 
     const { service, key_name, api_key, base_url, extra_config } = await request.json()
 
     // 验证输入
     if (!service || !key_name || !api_key) {
-      return NextResponse.json({ error: '请填写所有字段' }, { status: 400 })
+      throw new ValidationError('请填写所有必填字段：service, key_name, api_key')
     }
 
     // 验证 service 类型
     const validServices: ApiKeyService[] = ['deepseek', 'modelscope', 'map', 'voice']
     if (!validServices.includes(service)) {
-      return NextResponse.json({ error: '无效的服务类型' }, { status: 400 })
+      throw new ValidationError('无效的服务类型')
     }
 
     // 验证 extra_config 格式（如果提供）
@@ -111,7 +63,7 @@ export async function POST(request: NextRequest) {
       try {
         JSON.parse(extra_config)
       } catch {
-        return NextResponse.json({ error: 'extra_config 必须是有效的 JSON 字符串' }, { status: 400 })
+        throw new ValidationError('extra_config 必须是有效的 JSON 字符串')
       }
     }
 
@@ -123,12 +75,8 @@ export async function POST(request: NextRequest) {
       encryptedKey = encrypt(api_key)
       keyPrefix = getKeyPrefix(api_key, 8)
     } catch (encryptError) {
-      console.error('Encryption error:', encryptError)
-      return NextResponse.json({
-        error: '加密失败',
-        details: encryptError instanceof Error ? encryptError.message : '未知加密错误',
-        hint: '请检查 ENCRYPTION_KEY 环境变量是否配置'
-      }, { status: 500 })
+      logger.error('API Key 加密失败', { error: encryptError })
+      throw new Error('加密失败，请检查 ENCRYPTION_KEY 环境变量')
     }
 
     // 准备插入数据
@@ -150,28 +98,21 @@ export async function POST(request: NextRequest) {
       insertData.extra_config = extra_config.trim()
     }
 
-    // 插入数据库（使用带有用户 token 的客户端以通过 RLS）
-    const { data: newKey, error: insertError } = await supabaseWithAuth
+    // 插入数据库
+    const { data: newKey, error: insertError } = await supabase
       .from('api_keys')
       .insert(insertData)
       .select()
       .single()
 
     if (insertError) {
-      console.error('Insert API key error:', insertError)
-      return NextResponse.json({
-        error: '创建失败',
-        details: insertError.message,
-        code: insertError.code
-      }, { status: 500 })
+      throw insertError
     }
 
-    return NextResponse.json({
-      message: 'API Key 添加成功',
-      apiKey: newKey
-    })
+    logger.info('API Key 创建成功', { userId: user.id, service })
+
+    return successResponse({ apiKey: newKey }, 'API Key 添加成功')
   } catch (error) {
-    console.error('Create API key error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'POST /api/user/api-keys')
   }
 }

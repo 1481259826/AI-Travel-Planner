@@ -1,5 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+/**
+ * API: /api/user/api-keys/[id]
+ * 单个 API Key 的操作
+ */
+
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse, noContentResponse } from '@/app/api/_utils/response'
+import { ValidationError, NotFoundError } from '@/lib/errors'
 
 /**
  * PUT /api/user/api-keys/[id]
@@ -10,44 +18,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabaseWithAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
-
+    const { user, supabase } = await requireAuth(request)
     const { id } = await params
     const { is_active } = await request.json()
 
     // 验证输入
     if (typeof is_active !== 'boolean') {
-      return NextResponse.json({ error: '无效的参数' }, { status: 400 })
+      throw new ValidationError('is_active 必须是布尔值')
     }
 
     // 更新（只允许更新自己的 key）
-    const { data: updatedKey, error: updateError } = await supabaseWithAuth
+    const { data: updatedKey, error: updateError } = await supabase
       .from('api_keys')
       .update({ is_active })
       .eq('id', id)
@@ -56,21 +37,16 @@ export async function PUT(
       .single()
 
     if (updateError) {
-      console.error('Update API key error:', updateError)
-      return NextResponse.json({ error: '更新失败' }, { status: 500 })
+      throw updateError
     }
 
     if (!updatedKey) {
-      return NextResponse.json({ error: 'API Key 不存在' }, { status: 404 })
+      throw new NotFoundError('API Key 不存在')
     }
 
-    return NextResponse.json({
-      message: '更新成功',
-      apiKey: updatedKey
-    })
+    return successResponse({ apiKey: updatedKey }, '更新成功')
   } catch (error) {
-    console.error('Update API key error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'PUT /api/user/api-keys/:id')
   }
 }
 
@@ -83,51 +59,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabaseWithAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    )
-
+    const { user, supabase } = await requireAuth(request)
     const { id } = await params
 
     // 删除（只允许删除自己的 key）
-    const { error: deleteError } = await supabaseWithAuth
+    const { error: deleteError } = await supabase
       .from('api_keys')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id) // 确保只能删除自己的 key
 
     if (deleteError) {
-      console.error('Delete API key error:', deleteError)
-      return NextResponse.json({ error: '删除失败' }, { status: 500 })
+      throw deleteError
     }
 
-    return NextResponse.json({ message: 'API Key 已删除' })
+    return noContentResponse()
   } catch (error) {
-    console.error('Delete API key error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'DELETE /api/user/api-keys/:id')
   }
 }
