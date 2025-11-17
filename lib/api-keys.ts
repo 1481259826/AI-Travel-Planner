@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ApiKeyService } from '@/types/supabase'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * API Key 配置对象
@@ -16,32 +17,70 @@ export interface ApiKeyConfig {
 }
 
 /**
+ * API Key 测试配置
+ */
+interface ApiKeyTestConfig {
+  url: string
+  method?: 'GET' | 'POST'
+  headers: Record<string, string>
+  body?: Record<string, any>
+  validateResponse?: (response: Response, data?: any) => boolean | Promise<boolean>
+}
+
+/**
+ * 通用 API Key 测试函数
+ */
+async function testApiKeyGeneric(
+  apiKey: string,
+  config: ApiKeyTestConfig,
+  serviceName: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(config.url, {
+      method: config.method || 'POST',
+      headers: config.headers,
+      ...(config.body && { body: JSON.stringify(config.body) }),
+    })
+
+    // 如果提供了自定义验证函数，使用它
+    if (config.validateResponse) {
+      const data = response.headers.get('content-type')?.includes('application/json')
+        ? await response.json()
+        : null
+      return config.validateResponse(response, data)
+    }
+
+    // 默认验证：检查 HTTP 状态码
+    return response.ok
+  } catch (error) {
+    logger.error(`测试 ${serviceName} API Key 失败`, { error })
+    return false
+  }
+}
+
+/**
  * 测试 Anthropic API Key 是否有效
  * @param apiKey Anthropic API Key
  * @returns 是否有效
  */
 export async function testAnthropicKey(apiKey: string): Promise<boolean> {
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
+  return testApiKeyGeneric(
+    apiKey,
+    {
+      url: 'https://api.anthropic.com/v1/messages',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
+      body: {
         model: 'claude-3-5-haiku-20241022',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'test' }],
-      }),
-    })
-
-    // 200 表示成功，401/403 表示认证失败
-    return response.ok
-  } catch (error) {
-    console.error('Test Anthropic key error:', error)
-    return false
-  }
+      },
+    },
+    'Anthropic'
+  )
 }
 
 /**
@@ -50,26 +89,22 @@ export async function testAnthropicKey(apiKey: string): Promise<boolean> {
  * @returns 是否有效
  */
 export async function testDeepSeekKey(apiKey: string): Promise<boolean> {
-  try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
+  return testApiKeyGeneric(
+    apiKey,
+    {
+      url: 'https://api.deepseek.com/chat/completions',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
+      body: {
         model: 'deepseek-chat',
         messages: [{ role: 'user', content: 'test' }],
         max_tokens: 10,
-      }),
-    })
-
-    // 200 表示成功，401/403 表示认证失败
-    return response.ok
-  } catch (error) {
-    console.error('Test DeepSeek key error:', error)
-    return false
-  }
+      },
+    },
+    'DeepSeek'
+  )
 }
 
 /**
@@ -78,25 +113,22 @@ export async function testDeepSeekKey(apiKey: string): Promise<boolean> {
  * @returns 是否有效
  */
 export async function testModelScopeKey(apiKey: string): Promise<boolean> {
-  try {
-    const response = await fetch('https://api-inference.modelscope.cn/v1/chat/completions', {
-      method: 'POST',
+  return testApiKeyGeneric(
+    apiKey,
+    {
+      url: 'https://api-inference.modelscope.cn/v1/chat/completions',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
+      body: {
         model: 'Qwen/Qwen2.5-72B-Instruct',
         messages: [{ role: 'user', content: 'test' }],
         max_tokens: 10,
-      }),
-    })
-
-    return response.ok
-  } catch (error) {
-    console.error('Test ModelScope key error:', error)
-    return false
-  }
+      },
+    },
+    'ModelScope'
+  )
 }
 
 /**
@@ -105,22 +137,20 @@ export async function testModelScopeKey(apiKey: string): Promise<boolean> {
  * @returns 是否有效
  */
 export async function testMapKey(apiKey: string): Promise<boolean> {
-  try {
-    // 使用 IP 定位接口测试（这个接口比较轻量）
-    const response = await fetch(
-      `https://restapi.amap.com/v3/ip?key=${apiKey}&ip=114.247.50.2`
-    )
-
-    if (!response.ok) return false
-
-    const data = await response.json()
-
-    // status=1 表示成功，status=0 表示失败（如 Key 无效）
-    return data.status === '1'
-  } catch (error) {
-    console.error('Test Map key error:', error)
-    return false
-  }
+  return testApiKeyGeneric(
+    apiKey,
+    {
+      url: `https://restapi.amap.com/v3/ip?key=${apiKey}&ip=114.247.50.2`,
+      method: 'GET',
+      headers: {},
+      validateResponse: (response, data) => {
+        if (!response.ok) return false
+        // status=1 表示成功，status=0 表示失败（如 Key 无效）
+        return data?.status === '1'
+      },
+    },
+    '高德地图'
+  )
 }
 
 /**
@@ -142,7 +172,7 @@ export async function testVoiceKey(apiKey: string): Promise<boolean> {
     // 建议用户在实际使用时测试语音功能是否正常
     return true
   } catch (error) {
-    console.error('Test Voice key error:', error)
+    logger.error('测试科大讯飞语音 API Key 失败', { error })
     return false
   }
 }
@@ -179,7 +209,7 @@ export async function getUserApiKey(
     // 解密并返回
     return decrypt(apiKey.encrypted_key)
   } catch (error) {
-    console.error('Get user API key error:', error)
+    logger.error('获取用户 API Key 失败', { userId, service, error })
     return null
   }
 }
@@ -200,7 +230,7 @@ export async function getUserApiKeyConfig(
     const supabase = supabaseClient || (await import('@/lib/supabase')).supabase
     const { decrypt } = await import('@/lib/encryption')
 
-    console.log(`[getUserApiKeyConfig] Querying for userId: ${userId}, service: ${service}`)
+    logger.debug('查询用户 API Key 配置', { userId, service })
 
     // 查询用户的激活 API Key
     const { data: apiKeyData, error: queryError } = await supabase
@@ -214,16 +244,16 @@ export async function getUserApiKeyConfig(
       .maybeSingle()  // 使用 maybeSingle() 而不是 single()，避免在没有数据时抛出错误
 
     if (queryError) {
-      console.error(`[getUserApiKeyConfig] Query error:`, queryError)
+      logger.error('查询用户 API Key 失败', { userId, service, error: queryError })
       return null
     }
 
     if (!apiKeyData) {
-      console.log(`[getUserApiKeyConfig] No API key found for service: ${service}`)
+      logger.debug('未找到用户 API Key', { userId, service })
       return null
     }
 
-    console.log(`[getUserApiKeyConfig] Found API key, base_url: ${apiKeyData.base_url || 'not set'}`)
+    logger.debug('找到用户 API Key', { userId, service, baseUrl: apiKeyData.base_url || 'not set' })
 
     // 解密 API Key
     const apiKey = decrypt(apiKeyData.encrypted_key)
@@ -234,7 +264,7 @@ export async function getUserApiKeyConfig(
       try {
         extraConfig = JSON.parse(apiKeyData.extra_config) as Record<string, unknown>
       } catch {
-        console.warn('Failed to parse extra_config')
+        logger.warn('解析 extra_config 失败', { userId, service })
       }
     }
 
@@ -244,7 +274,7 @@ export async function getUserApiKeyConfig(
       extraConfig,
     }
   } catch (error) {
-    console.error('Get user API key config error:', error)
+    logger.error('获取用户 API Key 配置失败', { userId, service, error })
     return null
   }
 }
