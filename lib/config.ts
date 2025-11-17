@@ -27,6 +27,7 @@ export const config = {
   voice: {
     apiKey: process.env.VOICE_API_KEY || '',
     appId: process.env.VOICE_APP_ID || '',
+    apiSecret: process.env.VOICE_API_SECRET || '',
   },
 
   // Map Service

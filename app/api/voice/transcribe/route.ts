@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       apiSecret = userConfig.extraConfig?.api_secret || '';
     } else {
       // 使用系统默认配置
-      apiSecret = process.env.VOICE_API_SECRET || '';
+      apiSecret = config.voice.apiSecret;
     }
 
     // 验证必要参数
