@@ -115,18 +115,13 @@ export interface CostBreakdown {
   total: number
 }
 
-// Expense types
-export interface Expense {
-  id: string
-  trip_id: string
-  category: 'accommodation' | 'transportation' | 'food' | 'attractions' | 'shopping' | 'other'
-  amount: number
-  description: string | null
-  date: string
-  created_at: string
-  updated_at: string
-  receipt_url?: string | null
-}
+// Expense types - 重新导出自 expense.ts 以避免重复定义
+export type {
+  Expense,
+  ExpenseCategoryDB,
+  ExpenseCategoryDisplay,
+} from './expense'
+export { categoryToDB, categoryToDisplay } from './expense'
 
 // Trip planning form types
 export interface TripFormData {

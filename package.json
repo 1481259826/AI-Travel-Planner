@@ -15,7 +15,10 @@
     "logs": "pm2 logs ai-travel-planner",
     "status": "pm2 list",
     "cleanup": "node scripts/health-check.js --auto",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -39,16 +42,22 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.4",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^27.2.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.9"
   }
 }

@@ -1,4 +1,14 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient, Session, User, AuthError } from '@supabase/supabase-js'
+import type {
+  Trip,
+  TripInsert,
+  TripUpdate,
+  Expense,
+  ExpenseInsert,
+  ExpenseUpdate,
+  SupabaseSingleResponse,
+  SupabaseArrayResponse,
+} from '@/types/supabase'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -47,7 +57,7 @@ export const auth = {
     return await supabase.auth.getSession()
   },
 
-  onAuthStateChange: (callback: (event: string, session: any) => void) => {
+  onAuthStateChange: (callback: (event: string, session: Session | null) => void) => {
     return supabase.auth.onAuthStateChange(callback)
   },
 }
@@ -56,7 +66,7 @@ export const auth = {
 export const db = {
   // Trips
   trips: {
-    getAll: async (userId: string) => {
+    getAll: async (userId: string): Promise<SupabaseArrayResponse<Trip>> => {
       const { data, error } = await supabase
         .from('trips')
         .select('*')
@@ -65,7 +75,7 @@ export const db = {
       return { data, error }
     },
 
-    getById: async (id: string) => {
+    getById: async (id: string): Promise<SupabaseSingleResponse<Trip>> => {
       const { data, error } = await supabase
         .from('trips')
         .select('*')
@@ -74,7 +84,7 @@ export const db = {
       return { data, error }
     },
 
-    create: async (trip: any) => {
+    create: async (trip: TripInsert): Promise<SupabaseSingleResponse<Trip>> => {
       const { data, error } = await supabase
         .from('trips')
         .insert(trip)
@@ -83,7 +93,7 @@ export const db = {
       return { data, error }
     },
 
-    update: async (id: string, updates: any) => {
+    update: async (id: string, updates: TripUpdate): Promise<SupabaseSingleResponse<Trip>> => {
       const { data, error } = await supabase
         .from('trips')
         .update(updates)
@@ -93,7 +103,7 @@ export const db = {
       return { data, error }
     },
 
-    delete: async (id: string) => {
+    delete: async (id: string): Promise<{ error: AuthError | null }> => {
       const { error } = await supabase
         .from('trips')
         .delete()
@@ -104,7 +114,7 @@ export const db = {
 
   // Expenses
   expenses: {
-    getByTrip: async (tripId: string) => {
+    getByTrip: async (tripId: string): Promise<SupabaseArrayResponse<Expense>> => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
@@ -113,7 +123,7 @@ export const db = {
       return { data, error }
     },
 
-    getById: async (id: string) => {
+    getById: async (id: string): Promise<SupabaseSingleResponse<Expense>> => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
@@ -122,7 +132,7 @@ export const db = {
       return { data, error }
     },
 
-    create: async (expense: any) => {
+    create: async (expense: ExpenseInsert): Promise<SupabaseSingleResponse<Expense>> => {
       const { data, error } = await supabase
         .from('expenses')
         .insert(expense)
@@ -131,7 +141,7 @@ export const db = {
       return { data, error }
     },
 
-    update: async (id: string, updates: any) => {
+    update: async (id: string, updates: ExpenseUpdate): Promise<SupabaseSingleResponse<Expense>> => {
       const { data, error } = await supabase
         .from('expenses')
         .update(updates)
@@ -141,7 +151,7 @@ export const db = {
       return { data, error }
     },
 
-    delete: async (id: string) => {
+    delete: async (id: string): Promise<{ error: AuthError | null }> => {
       const { error } = await supabase
         .from('expenses')
         .delete()

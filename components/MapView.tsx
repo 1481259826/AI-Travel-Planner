@@ -3,14 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity, Meal } from '@/types'
 import { MapPin, AlertCircle } from 'lucide-react'
-
-// 声明高德地图全局类型
-declare global {
-  interface Window {
-    AMap: any
-    _AMapSecurityConfig: any
-  }
-}
+import type AMap from '@/types/amap'
 
 export interface MapLocation {
   name: string
@@ -37,10 +30,10 @@ export default function MapView({
   className = ''
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapInstance = useRef<any>(null)
-  const markers = useRef<any[]>([])
-  const drivingInstance = useRef<any>(null)
-  const routePolylines = useRef<any[]>([])
+  const mapInstance = useRef<AMap.Map | null>(null)
+  const markers = useRef<AMap.Marker[]>([])
+  const drivingInstance = useRef<AMap.plugin.Driving | null>(null)
+  const routePolylines = useRef<AMap.Polyline[]>([])
   const routePlanningCancelled = useRef(false) // 标记是否取消路线规划
   const initialFitViewDone = useRef(false) // 标记是否已经完成初始视野调整
   const [loading, setLoading] = useState(true)

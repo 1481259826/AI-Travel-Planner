@@ -3,6 +3,18 @@
  * 用于验证用户提供的 API Key 是否有效
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ApiKeyService } from '@/types/supabase'
+
+/**
+ * API Key 配置对象
+ */
+export interface ApiKeyConfig {
+  apiKey: string
+  baseUrl?: string
+  extraConfig?: Record<string, unknown> | null
+}
+
 /**
  * 测试 Anthropic API Key 是否有效
  * @param apiKey Anthropic API Key
@@ -144,8 +156,8 @@ export async function testVoiceKey(apiKey: string): Promise<boolean> {
  */
 export async function getUserApiKey(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice',
-  supabaseClient?: any
+  service: ApiKeyService,
+  supabaseClient?: SupabaseClient
 ): Promise<string | null> {
   try {
     const supabase = supabaseClient || (await import('@/lib/supabase')).supabase
@@ -181,9 +193,9 @@ export async function getUserApiKey(
  */
 export async function getUserApiKeyConfig(
   userId: string,
-  service: 'anthropic' | 'deepseek' | 'modelscope' | 'map' | 'voice',
-  supabaseClient?: any
-): Promise<{ apiKey: string; baseUrl?: string; extraConfig?: any } | null> {
+  service: ApiKeyService,
+  supabaseClient?: SupabaseClient
+): Promise<ApiKeyConfig | null> {
   try {
     const supabase = supabaseClient || (await import('@/lib/supabase')).supabase
     const { decrypt } = await import('@/lib/encryption')
@@ -217,10 +229,10 @@ export async function getUserApiKeyConfig(
     const apiKey = decrypt(apiKeyData.encrypted_key)
 
     // 解析 extra_config（如果存在）
-    let extraConfig = null
+    let extraConfig: Record<string, unknown> | null = null
     if (apiKeyData.extra_config) {
       try {
-        extraConfig = JSON.parse(apiKeyData.extra_config)
+        extraConfig = JSON.parse(apiKeyData.extra_config) as Record<string, unknown>
       } catch {
         console.warn('Failed to parse extra_config')
       }

@@ -4,6 +4,7 @@ import './globals.css'
 import OfflineIndicator from '@/components/OfflineIndicator'
 import SyncStatus from '@/components/SyncStatus'
 import InstallPrompt from '@/components/InstallPrompt'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import Providers from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -69,12 +70,14 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <Providers>
-          <InstallPrompt />
-          <OfflineIndicator />
-          {children}
-          <SyncStatus />
-        </Providers>
+        <ErrorBoundary>
+          <Providers>
+            <InstallPrompt />
+            <OfflineIndicator />
+            {children}
+            <SyncStatus />
+          </Providers>
+        </ErrorBoundary>
       </body>
     </html>
   )
