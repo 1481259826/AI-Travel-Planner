@@ -51,7 +51,8 @@ export default function ApiKeyManager() {
       })
 
       if (userResponse.ok) {
-        const { apiKeys: keys } = await userResponse.json()
+        const result = await userResponse.json()
+        const keys = result.data?.apiKeys || []
         setApiKeys(keys)
       }
 
@@ -63,7 +64,8 @@ export default function ApiKeyManager() {
       })
 
       if (systemResponse.ok) {
-        const { systemKeys: sysKeys } = await systemResponse.json()
+        const result = await systemResponse.json()
+        const sysKeys = result.data?.systemKeys || result.systemKeys || []
         setSystemKeys(sysKeys)
       }
     } catch (error) {
