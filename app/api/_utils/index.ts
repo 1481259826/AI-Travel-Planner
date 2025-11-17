@@ -30,3 +30,14 @@ export {
   addApiKeySchema,
   updateApiKeySchema,
 } from './validation'
+
+export {
+  correctItineraryCoordinates,
+} from './coordinate-fixer'
+
+export {
+  createAIClient,
+  buildItineraryPrompt,
+  generateItinerary,
+} from './ai-helper'
+export type { AIClientConfig } from './ai-helper'
