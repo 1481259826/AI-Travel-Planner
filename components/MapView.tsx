@@ -89,11 +89,15 @@ export default function MapView({
   const initMap = () => {
     if (!mapContainer.current) {
       console.error('地图容器未准备好')
+      setError('地图容器未准备好，请刷新页面重试')
+      setLoading(false)
       return
     }
 
     if (!window.AMap) {
       console.error('高德地图 SDK 未加载')
+      setError('高德地图 SDK 未加载，请刷新页面重试')
+      setLoading(false)
       return
     }
 
