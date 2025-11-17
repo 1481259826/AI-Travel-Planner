@@ -187,15 +187,41 @@ export async function getWeatherByAdcode(adcode: string): Promise<AmapWeatherRes
 }
 
 /**
+ * 标准化城市名称（去除市/区/县后缀）
+ * @param cityName 原始城市名称
+ * @returns 标准化后的城市名称
+ */
+function normalizeCityName(cityName: string): string {
+  // 去除常见的行政区划后缀
+  return cityName
+    .replace(/市$/, '')
+    .replace(/区$/, '')
+    .replace(/县$/, '')
+    .trim()
+}
+
+/**
  * 根据城市名称获取天气预报（组合函数）
  * @param cityName 城市名称
  * @returns 天气数据或 null
  */
 export async function getWeatherByCityName(cityName: string): Promise<AmapWeatherResponse | null> {
-  // 先获取 Adcode
-  const adcode = await getCityAdcode(cityName)
+  // 标准化城市名称
+  const normalizedCity = normalizeCityName(cityName)
+
+  console.log(`Fetching weather for: ${cityName} (normalized: ${normalizedCity})`)
+
+  // 先尝试原始名称
+  let adcode = await getCityAdcode(cityName)
+
+  // 如果原始名称失败，尝试标准化后的名称
+  if (!adcode && normalizedCity !== cityName) {
+    console.log(`Retrying with normalized city name: ${normalizedCity}`)
+    adcode = await getCityAdcode(normalizedCity)
+  }
 
   if (!adcode) {
+    console.error(`Failed to get adcode for city: ${cityName} (also tried: ${normalizedCity})`)
     return null
   }
 
