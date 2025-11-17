@@ -40,15 +40,25 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
       // 自动检测模式：优先尝试科大讯飞
       setIsCheckingXFYun(true)
       try {
-        const response = await fetch('/api/voice/transcribe')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.authUrl) {
-            setCurrentMode('xfyun')
-            setIsSupported(true)
-            console.log('[VoiceInput] 使用科大讯飞语音识别')
-            setIsCheckingXFYun(false)
-            return
+        // 获取认证令牌
+        const { supabase } = await import('@/lib/supabase')
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+          const response = await fetch('/api/voice/transcribe', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          })
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data?.authUrl) {
+              setCurrentMode('xfyun')
+              setIsSupported(true)
+              console.log('[VoiceInput] 使用科大讯飞语音识别')
+              setIsCheckingXFYun(false)
+              return
+            }
           }
         }
       } catch (error) {
@@ -180,13 +190,26 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
   // 科大讯飞录音
   const startXFYun = async () => {
     try {
+      // 获取认证令牌
+      const { supabase } = await import('@/lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('请先登录')
+      }
+
       // 获取鉴权参数
-      const response = await fetch('/api/voice/transcribe')
+      const response = await fetch('/api/voice/transcribe', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       if (!response.ok) {
         throw new Error('获取语音识别鉴权失败')
       }
 
-      const { authUrl, appId } = await response.json()
+      const result = await response.json()
+      const { authUrl, appId } = result.data
 
       // 获取麦克风权限
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
