@@ -3,10 +3,13 @@
  * 将 AI 生成的 WGS84 坐标转换为高德地图使用的 GCJ-02 坐标
  */
 
-import { smartGeocode } from '@/lib/amap-geocoding'
+import { GeocodingService } from '@/lib/services/geocoding.service'
 import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
 import { logger } from '@/lib/utils/logger'
 import type { Itinerary, Location } from '@/types'
+
+// 创建全局地理编码服务实例
+const geocodingService = new GeocodingService()
 
 /**
  * 坐标修正配置
@@ -66,7 +69,7 @@ async function correctSingleLocation(
         await new Promise(resolve => setTimeout(resolve, config.apiDelay))
       }
 
-      const result = await smartGeocode(name, destination)
+      const result = await geocodingService.smartGeocode(name, destination)
       apiCallTracker.count++
 
       if (result) {
@@ -77,8 +80,11 @@ async function correctSingleLocation(
 
         location.lat = result.lat
         location.lng = result.lng
-        if (result.formattedAddress) {
+        // GeocodingResult 使用 formattedAddress，PoiResult 使用 address
+        if ('formattedAddress' in result) {
           location.address = result.formattedAddress
+        } else if ('address' in result) {
+          location.address = result.address
         }
         return
       }
