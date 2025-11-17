@@ -112,7 +112,7 @@ export default function PrintTripPage() {
             {formatDate(new Date(trip.start_date), 'yyyy年MM月dd日')} - {formatDate(new Date(trip.end_date), 'yyyy年MM月dd日')}
           </p>
           <p className="text-lg text-gray-500 mb-8">
-            {Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1}天 | {trip.travelers}人 | 预算 ¥{trip.budget.toLocaleString()}
+            {Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1}天 | {trip.travelers}人 | 预算 ¥{trip.budget?.toLocaleString() || '0'}
           </p>
           {trip.preferences && trip.preferences.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2">
@@ -168,12 +168,12 @@ export default function PrintTripPage() {
               </tr>
               <tr className="border-b border-gray-300">
                 <td className="p-3 bg-gray-50 font-semibold">预算</td>
-                <td className="p-3">¥{trip.budget.toLocaleString()}</td>
+                <td className="p-3">¥{trip.budget?.toLocaleString() || '0'}</td>
               </tr>
               <tr>
                 <td className="p-3 bg-gray-50 font-semibold">预估费用</td>
                 <td className="p-3">
-                  {estimatedCost ? `¥${estimatedCost.total.toLocaleString()}` : '计算中'}
+                  {estimatedCost?.total ? `¥${estimatedCost.total.toLocaleString()}` : '计算中'}
                 </td>
               </tr>
             </tbody>
@@ -198,7 +198,7 @@ export default function PrintTripPage() {
                     <p>地址: {acc.location?.address || '未指定'}</p>
                     <p>入住: {formatDate(new Date(acc.check_in), 'MM月dd日')}</p>
                     <p>退房: {formatDate(new Date(acc.check_out), 'MM月dd日')}</p>
-                    <p>价格: ¥{acc.price_per_night}/晚 × {Math.ceil((new Date(acc.check_out).getTime() - new Date(acc.check_in).getTime()) / (1000 * 60 * 60 * 24))}晚 = ¥{acc.total_price.toLocaleString()}</p>
+                    <p>价格: ¥{acc.price_per_night || 0}/晚 × {Math.ceil((new Date(acc.check_out).getTime() - new Date(acc.check_in).getTime()) / (1000 * 60 * 60 * 24))}晚 = ¥{acc.total_price?.toLocaleString() || '0'}</p>
                     {acc.rating && <p>评分: {acc.rating}/5</p>}
                     {acc.amenities && acc.amenities.length > 0 && (
                       <p>设施: {acc.amenities.join(', ')}</p>
@@ -221,7 +221,7 @@ export default function PrintTripPage() {
                 <h3 className="font-semibold text-blue-700 mb-2">去程</h3>
                 <p className="text-sm text-gray-700">方式: {transportation.to_destination.method}</p>
                 <p className="text-sm text-gray-700">详情: {transportation.to_destination.details}</p>
-                <p className="text-sm text-gray-700">费用: ¥{transportation.to_destination.cost.toLocaleString()}</p>
+                <p className="text-sm text-gray-700">费用: ¥{transportation.to_destination.cost?.toLocaleString() || '0'}</p>
               </div>
             )}
             {transportation.from_destination && (
@@ -229,14 +229,14 @@ export default function PrintTripPage() {
                 <h3 className="font-semibold text-blue-700 mb-2">回程</h3>
                 <p className="text-sm text-gray-700">方式: {transportation.from_destination.method}</p>
                 <p className="text-sm text-gray-700">详情: {transportation.from_destination.details}</p>
-                <p className="text-sm text-gray-700">费用: ¥{transportation.from_destination.cost.toLocaleString()}</p>
+                <p className="text-sm text-gray-700">费用: ¥{transportation.from_destination.cost?.toLocaleString() || '0'}</p>
               </div>
             )}
             {transportation.local && (
               <div>
                 <h3 className="font-semibold text-blue-700 mb-2">当地交通</h3>
                 <p className="text-sm text-gray-700">方式: {transportation.local.methods?.join(', ') || '未指定'}</p>
-                <p className="text-sm text-gray-700">预估费用: ¥{transportation.local.estimated_cost.toLocaleString()}</p>
+                <p className="text-sm text-gray-700">预估费用: ¥{transportation.local.estimated_cost?.toLocaleString() || '0'}</p>
               </div>
             )}
           </div>
@@ -288,7 +288,7 @@ export default function PrintTripPage() {
                             {meal.time} - {meal.restaurant}
                           </p>
                           <p className="text-xs text-gray-600">
-                            {meal.cuisine} | 人均 ¥{meal.avg_price}
+                            {meal.cuisine} | 人均 ¥{meal.avg_price || 0}
                           </p>
                           {meal.recommended_dishes && meal.recommended_dishes.length > 0 && (
                             <p className="text-xs text-gray-600">
@@ -322,47 +322,47 @@ export default function PrintTripPage() {
               <tbody>
                 <tr className="border-b border-gray-300">
                   <td className="p-3">住宿</td>
-                  <td className="p-3 text-right">¥{estimatedCost.accommodation.toLocaleString()}</td>
-                  <td className="p-3 text-right">{((estimatedCost.accommodation / estimatedCost.total) * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right">¥{estimatedCost.accommodation?.toLocaleString() || '0'}</td>
+                  <td className="p-3 text-right">{estimatedCost.total ? ((estimatedCost.accommodation / estimatedCost.total) * 100).toFixed(1) : '0'}%</td>
                 </tr>
                 <tr className="border-b border-gray-300">
                   <td className="p-3">交通</td>
-                  <td className="p-3 text-right">¥{estimatedCost.transportation.toLocaleString()}</td>
-                  <td className="p-3 text-right">{((estimatedCost.transportation / estimatedCost.total) * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right">¥{estimatedCost.transportation?.toLocaleString() || '0'}</td>
+                  <td className="p-3 text-right">{estimatedCost.total ? ((estimatedCost.transportation / estimatedCost.total) * 100).toFixed(1) : '0'}%</td>
                 </tr>
                 <tr className="border-b border-gray-300">
                   <td className="p-3">餐饮</td>
-                  <td className="p-3 text-right">¥{estimatedCost.food.toLocaleString()}</td>
-                  <td className="p-3 text-right">{((estimatedCost.food / estimatedCost.total) * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right">¥{estimatedCost.food?.toLocaleString() || '0'}</td>
+                  <td className="p-3 text-right">{estimatedCost.total ? ((estimatedCost.food / estimatedCost.total) * 100).toFixed(1) : '0'}%</td>
                 </tr>
                 <tr className="border-b border-gray-300">
                   <td className="p-3">景点门票</td>
-                  <td className="p-3 text-right">¥{estimatedCost.attractions.toLocaleString()}</td>
-                  <td className="p-3 text-right">{((estimatedCost.attractions / estimatedCost.total) * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right">¥{estimatedCost.attractions?.toLocaleString() || '0'}</td>
+                  <td className="p-3 text-right">{estimatedCost.total ? ((estimatedCost.attractions / estimatedCost.total) * 100).toFixed(1) : '0'}%</td>
                 </tr>
                 <tr className="border-b border-gray-300">
                   <td className="p-3">其他</td>
-                  <td className="p-3 text-right">¥{estimatedCost.other.toLocaleString()}</td>
-                  <td className="p-3 text-right">{((estimatedCost.other / estimatedCost.total) * 100).toFixed(1)}%</td>
+                  <td className="p-3 text-right">¥{estimatedCost.other?.toLocaleString() || '0'}</td>
+                  <td className="p-3 text-right">{estimatedCost.total ? ((estimatedCost.other / estimatedCost.total) * 100).toFixed(1) : '0'}%</td>
                 </tr>
                 <tr className="bg-gray-100 font-semibold">
                   <td className="p-3">总计</td>
-                  <td className="p-3 text-right">¥{estimatedCost.total.toLocaleString()}</td>
+                  <td className="p-3 text-right">¥{estimatedCost.total?.toLocaleString() || '0'}</td>
                   <td className="p-3 text-right">100%</td>
                 </tr>
               </tbody>
             </table>
 
             <div className="text-sm text-gray-700 space-y-1">
-              <p>预算总额: ¥{trip.budget.toLocaleString()}</p>
-              <p>预估费用: ¥{estimatedCost.total.toLocaleString()}</p>
-              <p className={trip.budget >= estimatedCost.total ? 'text-green-600' : 'text-red-600'}>
-                {trip.budget >= estimatedCost.total
-                  ? `剩余预算: ¥${(trip.budget - estimatedCost.total).toLocaleString()}`
-                  : `超出预算: ¥${(estimatedCost.total - trip.budget).toLocaleString()}`
+              <p>预算总额: ¥{trip.budget?.toLocaleString() || '0'}</p>
+              <p>预估费用: ¥{estimatedCost.total?.toLocaleString() || '0'}</p>
+              <p className={(trip.budget || 0) >= (estimatedCost.total || 0) ? 'text-green-600' : 'text-red-600'}>
+                {(trip.budget || 0) >= (estimatedCost.total || 0)
+                  ? `剩余预算: ¥${((trip.budget || 0) - (estimatedCost.total || 0)).toLocaleString()}`
+                  : `超出预算: ¥${((estimatedCost.total || 0) - (trip.budget || 0)).toLocaleString()}`
                 }
               </p>
-              <p>预算使用率: {((estimatedCost.total / trip.budget) * 100).toFixed(1)}%</p>
+              <p>预算使用率: {trip.budget ? (((estimatedCost.total || 0) / trip.budget) * 100).toFixed(1) : '0'}%</p>
             </div>
           </div>
         )}
