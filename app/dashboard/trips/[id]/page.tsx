@@ -154,9 +154,10 @@ export default function TripDetailPage() {
       const response = await fetch(`/api/weather?city=${encodeURIComponent(trip.destination)}`)
 
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.data
         // 修复: API 返回的是 casts 数组,不是 daily
-        if (data.casts && Array.isArray(data.casts)) {
+        if (data?.casts && Array.isArray(data.casts)) {
           setWeatherData(data.casts)
         }
       } else {
@@ -279,16 +280,17 @@ export default function TripDetailPage() {
         throw new Error('获取景点信息失败')
       }
 
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data
 
       // 更新行程数据
       if (trip && trip.itinerary) {
         const updatedItinerary = { ...trip.itinerary }
         const updatedActivity = {
           ...activity,
-          photos: data.images || [],
-          long_desc: data.description || activity.description,
-          short_desc: data.description ? data.description.substring(0, 100) + '...' : activity.description,
+          photos: data?.images || [],
+          long_desc: data?.description || activity.description,
+          short_desc: data?.description ? data.description.substring(0, 100) + '...' : activity.description,
           rating: 4.5,  // 默认评分，可以后续从API获取
         }
 
@@ -398,7 +400,8 @@ export default function TripDetailPage() {
         throw new Error('获取酒店信息失败')
       }
 
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data
 
       // 更新行程数据
       if (trip && trip.itinerary && trip.itinerary.accommodation) {
@@ -408,8 +411,8 @@ export default function TripDetailPage() {
         if (hotelIndex !== -1) {
           const updatedHotel = {
             ...hotel,
-            photos: data.images || [],
-            description: data.description || hotel.description,
+            photos: data?.images || [],
+            description: data?.description || hotel.description,
           }
 
           updatedItinerary.accommodation[hotelIndex] = updatedHotel
