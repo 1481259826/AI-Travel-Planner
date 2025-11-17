@@ -45,8 +45,10 @@ export function useApiKeyCheck(): ApiKeyCheckResult {
         }),
       ])
 
-      const { systemKeys = [] } = await systemResponse.json()
-      const { apiKeys = [] } = await userResponse.json()
+      const systemResult = await systemResponse.json()
+      const userResult = await userResponse.json()
+      const systemKeys = systemResult.data?.systemKeys || systemResult.systemKeys || []
+      const apiKeys = userResult.data?.apiKeys || []
 
       const missing: MissingApiKey[] = []
 

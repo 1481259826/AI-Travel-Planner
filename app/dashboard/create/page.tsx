@@ -225,7 +225,8 @@ export default function CreateTripPage() {
       await progressSimulation
 
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.data
 
         // 标记所有阶段为完成
         setStages(prev => prev.map(stage => ({
@@ -238,7 +239,7 @@ export default function CreateTripPage() {
         // 短暂延迟后跳转，让用户看到完成状态
         await new Promise(resolve => setTimeout(resolve, 500))
 
-        router.push(`/dashboard/trips/${data.trip_id}`)
+        router.push(`/dashboard/trips/${data?.trip_id}`)
       } else {
         const error = await response.json()
         const errorMsg = error.details

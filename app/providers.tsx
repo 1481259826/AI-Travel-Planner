@@ -31,7 +31,8 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
           })
 
           if (response.ok) {
-            const { profile } = await response.json()
+            const result = await response.json()
+            const profile = result.data?.profile
             if (profile?.theme) {
               loadThemeFromProfile(profile.theme)
             }
