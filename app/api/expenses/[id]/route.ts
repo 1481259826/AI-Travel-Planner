@@ -1,99 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { getAuthUser } from '@/lib/auth-helpers';
+/**
+ * API: /api/expenses/[id]
+ * 费用管理 - 单条记录更新和删除
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse, noContentResponse } from '@/app/api/_utils/response'
+import { updateExpenseSchema } from '@/app/api/_utils/validation'
+import { NotFoundError, ForbiddenError } from '@/lib/errors'
 
-// PUT /api/expenses/[id] - 更新费用记录
+/**
+ * 验证费用记录所有权
+ */
+async function verifyExpenseOwnership(
+  supabase: any,
+  expenseId: string,
+  userId: string
+): Promise<void> {
+  // 获取费用记录
+  const { data: expense, error: expenseError } = await supabase
+    .from('expenses')
+    .select('trip_id')
+    .eq('id', expenseId)
+    .single()
+
+  if (expenseError || !expense) {
+    throw new NotFoundError('费用记录不存在')
+  }
+
+  // 验证行程所有权
+  const { data: trip, error: tripError } = await supabase
+    .from('trips')
+    .select('id')
+    .eq('id', expense.trip_id)
+    .eq('user_id', userId)
+    .single()
+
+  if (tripError || !trip) {
+    throw new ForbiddenError('无权操作此费用记录')
+  }
+}
+
+/**
+ * PUT /api/expenses/[id]
+ * 更新费用记录
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证用户登录
-    const { user, error: authError } = await getAuthUser(request);
+    const { user, supabase } = await requireAuth(request)
+    const { id: expenseId } = await params
 
-    if (authError || !user) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 });
-    }
+    // 解析并验证请求体
+    const body = await request.json()
+    const validatedData = updateExpenseSchema.parse(body)
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { id: expenseId } = await params;
-
-    // 获取请求数据
-    const body = await request.json();
-    const { category, amount, description, date } = body;
-
-    // 验证必填字段
-    if (!category && !amount && !description && !date) {
-      return NextResponse.json(
-        { message: '至少提供一个要更新的字段' },
-        { status: 400 }
-      );
-    }
-
-    // 验证类别（如果提供）
-    if (category) {
-      const validCategories = [
-        'accommodation',
-        'transportation',
-        'food',
-        'attractions',
-        'shopping',
-        'other',
-      ];
-      if (!validCategories.includes(category)) {
-        return NextResponse.json(
-          { message: '无效的费用类别' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // 验证金额（如果提供）
-    if (amount !== undefined && parseFloat(amount) <= 0) {
-      return NextResponse.json(
-        { message: '金额必须大于0' },
-        { status: 400 }
-      );
-    }
-
-    // 验证用户是否拥有该费用记录（通过 trip）
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .select('trip_id')
-      .eq('id', expenseId)
-      .single();
-
-    if (expenseError || !expense) {
-      return NextResponse.json(
-        { message: '费用记录不存在' },
-        { status: 404 }
-      );
-    }
-
-    const { data: trip, error: tripError } = await supabase
-      .from('trips')
-      .select('id')
-      .eq('id', expense.trip_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (tripError || !trip) {
-      return NextResponse.json(
-        { message: '无权修改此费用记录' },
-        { status: 403 }
-      );
-    }
+    // 验证所有权
+    await verifyExpenseOwnership(supabase, expenseId, user.id)
 
     // 构建更新对象
-    const updateData: any = {};
-    if (category) updateData.category = category;
-    if (amount !== undefined) updateData.amount = parseFloat(amount);
-    if (description !== undefined) updateData.description = description || null;
-    if (date) updateData.date = date;
+    const updateData: any = {}
+    if (validatedData.category) updateData.category = validatedData.category
+    if (validatedData.amount !== undefined) updateData.amount = validatedData.amount
+    if (validatedData.description !== undefined)
+      updateData.description = validatedData.description
+    if (validatedData.date) updateData.date = validatedData.date
+    if (validatedData.currency) updateData.currency = validatedData.currency
 
     // 更新费用记录
     const { data: updatedExpense, error } = await supabase
@@ -101,91 +76,45 @@ export async function PUT(
       .update(updateData)
       .eq('id', expenseId)
       .select()
-      .single();
+      .single()
 
     if (error) {
-      console.error('更新费用记录失败:', error);
-      return NextResponse.json(
-        { message: '更新费用记录失败', error: error.message },
-        { status: 500 }
-      );
+      throw error
     }
 
-    return NextResponse.json({ expense: updatedExpense });
-  } catch (error: any) {
-    console.error('更新费用记录错误:', error);
-    return NextResponse.json(
-      { message: '服务器错误', error: error.message },
-      { status: 500 }
-    );
+    return successResponse(updatedExpense, '费用记录更新成功')
+  } catch (error) {
+    return handleApiError(error, 'PUT /api/expenses/[id]')
   }
 }
 
-// DELETE /api/expenses/[id] - 删除费用记录
+/**
+ * DELETE /api/expenses/[id]
+ * 删除费用记录
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证用户登录
-    const { user, error: authError } = await getAuthUser(request);
+    const { user, supabase } = await requireAuth(request)
+    const { id: expenseId } = await params
 
-    if (authError || !user) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { id: expenseId } = await params;
-
-    // 验证用户是否拥有该费用记录（通过 trip）
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .select('trip_id')
-      .eq('id', expenseId)
-      .single();
-
-    if (expenseError || !expense) {
-      return NextResponse.json(
-        { message: '费用记录不存在' },
-        { status: 404 }
-      );
-    }
-
-    const { data: trip, error: tripError } = await supabase
-      .from('trips')
-      .select('id')
-      .eq('id', expense.trip_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (tripError || !trip) {
-      return NextResponse.json(
-        { message: '无权删除此费用记录' },
-        { status: 403 }
-      );
-    }
+    // 验证所有权
+    await verifyExpenseOwnership(supabase, expenseId, user.id)
 
     // 删除费用记录
     const { error } = await supabase
       .from('expenses')
       .delete()
-      .eq('id', expenseId);
+      .eq('id', expenseId)
 
     if (error) {
-      console.error('删除费用记录失败:', error);
-      return NextResponse.json(
-        { message: '删除费用记录失败', error: error.message },
-        { status: 500 }
-      );
+      throw error
     }
 
-    return NextResponse.json({ message: '删除成功' });
-  } catch (error: any) {
-    console.error('删除费用记录错误:', error);
-    return NextResponse.json(
-      { message: '服务器错误', error: error.message },
-      { status: 500 }
-    );
+    return noContentResponse()
+  } catch (error) {
+    return handleApiError(error, 'DELETE /api/expenses/[id]')
   }
 }
