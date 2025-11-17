@@ -3,10 +3,13 @@
  * 将自然语言转换为结构化的行程表单数据
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextRequest } from 'next/server';
+import { requireAuth } from '@/app/api/_middleware/auth';
+import { handleApiError } from '@/app/api/_middleware/error-handler';
+import { successResponse } from '@/app/api/_utils/response';
 import { getUserApiKeyConfig } from '@/lib/api-keys';
 import { config } from '@/lib/config';
+import { ValidationError, ConfigurationError } from '@/lib/errors';
 import {
   parseNaturalDate,
   parseTripDuration,
@@ -17,63 +20,25 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization');
-    if (!authorization) {
-      return NextResponse.json({ error: '未授权，请先登录' }, { status: 401 });
-    }
-
-    const token = authorization.replace('Bearer ', '');
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: '未授权，请先登录' },
-        { status: 401 }
-      );
-    }
-
-    // 创建使用用户 token 的 Supabase 客户端（用于 RLS）
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabaseWithAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
-    );
+    const { user, supabase } = await requireAuth(request);
 
     // 获取请求参数
     const body = await request.json();
     const { text } = body;
 
     if (!text || typeof text !== 'string') {
-      return NextResponse.json(
-        { error: '缺少语音文本' },
-        { status: 400 }
-      );
+      throw new ValidationError('缺少语音文本');
     }
 
     console.log('[Voice Parse] 收到语音文本:', text);
 
     // 获取 AI API 配置
-    const userConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabaseWithAuth);
+    const userConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabase);
     const apiKey = userConfig?.apiKey || config.deepseek.apiKey;
     const baseURL = userConfig?.baseUrl || config.deepseek.baseURL;
 
     if (!apiKey) {
-      return NextResponse.json(
-        {
-          error: 'AI API 未配置',
-          message: '请在设置页面配置 DeepSeek API Key',
-        },
-        { status: 400 }
-      );
+      throw new ConfigurationError('请在设置页面配置 DeepSeek API Key');
     }
 
     // 构建 AI Prompt
@@ -202,41 +167,21 @@ export async function POST(request: NextRequest) {
 
       // 验证必需字段
       if (!parsedData.destination) {
-        return NextResponse.json(
-          {
-            error: '解析失败',
-            message: '无法识别目的地，请提供更清晰的描述',
-          },
-          { status: 400 }
-        );
+        throw new ValidationError('无法识别目的地，请提供更清晰的描述');
       }
 
       console.log('[Voice Parse] 解析成功:', parsedData);
 
-      return NextResponse.json({
-        success: true,
+      return successResponse({
         data: parsedData,
         raw_text: text,
         raw_ai_response: aiResponse,
       });
     } catch (aiError: any) {
       console.error('[Voice Parse] AI 调用失败:', aiError);
-      return NextResponse.json(
-        {
-          error: 'AI 解析失败',
-          message: aiError.message || '未知错误',
-        },
-        { status: 500 }
-      );
+      throw new Error(`AI 解析失败: ${aiError.message || '未知错误'}`);
     }
-  } catch (error: any) {
-    console.error('[Voice Parse] 服务器错误:', error);
-    return NextResponse.json(
-      {
-        error: '服务器错误',
-        message: error.message || '未知错误',
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'POST /api/voice/parse-trip');
   }
 }

@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
 import { encrypt } from '@/lib/encryption'
+import { ValidationError } from '@/lib/errors'
 import type { ApiKeyService } from '@/types'
 
 interface ParsedKey {
@@ -54,31 +57,19 @@ function parseEnvContent(content: string): ParsedKey[] {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { user, supabase } = await requireAuth(request)
 
     const { envContent } = await request.json()
 
     if (!envContent || typeof envContent !== 'string') {
-      return NextResponse.json({ error: '缺少 .env.local 文件内容' }, { status: 400 })
+      throw new ValidationError('缺少 .env.local 文件内容')
     }
 
     // 解析环境变量文件
     const parsedKeys = parseEnvContent(envContent)
 
     if (parsedKeys.length === 0) {
-      return NextResponse.json({ error: '未找到有效的 API Key' }, { status: 400 })
+      throw new ValidationError('未找到有效的 API Key')
     }
 
     // 批量导入
@@ -128,15 +119,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       imported,
       skipped,
       errors,
       total: parsedKeys.length,
     })
   } catch (error) {
-    console.error('Import API keys error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'POST /api/user/api-keys/import')
   }
 }

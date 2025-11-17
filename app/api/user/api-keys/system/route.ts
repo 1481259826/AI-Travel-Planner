@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
 import type { ApiKeyService } from '@/types'
 
 interface SystemApiKey {
@@ -16,19 +18,8 @@ interface SystemApiKey {
  */
 export async function GET(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // 验证用户认证
+    await requireAuth(request)
 
     const systemKeys: SystemApiKey[] = []
 
@@ -92,9 +83,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ systemKeys })
+    return successResponse({ systemKeys })
   } catch (error) {
-    console.error('Get system API keys error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'GET /api/user/api-keys/system')
   }
 }

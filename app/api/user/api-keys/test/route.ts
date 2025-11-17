@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { NextRequest } from 'next/server'
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
 import { decrypt } from '@/lib/encryption'
 import { testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey } from '@/lib/api-keys'
+import { ValidationError, NotFoundError, EncryptionError } from '@/lib/errors'
 import type { ApiKeyService } from '@/types'
 
 /**
@@ -10,24 +13,12 @@ import type { ApiKeyService } from '@/types'
  */
 export async function POST(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { user, supabase } = await requireAuth(request)
 
     const { keyId } = await request.json()
 
     if (!keyId) {
-      return NextResponse.json({ error: '缺少 keyId' }, { status: 400 })
+      throw new ValidationError('缺少 keyId')
     }
 
     // 查询 API Key（确保是用户自己的）
@@ -39,7 +30,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (queryError || !apiKey) {
-      return NextResponse.json({ error: 'API Key 不存在' }, { status: 404 })
+      throw new NotFoundError('API Key 不存在')
     }
 
     // 解密 API Key
@@ -47,8 +38,7 @@ export async function POST(request: NextRequest) {
     try {
       decryptedKey = decrypt(apiKey.encrypted_key)
     } catch (error) {
-      console.error('Decrypt error:', error)
-      return NextResponse.json({ error: '密钥解密失败' }, { status: 500 })
+      throw new EncryptionError('密钥解密失败')
     }
 
     // 根据服务类型测试
@@ -74,7 +64,7 @@ export async function POST(request: NextRequest) {
           errorMessage = isValid ? '' : '科大讯飞语音 API Key 格式无效'
           break
         default:
-          return NextResponse.json({ error: '不支持的服务类型' }, { status: 400 })
+          throw new ValidationError('不支持的服务类型')
       }
 
       // 更新 last_used_at
@@ -85,19 +75,18 @@ export async function POST(request: NextRequest) {
           .eq('id', keyId)
       }
 
-      return NextResponse.json({
+      return successResponse({
         valid: isValid,
         message: isValid ? 'API Key 有效' : errorMessage
       })
     } catch (error: any) {
-      console.error('Test API key error:', error)
-      return NextResponse.json({
+      // 测试过程中的错误也返回结构化响应
+      return successResponse({
         valid: false,
         message: error.message || '测试失败，请稍后重试'
       })
     }
   } catch (error) {
-    console.error('Test API key error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'POST /api/user/api-keys/test')
   }
 }
