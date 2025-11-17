@@ -9,7 +9,8 @@ export class AppError extends Error {
   constructor(
     message: string,
     public statusCode: number = 500,
-    public code?: string
+    public code?: string,
+    public context?: Record<string, any>
   ) {
     super(message)
     this.name = 'AppError'
@@ -95,4 +96,38 @@ export class ExternalServiceError extends AppError {
     this.name = 'ExternalServiceError'
     Object.setPrototypeOf(this, ExternalServiceError.prototype)
   }
+}
+
+/**
+ * 从未知错误对象中提取错误消息
+ */
+export function extractErrorMessage(error: unknown): string {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (error && typeof error === 'object') {
+    // 尝试从对象中提取 message 属性
+    if ('message' in error && typeof (error as any).message === 'string') {
+      return (error as any).message
+    }
+
+    // 尝试从对象中提取 error 属性
+    if ('error' in error && typeof (error as any).error === 'string') {
+      return (error as any).error
+    }
+
+    // 尝试序列化对象
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return '未知错误'
+    }
+  }
+
+  return '未知错误'
 }
