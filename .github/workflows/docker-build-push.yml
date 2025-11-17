@@ -1,12 +1,13 @@
 name: Build and Push Docker Image to Aliyun
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-  workflow_dispatch:
+  # 自动触发已禁用，如需构建请手动触发
+  # push:
+  #   branches:
+  #     - main
+  #   tags:
+  #     - 'v*'
+  workflow_dispatch:  # 保留手动触发功能
 
 env:
   # 阿里云镜像仓库地址（个人版）
