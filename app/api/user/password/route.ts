@@ -1,7 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import config from '@/lib/config'
+/**
+ * API: /api/user/password
+ * 用户密码修改
+ */
+
+import { NextRequest } from 'next/server'
+import { requireAuth, createServiceClient } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
+import { changePasswordSchema } from '@/app/api/_utils/validation'
 import { isPasswordValid } from '@/lib/utils/password'
+import { ValidationError } from '@/lib/errors'
+
+/**
+ * 验证当前密码
+ */
+async function verifyCurrentPassword(
+  supabase: any,
+  email: string,
+  currentPassword: string
+): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  })
+
+  if (error) {
+    throw new ValidationError('当前密码不正确')
+  }
+}
+
+/**
+ * 更新用户密码（使用 Admin API）
+ */
+async function updateUserPassword(userId: string, newPassword: string): Promise<void> {
+  const adminClient = createServiceClient()
+
+  const { error } = await adminClient.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  })
+
+  if (error) {
+    throw error
+  }
+}
 
 /**
  * POST /api/user/password
@@ -9,105 +50,35 @@ import { isPasswordValid } from '@/lib/utils/password'
  */
 export async function POST(request: NextRequest) {
   try {
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { user, supabase } = await requireAuth(request)
 
-    const token = authorization.replace('Bearer ', '')
+    // 解析并验证请求体
+    const body = await request.json()
+    const validatedData = changePasswordSchema.parse(body)
 
-    // 创建带有用户认证的 Supabase 客户端
-    const supabase = createClient(
-      config.supabase.url,
-      config.supabase.anonKey,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    )
-
-    // 验证用户
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { current_password, new_password, confirm_password } = await request.json()
-
-    // 验证输入
-    if (!current_password || !new_password || !confirm_password) {
-      return NextResponse.json(
-        { error: '请填写所有字段' },
-        { status: 400 }
-      )
-    }
+    const { current_password, new_password, confirm_password } = validatedData
 
     // 验证新密码和确认密码是否一致
     if (new_password !== confirm_password) {
-      return NextResponse.json(
-        { error: '两次输入的密码不一致' },
-        { status: 400 }
-      )
+      throw new ValidationError('两次输入的密码不一致')
     }
 
     // 验证新密码强度
     if (!isPasswordValid(new_password)) {
-      return NextResponse.json(
-        { error: '密码强度不足，请满足所有要求' },
-        { status: 400 }
-      )
+      throw new ValidationError('密码强度不足，请满足所有要求')
     }
 
-    // 验证当前密码是否正确
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password: current_password,
-    })
+    // 验证当前密码
+    await verifyCurrentPassword(supabase, user.email!, current_password)
 
-    if (signInError) {
-      return NextResponse.json(
-        { error: '当前密码不正确' },
-        { status: 400 }
-      )
-    }
+    // 更新密码
+    await updateUserPassword(user.id, new_password)
 
-    // 使用 Admin API 更新密码（需要 service role key）
-    const adminClient = createClient(
-      config.supabase.url,
-      config.supabase.serviceRoleKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+    return successResponse(
+      { success: true },
+      '密码修改成功！请使用新密码重新登录'
     )
-
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(
-      user.id,
-      { password: new_password }
-    )
-
-    if (updateError) {
-      console.error('Password update error:', updateError)
-      return NextResponse.json(
-        { error: '密码修改失败，请重试' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      message: '密码修改成功！请使用新密码重新登录'
-    })
   } catch (error) {
-    console.error('Password change error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, 'POST /api/user/password')
   }
 }

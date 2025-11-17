@@ -41,3 +41,10 @@ export {
   generateItinerary,
 } from './ai-helper'
 export type { AIClientConfig } from './ai-helper'
+
+export {
+  fetchAmapPhotos,
+  generateAIDescription,
+  buildAttractionPrompt,
+  buildHotelPrompt,
+} from './enrich-helper'
