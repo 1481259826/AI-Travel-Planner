@@ -33,7 +33,8 @@ export async function checkApiKeyAvailable(
       })
 
       if (userResponse.ok) {
-        const { apiKeys } = await userResponse.json()
+        const result = await userResponse.json()
+        const apiKeys = result.data?.apiKeys || []
         const userKey = apiKeys.find(
           (key: any) => key.service === service && key.is_active
         )
@@ -54,7 +55,8 @@ export async function checkApiKeyAvailable(
     })
 
     if (systemResponse.ok) {
-      const { systemKeys } = await systemResponse.json()
+      const result = await systemResponse.json()
+      const systemKeys = result.data?.systemKeys || result.systemKeys || []
       const systemKey = systemKeys.find((key: any) => key.service === service)
 
       if (systemKey) {
