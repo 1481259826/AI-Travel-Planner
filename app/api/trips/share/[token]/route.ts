@@ -1,24 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+/**
+ * API: /api/trips/share/[token]
+ * 公开分享的行程查看
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+import { NextRequest } from 'next/server'
+import { createServiceClient } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse } from '@/app/api/_utils/response'
+import { ValidationError, NotFoundError } from '@/lib/errors'
 
-// GET /api/trips/share/[token] - 通过 token 获取公开的行程
+/**
+ * GET /api/trips/share/[token]
+ * 通过 token 获取公开的行程
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { token: shareToken } = await params
 
     if (!shareToken) {
-      return NextResponse.json(
-        { message: '缺少分享 token' },
-        { status: 400 }
-      )
+      throw new ValidationError('缺少分享 token')
     }
+
+    const supabase = createServiceClient()
 
     // 查询公开的行程
     const { data: trip, error: tripError } = await supabase
@@ -48,10 +54,7 @@ export async function GET(
       .single()
 
     if (tripError || !trip) {
-      return NextResponse.json(
-        { message: '行程不存在或未公开分享' },
-        { status: 404 }
-      )
+      throw new NotFoundError('行程不存在或未公开分享')
     }
 
     // 获取该行程的费用记录（如果有）
@@ -65,19 +68,17 @@ export async function GET(
     const profile = Array.isArray(trip.profiles) ? trip.profiles[0] : trip.profiles
     const response = {
       ...trip,
-      profiles: profile ? {
-        name: profile.name || '匿名用户'
-        // 不返回邮箱以保护隐私
-      } : null,
-      expenses: expenses || []
+      profiles: profile
+        ? {
+            name: profile.name || '匿名用户',
+            // 不返回邮箱以保护隐私
+          }
+        : null,
+      expenses: expenses || [],
     }
 
-    return NextResponse.json({ trip: response })
-  } catch (error: any) {
-    console.error('获取公开行程错误:', error)
-    return NextResponse.json(
-      { message: '服务器错误', error: error.message },
-      { status: 500 }
-    )
+    return successResponse({ trip: response })
+  } catch (error) {
+    return handleApiError(error, 'GET /api/trips/share/:token')
   }
 }
