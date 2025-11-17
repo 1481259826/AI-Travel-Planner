@@ -60,6 +60,12 @@ export async function GET(request: NextRequest) {
         apiSecret,
       });
 
+      console.log('[Voice API] 成功生成鉴权 URL:', {
+        hasAuthUrl: !!authUrl,
+        authUrlLength: authUrl?.length || 0,
+        appId: appId.substring(0, 8) + '***'
+      });
+
       return successResponse({
         authUrl,
         appId,

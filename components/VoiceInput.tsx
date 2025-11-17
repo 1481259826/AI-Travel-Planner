@@ -50,14 +50,26 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
               'Authorization': `Bearer ${session.access_token}`
             }
           })
+          console.log('[VoiceInput] API 响应:', {
+            ok: response.ok,
+            status: response.status
+          })
           if (response.ok) {
             const data = await response.json()
+            console.log('[VoiceInput] 解析后的数据:', {
+              success: data.success,
+              hasData: !!data.data,
+              hasAuthUrl: !!data.data?.authUrl,
+              dataKeys: data.data ? Object.keys(data.data) : []
+            })
             if (data.success && data.data?.authUrl) {
               setCurrentMode('xfyun')
               setIsSupported(true)
               console.log('[VoiceInput] 使用科大讯飞语音识别')
               setIsCheckingXFYun(false)
               return
+            } else {
+              console.log('[VoiceInput] 条件不满足，回退到 Web Speech API')
             }
           }
         }
