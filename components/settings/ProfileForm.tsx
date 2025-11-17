@@ -42,7 +42,12 @@ export default function ProfileForm() {
         throw new Error('Failed to load profile')
       }
 
-      const { profile } = await response.json() as { profile: UserProfile }
+      const result = await response.json()
+      const profile = result.data?.profile
+
+      if (!profile) {
+        throw new Error('Profile data not found')
+      }
 
       setFormData({
         name: profile.name || '',
