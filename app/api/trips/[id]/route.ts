@@ -1,6 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import config from '@/lib/config'
+/**
+ * API: /api/trips/:id
+ * 行程详情的增删改查操作
+ */
+
+import { NextRequest } from 'next/server'
+import { requireAuth, requireOwnership } from '@/app/api/_middleware'
+import { handleApiError } from '@/app/api/_middleware/error-handler'
+import { successResponse, noContentResponse } from '@/app/api/_utils/response'
+import { NotFoundError } from '@/lib/errors'
+
+/**
+ * GET /api/trips/:id
+ * 获取行程详情
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { user, supabase } = await requireAuth(request)
+    const { id: tripId } = await params
+
+    // 查询行程
+    const { data: trip, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('id', tripId)
+      .single()
+
+    if (error || !trip) {
+      throw new NotFoundError('行程不存在')
+    }
+
+    // 验证资源所有权
+    requireOwnership(user.id, trip.user_id)
+
+    return successResponse(trip)
+  } catch (error) {
+    return handleApiError(error, 'GET /api/trips/:id')
+  }
+}
 
 /**
  * PUT /api/trips/:id
@@ -11,36 +50,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证身份
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-    const supabase = createClient(
-      config.supabase.url,
-      config.supabase.anonKey,
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      }
-    )
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 获取请求参数
+    const { user, supabase } = await requireAuth(request)
     const { id: tripId } = await params
+
+    // 解析请求体
     const body = await request.json()
     const { itinerary } = body
 
     if (!itinerary) {
-      return NextResponse.json({ error: 'Missing itinerary data' }, { status: 400 })
+      throw new NotFoundError('缺少行程数据')
     }
 
     // 验证用户是否拥有这个行程
@@ -51,31 +69,29 @@ export async function PUT(
       .single()
 
     if (tripError || !trip) {
-      return NextResponse.json({ error: 'Trip not found' }, { status: 404 })
+      throw new NotFoundError('行程不存在')
     }
 
-    if (trip.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    requireOwnership(user.id, trip.user_id)
 
     // 更新行程数据
-    const { error: updateError } = await supabase
+    const { data, error: updateError } = await supabase
       .from('trips')
       .update({
         itinerary,
         updated_at: new Date().toISOString(),
       })
       .eq('id', tripId)
+      .select()
+      .single()
 
     if (updateError) {
-      console.error('Error updating trip:', updateError)
-      return NextResponse.json({ error: 'Failed to update trip' }, { status: 500 })
+      throw updateError
     }
 
-    return NextResponse.json({ success: true })
+    return successResponse(data, '行程更新成功')
   } catch (error) {
-    console.error('Error in PUT /api/trips/:id:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'PUT /api/trips/:id')
   }
 }
 
@@ -88,30 +104,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证身份
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authorization.replace('Bearer ', '')
-    const supabase = createClient(
-      config.supabase.url,
-      config.supabase.anonKey,
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      }
-    )
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 获取行程 ID
+    const { user, supabase } = await requireAuth(request)
     const { id: tripId } = await params
 
     // 验证用户是否拥有这个行程
@@ -122,12 +115,10 @@ export async function DELETE(
       .single()
 
     if (tripError || !trip) {
-      return NextResponse.json({ error: 'Trip not found' }, { status: 404 })
+      throw new NotFoundError('行程不存在')
     }
 
-    if (trip.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    requireOwnership(user.id, trip.user_id)
 
     // 删除行程
     const { error: deleteError } = await supabase
@@ -136,13 +127,11 @@ export async function DELETE(
       .eq('id', tripId)
 
     if (deleteError) {
-      console.error('Error deleting trip:', deleteError)
-      return NextResponse.json({ error: 'Failed to delete trip' }, { status: 500 })
+      throw deleteError
     }
 
-    return NextResponse.json({ success: true })
+    return noContentResponse()
   } catch (error) {
-    console.error('Error in DELETE /api/trips/:id:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error, 'DELETE /api/trips/:id')
   }
 }
