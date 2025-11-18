@@ -35,9 +35,33 @@ jobs:
     - name: Build project
       run: npm run build
       env:
-        # 使用空值进行构建测试，实际部署时需要配置真实的 GitHub Secrets
+        # 使用 GitHub Secrets（与 Docker 构建一致），未配置时使用占位符
+        # Supabase 配置
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key-for-ci' }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key' }}
+
+        # 加密配置（必需，至少 32 字符）
+        ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'placeholder-32-chars-encryption-key-for-ci-only-test' }}
+
+        # 地图服务配置（必需）
+        NEXT_PUBLIC_MAP_API_KEY: ${{ secrets.NEXT_PUBLIC_MAP_API_KEY || 'placeholder-map-api-key' }}
+        NEXT_PUBLIC_MAP_SECURITY_KEY: ${{ secrets.NEXT_PUBLIC_MAP_SECURITY_KEY || '' }}
+        AMAP_WEB_SERVICE_KEY: ${{ secrets.AMAP_WEB_SERVICE_KEY || 'placeholder-amap-web-service-key' }}
+
+        # AI 模型配置（至少需要一个）
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY || 'sk-placeholder-deepseek-key' }}
+        DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL || 'https://api.deepseek.com' }}
+        MODELSCOPE_API_KEY: ${{ secrets.MODELSCOPE_API_KEY || '' }}
+        MODELSCOPE_BASE_URL: ${{ secrets.MODELSCOPE_BASE_URL || 'https://api-inference.modelscope.cn/v1/' }}
+
+        # 语音识别配置（可选）
+        VOICE_API_KEY: ${{ secrets.VOICE_API_KEY || '' }}
+        VOICE_APP_ID: ${{ secrets.VOICE_APP_ID || '' }}
+        VOICE_API_SECRET: ${{ secrets.VOICE_API_SECRET || '' }}
+
+        # 应用基础配置
+        NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL || 'http://localhost:3008' }}
 
     # 如果有测试，取消注释以下内容
     # - name: Run tests
