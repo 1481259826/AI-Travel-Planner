@@ -172,11 +172,8 @@ export async function POST(request: NextRequest) {
 
       console.log('[Voice Parse] 解析成功:', parsedData);
 
-      return successResponse({
-        data: parsedData,
-        raw_text: text,
-        raw_ai_response: aiResponse,
-      });
+      // 直接返回解析后的数据，不需要额外包装
+      return successResponse(parsedData);
     } catch (aiError: any) {
       console.error('[Voice Parse] AI 调用失败:', aiError);
       throw new Error(`AI 解析失败: ${aiError.message || '未知错误'}`);
