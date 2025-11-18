@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Activity } from '@/types'
 import { AmapWeatherForecast } from '@/lib/amap-weather'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
-import config from '@/lib/config'
+import { useAMapLoader } from '@/hooks/useAMapLoader'
 
 interface DayMapPreviewProps {
   activities: Activity[]
@@ -29,60 +29,17 @@ function getTypeEmoji(type: Activity['type']): string {
  * 显示当天景点位置的小地图预览，整合天气信息
  */
 export default function DayMapPreview({ activities, weather, dayNumber, onExpandMap }: DayMapPreviewProps) {
+  // 使用统一的地图加载 Hook
+  const { loading, error: loadError, isLoaded } = useAMapLoader()
+
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const [error, setError] = useState<string>('')
   const [markers, setMarkers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  // 加载高德地图API
-  useEffect(() => {
-    const apiKey = config.map.apiKey
-
-    if (!apiKey) {
-      setError('未配置地图 API Key')
-      setLoading(false)
-      return
-    }
-
-    // 检查是否已加载
-    if (window.AMap) {
-      setLoading(false)
-      return
-    }
-
-    // 设置安全密钥（必须在加载脚本之前设置）
-    const securityKey = process.env.NEXT_PUBLIC_MAP_SECURITY_KEY
-    if (securityKey) {
-      window._AMapSecurityConfig = {
-        securityJsCode: securityKey,
-      }
-    }
-
-    // 动态加载高德地图脚本
-    const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`
-    script.async = true
-
-    script.onload = () => {
-      setLoading(false)
-    }
-
-    script.onerror = () => {
-      setError('地图加载失败')
-      setLoading(false)
-    }
-
-    document.head.appendChild(script)
-
-    return () => {
-      // 不移除script，因为其他地图组件可能还在使用
-    }
-  }, [])
 
   // 初始化地图
   useEffect(() => {
-    if (!mapRef.current || loading || error) return
+    if (!mapRef.current || loading || loadError || error || !isLoaded) return
 
     // 检查是否已加载高德地图
     if (!window.AMap) {
@@ -247,12 +204,14 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
     )
   }
 
-  if (error) {
+  // 显示加载错误或业务逻辑错误
+  const displayError = loadError || error
+  if (displayError) {
     return (
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-center text-gray-500 dark:text-gray-400">
           <MapPin className="w-5 h-5 mr-2" />
-          <span className="text-sm">{error}</span>
+          <span className="text-sm">{displayError}</span>
         </div>
       </div>
     )

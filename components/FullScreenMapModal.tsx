@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity } from '@/types'
 import { X, MapPin, Navigation, Loader2 } from 'lucide-react'
-import config from '@/lib/config'
+import { useAMapLoader } from '@/hooks/useAMapLoader'
 
 interface FullScreenMapModalProps {
   isOpen: boolean
@@ -42,59 +42,18 @@ function isTransportationActivity(activity: Activity): boolean {
  * 显示当天所有景点的详细地图和路线规划
  */
 export default function FullScreenMapModal({ isOpen, onClose, activities, dayNumber }: FullScreenMapModalProps) {
+  // 使用统一的地图加载 Hook
+  const { loading, error: loadError, isLoaded } = useAMapLoader()
+
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const [showRoute, setShowRoute] = useState(false)
   const [routeLine, setRouteLine] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
-
-  // 加载高德地图API
-  useEffect(() => {
-    if (!isOpen) return
-
-    const apiKey = config.map.apiKey
-
-    if (!apiKey) {
-      setError('未配置地图 API Key')
-      setLoading(false)
-      return
-    }
-
-    // 检查是否已加载
-    if (window.AMap) {
-      setLoading(false)
-      return
-    }
-
-    // 设置安全密钥（必须在加载脚本之前设置）
-    const securityKey = process.env.NEXT_PUBLIC_MAP_SECURITY_KEY
-    if (securityKey) {
-      window._AMapSecurityConfig = {
-        securityJsCode: securityKey,
-      }
-    }
-
-    // 动态加载高德地图脚本
-    const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`
-    script.async = true
-
-    script.onload = () => {
-      setLoading(false)
-    }
-
-    script.onerror = () => {
-      setError('地图加载失败')
-      setLoading(false)
-    }
-
-    document.head.appendChild(script)
-  }, [isOpen])
 
   // 初始化地图
   useEffect(() => {
-    if (!isOpen || !mapRef.current || loading || error) return
+    if (!isOpen || !mapRef.current || loading || loadError || error || !isLoaded) return
 
     // 检查是否已加载高德地图
     if (!window.AMap) {
@@ -295,11 +254,11 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
               <p className="text-gray-600 dark:text-gray-400">加载地图中...</p>
             </div>
           </div>
-        ) : error ? (
+        ) : loadError || error ? (
           <div className="flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
             <div className="text-center">
               <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">{error}</p>
+              <p className="text-gray-600 dark:text-gray-400">{loadError || error}</p>
             </div>
           </div>
         ) : (

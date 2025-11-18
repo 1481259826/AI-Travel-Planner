@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DayPlan, Activity, Accommodation } from '@/types'
 import { Loader2, MapPin, Navigation, ChevronDown, ChevronUp } from 'lucide-react'
-import config from '@/lib/config'
+import { useAMapLoader } from '@/hooks/useAMapLoader'
 
 interface TripOverviewMapProps {
   days: DayPlan[]
@@ -54,10 +54,12 @@ const DAY_COLORS = [
  * 显示所有天数的景点，路线只在每天内的景点之间连接
  */
 export default function TripOverviewMap({ days, accommodation = [], onHotelClick, className = '' }: TripOverviewMapProps) {
+  // 使用统一的地图加载 Hook
+  const { loading, error: loadError, isLoaded } = useAMapLoader()
+
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const [error, setError] = useState<string>('')
-  const [loading, setLoading] = useState(true)
   const [showRoutes, setShowRoutes] = useState(true)
   const [routeLines, setRouteLines] = useState<any[]>([])
   const [markers, setMarkers] = useState<any[]>([])
@@ -66,50 +68,9 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
   const [accommodationMarkers, setAccommodationMarkers] = useState<any[]>([]) // 存储酒店 markers
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false) // 控制工具栏收起/展开
 
-  // 加载高德地图API
-  useEffect(() => {
-    const apiKey = config.map.apiKey
-
-    if (!apiKey) {
-      setError('未配置地图 API Key')
-      setLoading(false)
-      return
-    }
-
-    // 检查是否已加载
-    if (window.AMap) {
-      setLoading(false)
-      return
-    }
-
-    // 设置安全密钥（必须在加载脚本之前设置）
-    const securityKey = process.env.NEXT_PUBLIC_MAP_SECURITY_KEY
-    if (securityKey) {
-      window._AMapSecurityConfig = {
-        securityJsCode: securityKey,
-      }
-    }
-
-    // 动态加载高德地图脚本
-    const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`
-    script.async = true
-
-    script.onload = () => {
-      setLoading(false)
-    }
-
-    script.onerror = () => {
-      setError('地图加载失败')
-      setLoading(false)
-    }
-
-    document.head.appendChild(script)
-  }, [])
-
   // 初始化地图和标记
   useEffect(() => {
-    if (!mapRef.current || loading || error || !window.AMap) return
+    if (!mapRef.current || loading || loadError || error || !isLoaded) return
 
     // 收集所有有位置信息的景点
     const allActivities: { activity: Activity; dayNumber: number; indexInDay: number }[] = []
@@ -517,12 +478,14 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
     )
   }
 
-  if (error) {
+  // 显示加载错误或业务逻辑错误
+  const displayError = loadError || error
+  if (displayError) {
     return (
       <div className={`bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 ${className}`}>
         <div className="flex flex-col items-center justify-center h-96 text-gray-500 dark:text-gray-400">
           <MapPin className="w-8 h-8 mb-2" />
-          <span className="text-sm">{error}</span>
+          <span className="text-sm">{displayError}</span>
         </div>
       </div>
     )

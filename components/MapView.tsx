@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Activity, Meal } from '@/types'
 import { MapPin, AlertCircle } from 'lucide-react'
 import type AMap from '@/types/amap'
+import { useAMapLoader } from '@/hooks/useAMapLoader'
 
 export interface MapLocation {
   name: string
@@ -29,6 +30,9 @@ export default function MapView({
   showRoute = false,
   className = ''
 }: MapViewProps) {
+  // 使用统一的地图加载 Hook（从环境变量获取 API Key）
+  const { loading: mapLoading, error: mapLoadError, isLoaded } = useAMapLoader({ apiKeySource: 'env' })
+
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<AMap.Map | null>(null)
   const markers = useRef<AMap.Marker[]>([])
@@ -36,46 +40,13 @@ export default function MapView({
   const routePolylines = useRef<AMap.Polyline[]>([])
   const routePlanningCancelled = useRef(false) // 标记是否取消路线规划
   const initialFitViewDone = useRef(false) // 标记是否已经完成初始视野调整
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null)
 
-  // 加载高德地图API
+  // 初始化地图（当 SDK 加载完成后）
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_MAP_API_KEY
-
-    if (!apiKey) {
-      setError('未配置地图 API Key，地图功能不可用。您可以在设置页面添加高德地图 API Key 以使用地图功能。')
-      setLoading(false)
-      return
-    }
-
-    // 检查是否已加载
-    if (window.AMap) {
-      initMap()
-      return
-    }
-
-    // 设置安全密钥（必须在加载脚本之前设置）
-    if (process.env.NEXT_PUBLIC_MAP_SECURITY_KEY) {
-      window._AMapSecurityConfig = {
-        securityJsCode: process.env.NEXT_PUBLIC_MAP_SECURITY_KEY,
-      }
-    }
-
-    // 动态加载高德地图脚本
-    const script = document.createElement('script')
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`
-    script.async = true
-    script.onerror = () => {
-      setError('地图加载失败，请检查网络连接或 API Key 是否正确')
-      setLoading(false)
-    }
-    script.onload = () => {
-      initMap()
-    }
-
-    document.head.appendChild(script)
+    if (!isLoaded) return
+    initMap()
 
     return () => {
       // 清理地图实例
@@ -83,7 +54,7 @@ export default function MapView({
         mapInstance.current.destroy()
       }
     }
-  }, [])
+  }, [isLoaded])
 
   // 初始化地图
   const initMap = () => {
@@ -382,14 +353,16 @@ export default function MapView({
     `
   }
 
-  if (error) {
+  // 显示加载错误或业务逻辑错误
+  const displayError = mapLoadError || error
+  if (displayError) {
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-center gap-3 text-red-700">
           <AlertCircle className="w-6 h-6 flex-shrink-0" />
           <div>
             <h3 className="font-semibold mb-1">地图加载失败</h3>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">{displayError}</p>
           </div>
         </div>
       </div>
@@ -398,7 +371,7 @@ export default function MapView({
 
   return (
     <div className={`relative ${className}`}>
-      {loading && (
+      {mapLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -414,7 +387,7 @@ export default function MapView({
       />
 
       {/* 图例 */}
-      {!loading && locations.length > 0 && (
+      {!mapLoading && locations.length > 0 && (
         <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 text-sm z-10">
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-4 h-4 text-blue-600" />
