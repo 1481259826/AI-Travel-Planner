@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/app/api/_middleware/auth';
 import { handleApiError } from '@/app/api/_middleware/error-handler';
 import { successResponse } from '@/app/api/_utils/response';
-import { getUserApiKeyConfig } from '@/lib/api-keys';
+import { ApiKeyClient } from '@/lib/api-keys';
 import { config } from '@/lib/config';
 import { ValidationError, ConfigurationError } from '@/lib/errors';
 import {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     console.log('[Voice Parse] 收到语音文本:', text);
 
     // 获取 AI API 配置
-    const userConfig = await getUserApiKeyConfig(user.id, 'deepseek', supabase);
+    const userConfig = await ApiKeyClient.getUserConfig(user.id, 'deepseek', supabase);
     const apiKey = userConfig?.apiKey || config.deepseek.apiKey;
     const baseURL = userConfig?.baseUrl || config.deepseek.baseURL;
 
