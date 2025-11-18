@@ -85,6 +85,7 @@ export default function SmartVoiceFillForm({ onFillForm, className = '' }: Smart
         throw new Error(result.message || '解析失败')
       }
 
+      console.log('[SmartVoiceFillForm] AI 解析结果:', result.data)
       setParseResult(result.data)
       setShowPreview(true)
     } catch (err: any) {
@@ -113,6 +114,7 @@ export default function SmartVoiceFillForm({ onFillForm, className = '' }: Smart
     if (parseResult.hotel_preferences) formData.hotel_preferences = parseResult.hotel_preferences
     if (parseResult.additional_notes) formData.additional_notes = parseResult.additional_notes
 
+    console.log('[SmartVoiceFillForm] 即将填充表单:', formData)
     onFillForm(formData)
 
     // 重置状态
