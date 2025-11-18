@@ -27,10 +27,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # 暂时禁用 linter，等待后续配置 ESLint
-    # - name: Run linter
-    #   run: npm run lint
-    #   continue-on-error: true
+    - name: Run linter
+      run: npm run lint
+      continue-on-error: false
 
     - name: Build project
       run: npm run build
