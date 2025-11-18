@@ -1,4 +1,4 @@
-import config from './config'
+import { appConfig } from './config'
 import https from 'https'
 
 /**
