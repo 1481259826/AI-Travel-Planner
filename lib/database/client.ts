@@ -13,10 +13,13 @@ import { appConfig } from '@/lib/config'
 /**
  * 默认 Supabase 客户端实例
  * 用于客户端和服务端的通用操作
+ *
+ * 注意：如果环境变量未配置，将使用占位符创建客户端
+ * 实际使用时会在 API 调用时失败并提示配置错误
  */
 export const supabase = createSupabaseClient(
-  appConfig.supabase.url,
-  appConfig.supabase.anonKey
+  appConfig.supabase.url || 'https://placeholder.supabase.co',
+  appConfig.supabase.anonKey || 'placeholder-anon-key'
 )
 
 /**
@@ -32,8 +35,8 @@ export const supabase = createSupabaseClient(
  */
 export function createClient(): SupabaseClient {
   return createSupabaseClient(
-    appConfig.supabase.url,
-    appConfig.supabase.anonKey
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
+    appConfig.supabase.anonKey || 'placeholder-anon-key'
   )
 }
 
@@ -53,8 +56,8 @@ export function createClient(): SupabaseClient {
  */
 export function createServerSupabaseClient(token: string): SupabaseClient {
   return createSupabaseClient(
-    appConfig.supabase.url,
-    appConfig.supabase.anonKey,
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
+    appConfig.supabase.anonKey || 'placeholder-anon-key',
     {
       global: {
         headers: {
@@ -83,7 +86,7 @@ export function createAdminClient(): SupabaseClient {
   }
 
   return createSupabaseClient(
-    appConfig.supabase.url,
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
     appConfig.supabase.serviceRoleKey
   )
 }
