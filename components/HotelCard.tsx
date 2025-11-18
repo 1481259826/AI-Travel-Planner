@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { Accommodation } from '@/types'
-import { MapPin, Calendar, DollarSign, Star, Wifi, Coffee, Utensils, Dumbbell, Waves, ShieldCheck, Car, Wind, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
-import Image from 'next/image'
-import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
-import { getAccommodationTypeStyle, renderStars } from '@/lib/ui-helpers'
+import { MapPin, Calendar, DollarSign, Wifi, Coffee, Utensils, Dumbbell, Waves, ShieldCheck, Car, Wind, ChevronDown, ChevronUp } from 'lucide-react'
+import PhotoCarousel from '@/components/shared/PhotoCarousel'
+import RatingDisplay from '@/components/shared/RatingDisplay'
+import { getAccommodationTypeStyle } from '@/lib/ui-helpers'
 
 interface HotelCardProps {
   hotel: Accommodation
@@ -15,40 +15,9 @@ interface HotelCardProps {
 }
 
 export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = false }: HotelCardProps) {
-  // 使用照片轮播 Hook
-  const {
-    currentIndex: currentPhotoIndex,
-    currentPhoto,
-    hasPhotos,
-    nextPhoto,
-    prevPhoto
-  } = usePhotoCarousel({ photos: hotel.photos || [] })
-
   const [isExpanded, setIsExpanded] = useState(false)
-  const [imageError, setImageError] = useState(false)
 
   const hotelStyle = getAccommodationTypeStyle(hotel.type)
-
-  // 渲染星级评分
-  const renderStarsComponents = (rating: number) => {
-    const stars = renderStars(rating)
-    return stars.map((star) => {
-      if (star.type === 'full') {
-        return <Star key={star.key} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-      } else if (star.type === 'half') {
-        return (
-          <div key={star.key} className="relative w-4 h-4">
-            <Star className="w-4 h-4 text-gray-300 absolute" />
-            <div className="overflow-hidden w-2 absolute">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            </div>
-          </div>
-        )
-      } else {
-        return <Star key={star.key} className="w-4 h-4 text-gray-300" />
-      }
-    })
-  }
 
   // 设施图标映射
   const getAmenityIcon = (amenity: string) => {
@@ -84,68 +53,18 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
       {/* 图片区域 */}
-      <div className="relative h-48 bg-gray-100 dark:bg-gray-700">
-        {hasPhotos && !imageError ? (
+      <PhotoCarousel
+        photos={hotel.photos || []}
+        alt={hotel.name}
+        topLeftOverlay={
+          <div className={`px-3 py-1 rounded-full text-xs font-medium border ${hotelStyle.color} backdrop-blur-sm`}>
+            <span className="mr-1">{hotelStyle.emoji}</span>
+            {hotelStyle.label}
+          </div>
+        }
+        placeholderContent={
           <>
-            <Image
-              src={currentPhoto}
-              alt={hotel.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              onError={() => setImageError(true)}
-            />
-
-            {/* 图片导航 */}
-            {photos.length > 1 && (
-              <>
-                <button
-                  onClick={prevPhoto}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-                  aria-label="上一张图片"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={nextPhoto}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-                  aria-label="下一张图片"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-
-                {/* 图片指示器 */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                  {photos.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setCurrentPhotoIndex(index)
-                        setImageError(false)
-                      }}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentPhotoIndex
-                          ? 'bg-white w-6'
-                          : 'bg-white/50 hover:bg-white/75'
-                      }`}
-                      aria-label={`切换到第${index + 1}张图片`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* 类型标签 */}
-            <div className={`absolute top-2 left-2 px-3 py-1 rounded-full text-xs font-medium border ${hotelStyle.color} backdrop-blur-sm`}>
-              <span className="mr-1">{hotelStyle.emoji}</span>
-              {hotelStyle.label}
-            </div>
-          </>
-        ) : (
-          /* 占位图 */
-          <div className="relative w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-            <ImageIcon className="w-16 h-16 mb-2" />
-            {!hasPhotos && onEnrich && !isEnriching && (
+            {onEnrich && !isEnriching && (
               <button
                 onClick={() => onEnrich(hotel)}
                 className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors"
@@ -159,10 +78,9 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
                 <span>正在加载...</span>
               </div>
             )}
-            {imageError && <p className="text-sm mt-2">图片加载失败</p>}
-          </div>
-        )}
-      </div>
+          </>
+        }
+      />
 
       {/* 头部区域 */}
       <div className="relative p-4 pb-3 border-b border-gray-100 dark:border-gray-700">
@@ -173,23 +91,15 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {hotel.name}
               </h3>
-              {/* 类型标签仅在无照片时显示 */}
-              {!hasPhotos && (
-                <div className={`px-2 py-0.5 rounded-full text-xs font-medium border ${hotelStyle.color}`}>
-                  <span className="mr-1">{hotelStyle.emoji}</span>
-                  {hotelStyle.label}
-                </div>
-              )}
             </div>
 
             {/* 评分 */}
             {hotel.rating && (
-              <div className="flex items-center gap-1 mt-1">
-                <div className="flex">{renderStarsComponents(hotel.rating)}</div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 ml-1">
-                  {hotel.rating.toFixed(1)} 分
-                </span>
-              </div>
+              <RatingDisplay
+                rating={hotel.rating}
+                showNumeric={true}
+                className="mt-1"
+              />
             )}
           </div>
         </div>
