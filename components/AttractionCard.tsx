@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Activity } from '@/types'
 import { MapPin, Clock, DollarSign, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Star, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
+import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
 
 interface AttractionCardProps {
   activity: Activity
@@ -14,30 +15,18 @@ interface AttractionCardProps {
 }
 
 export default function AttractionCard({ activity, onEnrich, isEnriching = false, isEditMode = false, onDelete }: AttractionCardProps) {
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
+  // 使用照片轮播 Hook
+  const {
+    currentIndex: currentPhotoIndex,
+    currentPhoto,
+    hasPhotos,
+    nextPhoto,
+    prevPhoto
+  } = usePhotoCarousel({ photos: activity.photos || [] })
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-
-  const hasPhotos = activity.photos && activity.photos.length > 0
-  const photos = activity.photos || []
-  const currentPhoto = photos[currentPhotoIndex]
-
-  // 切换到下一张图片
-  const nextPhoto = () => {
-    if (photos.length > 0) {
-      setCurrentPhotoIndex((prev) => (prev + 1) % photos.length)
-      setImageError(false)
-    }
-  }
-
-  // 切换到上一张图片
-  const prevPhoto = () => {
-    if (photos.length > 0) {
-      setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length)
-      setImageError(false)
-    }
-  }
 
   // 渲染评分星星
   const renderStars = (rating: number) => {

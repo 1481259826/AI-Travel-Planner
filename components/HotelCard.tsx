@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Accommodation } from '@/types'
 import { MapPin, Calendar, DollarSign, Star, Wifi, Coffee, Utensils, Dumbbell, Waves, ShieldCheck, Car, Wind, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
+import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
 
 interface HotelCardProps {
   hotel: Accommodation
@@ -13,29 +14,17 @@ interface HotelCardProps {
 }
 
 export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = false }: HotelCardProps) {
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
+  // 使用照片轮播 Hook
+  const {
+    currentIndex: currentPhotoIndex,
+    currentPhoto,
+    hasPhotos,
+    nextPhoto,
+    prevPhoto
+  } = usePhotoCarousel({ photos: hotel.photos || [] })
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [imageError, setImageError] = useState(false)
-
-  const hasPhotos = hotel.photos && hotel.photos.length > 0
-  const photos = hotel.photos || []
-  const currentPhoto = photos[currentPhotoIndex]
-
-  // 切换到下一张图片
-  const nextPhoto = () => {
-    if (photos.length > 0) {
-      setCurrentPhotoIndex((prev) => (prev + 1) % photos.length)
-      setImageError(false)
-    }
-  }
-
-  // 切换到上一张图片
-  const prevPhoto = () => {
-    if (photos.length > 0) {
-      setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length)
-      setImageError(false)
-    }
-  }
 
   // 渲染评分星星
   const renderStars = (rating: number) => {
