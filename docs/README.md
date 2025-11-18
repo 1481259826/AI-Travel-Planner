@@ -41,6 +41,24 @@
 
 #### 📖 使用指南
 
+- **[QUICK_START.md](QUICK_START.md)** - 快速启动指南
+  - 推荐启动方式
+  - PM2 进程管理
+  - 常用命令速查
+  - 问题排查
+
+- **[SETTINGS_GUIDE.md](SETTINGS_GUIDE.md)** - 用户设置指南
+  - 账户信息管理
+  - 安全设置
+  - 偏好设置
+  - API Keys 管理
+
+- **[OFFLINE_USAGE.md](OFFLINE_USAGE.md)** - 离线功能使用指南
+  - PWA 安装方法
+  - 离线功能说明
+  - 数据同步机制
+  - 常见问题
+
 - **[EXAMPLES.md](EXAMPLES.md)** - 使用示例和最佳实践
   - 实际场景演示
   - 步骤详解
@@ -56,6 +74,28 @@
   - RLS 策略说明
   - 索引优化
   - 迁移脚本使用
+
+#### 📱 PWA 和离线功能
+- **[PWA_IMPLEMENTATION.md](PWA_IMPLEMENTATION.md)** - PWA 技术实现文档
+  - 架构概览和数据流
+  - IndexedDB 存储方案
+  - Service Worker 配置
+  - 离线同步机制
+  - PWA 安装和卸载指南
+  - 性能优化和故障排除
+
+#### ⚙️ 进程管理
+- **[PROCESS_MANAGEMENT.md](PROCESS_MANAGEMENT.md)** - 进程管理详解
+  - 僵尸进程预防
+  - PM2 使用指南
+  - 健康检查脚本
+  - 常见问题排查
+
+#### 📊 项目重构
+- **[PHASE_3_COMPLETION_REPORT.md](PHASE_3_COMPLETION_REPORT.md)** - Phase 3 组件层优化完成报告
+  - 代码重构成果
+  - 架构优化说明
+  - 最佳实践指南
 
 ### 主要文档
 
@@ -120,11 +160,21 @@
 
 以下文档已归档到 `docs/archive/` 目录，作为历史参考：
 
-- **[Create_Prompt.md](archive/Create_Prompt.md)** - 原始项目需求文档
-- **[ORIGIN_FIELD_UPDATE.md](archive/ORIGIN_FIELD_UPDATE.md)** - 出发地功能更新说明
-- **[BUGFIX_EXPENSE_FIELDS.md](archive/BUGFIX_EXPENSE_FIELDS.md)** - 费用字段 Bug 修复记录
-- **[DOCUMENTATION_CLEANUP_SUMMARY.md](archive/DOCUMENTATION_CLEANUP_SUMMARY.md)** - 文档整理总结
-- **[INITIAL_SETUP_SUMMARY.txt](archive/INITIAL_SETUP_SUMMARY.txt)** - 初始项目设置总结
+### 重构历史归档
+- **`archive/refactoring/REFACTORING_PLAN.md`** - 第一阶段重构方案
+- **`archive/refactoring/REFACTORING_PHASE_2_COMPLETION.md`** - Phase 2 完成报告
+- **`archive/refactoring/WEEK_2_REFACTORING_SUMMARY.md`** - Week 2 重构总结
+
+### 其他归档
+- **`archive/Create_Prompt.md`** - 原始项目需求文档
+- **`archive/ORIGIN_FIELD_UPDATE.md`** - 出发地功能更新说明
+- **`archive/BUGFIX_EXPENSE_FIELDS.md`** - 费用字段 Bug 修复记录
+- **`archive/DOCUMENTATION_CLEANUP_SUMMARY.md`** - 文档整理总结
+- **`archive/INITIAL_SETUP_SUMMARY.txt`** - 初始项目设置总结
+- **`archive/PROJECT_STRUCTURE_OPTIMIZATION.md`** - 项目文件结构优化总结
+- **`archive/project_analysis.md`** - 项目分析
+- **`archive/PHASE_1_4_CONTINUATION_SUMMARY.md`** - Phase 1-4 总结
+- **`archive/PHASE_1_SUMMARY.md`** - Phase 1 总结
 
 这些文档包含了项目早期的需求和开发过程，对了解项目演进有帮助。
 
@@ -158,6 +208,6 @@
 
 ---
 
-**文档最后更新**: 2025-10-23
+**文档最后更新**: 2025-11-18
 
 感谢你对项目文档的关注！ 📖✨
