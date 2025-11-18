@@ -221,14 +221,14 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
       }
 
       const result = await response.json()
-      const { authUrl, appId } = result.data
+      const { authUrl, appId, apiKey, apiSecret } = result.data
 
       // 获取麦克风权限
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaStreamRef.current = stream
 
       // 初始化科大讯飞客户端
-      const client = new XFYunVoiceClient({ appId, apiKey: '', apiSecret: '' })
+      const client = new XFYunVoiceClient({ appId, apiKey, apiSecret })
       xfyunClientRef.current = client
 
       // 连接并开始识别

@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
       return successResponse({
         authUrl,
         appId,
+        apiKey,
+        apiSecret,
       });
     } catch (error: any) {
       console.error('[Voice API] 生成鉴权 URL 失败:', error);
