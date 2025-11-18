@@ -9,7 +9,7 @@ import {
   formatDateRange,
   formatDate,
   calculateDays,
-} from '@/lib/pdfHelpers';
+} from '@/lib/pdf/helpers';
 import { setPdfFont, FONT_SIZES } from '@/lib/fonts/loadPdfFonts';
 import { PAGE_WIDTH, PAGE_HEIGHT, MARGIN } from '@/lib/pdf/utils/layout';
 

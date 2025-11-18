@@ -7,7 +7,7 @@ import {
   formatDate,
   formatCurrency,
   getActivityTypeLabel,
-} from '@/lib/pdfHelpers';
+} from '@/lib/pdf/helpers';
 import { setPdfFont, FONT_SIZES } from '@/lib/fonts/loadPdfFonts';
 import { MARGIN, PAGE_HEIGHT, CONTENT_WIDTH } from '@/lib/pdf/utils/layout';
 

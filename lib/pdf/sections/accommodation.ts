@@ -8,7 +8,7 @@ import {
   calculateDays,
   formatCurrency,
   getAccommodationTypeLabel,
-} from '@/lib/pdfHelpers';
+} from '@/lib/pdf/helpers';
 import { setPdfFont, FONT_SIZES } from '@/lib/fonts/loadPdfFonts';
 import { MARGIN, PAGE_HEIGHT } from '@/lib/pdf/utils/layout';
 
