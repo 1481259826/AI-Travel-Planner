@@ -41,13 +41,13 @@ export default function PhotoCarousel({
     hasPhotos,
     nextPhoto,
     prevPhoto,
-    setCurrentIndex
+    goToPhoto
   } = usePhotoCarousel({ photos })
 
   const [imageError, setImageError] = useState(false)
 
   // 无照片或图片加载失败时显示占位内容
-  if (!hasPhotos || imageError) {
+  if (!hasPhotos || imageError || !currentPhoto) {
     return (
       <div className={`relative ${heightClass} bg-gray-100 dark:bg-gray-700 ${className}`}>
         <div className="relative w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
@@ -97,7 +97,7 @@ export default function PhotoCarousel({
               <button
                 key={index}
                 onClick={() => {
-                  setCurrentIndex(index)
+                  goToPhoto(index)
                   setImageError(false)
                 }}
                 className={`w-2 h-2 rounded-full transition-all ${

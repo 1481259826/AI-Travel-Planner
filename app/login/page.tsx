@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       if (error) {
         setError(error.message)
-      } else if (data.user) {
+      } else if (data?.user) {
         router.push('/dashboard')
       }
     } catch (err) {

@@ -48,69 +48,72 @@ export { ApiKeyChecker } from './checker'
 
 // ==================== 便捷函数导出（向后兼容） ====================
 
+import { ApiKeyClient as Client } from './client'
+import { ApiKeyValidator as Validator } from './validator'
+import { ApiKeyChecker as Checker } from './checker'
+
 /**
  * 获取用户 API Key（仅返回解密后的 Key）
  * @deprecated 推荐使用 ApiKeyClient.getUserKey()
  */
-export const getUserApiKey = ApiKeyClient.getUserKey.bind(ApiKeyClient)
+export const getUserApiKey = Client.getUserKey.bind(Client)
 
 /**
  * 获取用户 API Key 配置（包含 baseUrl 和 extraConfig）
  * @deprecated 推荐使用 ApiKeyClient.getUserConfig()
  */
-export const getUserApiKeyConfig = ApiKeyClient.getUserConfig.bind(ApiKeyClient)
+export const getUserApiKeyConfig = Client.getUserConfig.bind(Client)
 
 /**
  * 测试 DeepSeek API Key
  * @deprecated 推荐使用 ApiKeyValidator.testDeepSeekKey()
  */
-export const testDeepSeekKey = ApiKeyValidator.testDeepSeekKey.bind(ApiKeyValidator)
+export const testDeepSeekKey = Validator.testDeepSeekKey.bind(Validator)
 
 /**
  * 测试 ModelScope API Key
  * @deprecated 推荐使用 ApiKeyValidator.testModelScopeKey()
  */
-export const testModelScopeKey = ApiKeyValidator.testModelScopeKey.bind(ApiKeyValidator)
+export const testModelScopeKey = Validator.testModelScopeKey.bind(Validator)
 
 /**
  * 测试高德地图 API Key
  * @deprecated 推荐使用 ApiKeyValidator.testMapKey()
  */
-export const testMapKey = ApiKeyValidator.testMapKey.bind(ApiKeyValidator)
+export const testMapKey = Validator.testMapKey.bind(Validator)
 
 /**
  * 测试科大讯飞语音 API Key
  * @deprecated 推荐使用 ApiKeyValidator.testVoiceKey()
  */
-export const testVoiceKey = ApiKeyValidator.testVoiceKey.bind(ApiKeyValidator)
+export const testVoiceKey = Validator.testVoiceKey.bind(Validator)
 
 /**
  * 测试 Anthropic API Key
  * @deprecated 推荐使用 ApiKeyValidator.testAnthropicKey()
  */
-export const testAnthropicKey = ApiKeyValidator.testAnthropicKey.bind(ApiKeyValidator)
+export const testAnthropicKey = Validator.testAnthropicKey.bind(Validator)
 
 /**
  * 检查 API Key 可用性
  * @deprecated 推荐使用 ApiKeyChecker.checkAvailability()
  */
-export const checkApiKeyAvailable = ApiKeyChecker.checkAvailability.bind(ApiKeyChecker)
+export const checkApiKeyAvailable = Checker.checkAvailability.bind(Checker)
 
 /**
  * 检查 DeepSeek Key 是否配置（必需）
  * @deprecated 推荐使用 ApiKeyChecker.checkDeepSeekRequired()
  */
-export const checkDeepSeekKeyRequired =
-  ApiKeyChecker.checkDeepSeekRequired.bind(ApiKeyChecker)
+export const checkDeepSeekKeyRequired = Checker.checkDeepSeekRequired.bind(Checker)
 
 /**
  * 检查地图 Key 是否配置（可选）
  * @deprecated 推荐使用 ApiKeyChecker.checkMapOptional()
  */
-export const checkMapKeyOptional = ApiKeyChecker.checkMapOptional.bind(ApiKeyChecker)
+export const checkMapKeyOptional = Checker.checkMapOptional.bind(Checker)
 
 /**
  * 检查语音 Key 是否配置（可选）
  * @deprecated 推荐使用 ApiKeyChecker.checkVoiceOptional()
  */
-export const checkVoiceKeyOptional = ApiKeyChecker.checkVoiceOptional.bind(ApiKeyChecker)
+export const checkVoiceKeyOptional = Checker.checkVoiceOptional.bind(Checker)

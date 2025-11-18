@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import type AMap from '@/types/amap'
+import type { Activity, Meal } from '@/types'
 import { useAMapLoader } from '@/hooks/useAMapLoader'
 import { calculateMapCenter, createMapInfoWindowContent, type MapLocation } from '@/lib/map-markers'
 import MapLegend from './map/MapLegend'
@@ -55,14 +56,12 @@ export default function MapView({
     if (!mapContainer.current) {
       console.error('地图容器未准备好')
       setError('地图容器未准备好，请刷新页面重试')
-      setLoading(false)
       return
     }
 
     if (!window.AMap) {
       console.error('高德地图 SDK 未加载')
       setError('高德地图 SDK 未加载，请刷新页面重试')
-      setLoading(false)
       return
     }
 
@@ -101,12 +100,9 @@ export default function MapView({
       } else {
         console.warn('AMap.plugin 方法不存在，跳过控件加载')
       }
-
-      setLoading(false)
     } catch (err) {
       console.error('地图初始化失败:', err)
       setError(`地图初始化失败：${err instanceof Error ? err.message : '未知错误'}`)
-      setLoading(false)
     }
   }
 

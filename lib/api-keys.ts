@@ -50,4 +50,4 @@ export {
   checkDeepSeekKeyRequired,
   checkMapKeyOptional,
   checkVoiceKeyOptional,
-} from '@/lib/api-keys'
+} from '@/lib/api-keys/index'
