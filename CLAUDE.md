@@ -84,6 +84,33 @@ app/
 │   └── trips/[id]/               # 行程详情 + 打印页面
 └── share/[token]/                # 公开分享页面
 
+components/                       # React 组件（已优化，Phase 3 重构）
+├── shared/                       # 共享 UI 组件
+│   ├── PhotoCarousel.tsx         # 照片轮播组件
+│   └── RatingDisplay.tsx         # 星级评分组件
+├── map/                          # 地图相关组件
+│   ├── TripMapToolbar.tsx        # 行程地图工具栏
+│   └── MapLegend.tsx             # 地图图例
+├── settings/                     # 设置页面组件
+│   ├── ApiKeyManager.tsx         # API Key 管理主组件
+│   └── api-keys/                 # API Key 子组件
+│       ├── ApiKeyHeader.tsx      # 头部组件
+│       ├── ConfigurationWarnings.tsx  # 配置警告
+│       ├── InfoBox.tsx           # 信息提示框
+│       ├── ServiceGroup.tsx      # 服务分组
+│       ├── SystemKeyCard.tsx     # 系统 Key 卡片
+│       └── UserKeyCard.tsx       # 用户 Key 卡片
+├── TripOverviewMap.tsx           # 行程总览地图（已优化）
+├── MapView.tsx                   # 通用地图视图（已优化）
+├── AttractionCard.tsx            # 景点卡片（已优化）
+├── HotelCard.tsx                 # 酒店卡片（已优化）
+└── ...                           # 其他组件
+
+hooks/                            # React Hooks
+├── useAMapLoader.ts              # 高德地图加载 Hook
+├── usePhotoCarousel.ts           # 照片轮播 Hook
+└── useAuthFetch.ts               # 认证请求 Hook
+
 lib/
 ├── supabase.ts                   # Supabase 客户端 + 数据库辅助函数
 ├── models.ts                     # AI 模型配置
@@ -96,6 +123,8 @@ lib/
 ├── coordinate-converter.ts       # WGS84 <-> GCJ-02 坐标转换
 ├── geo-clustering.ts             # 地理位置聚类优化
 ├── exportTripToPDF.ts            # PDF 导出核心逻辑
+├── ui-helpers.ts                 # UI 常量和辅助函数（Phase 3 新增）
+├── map-markers.ts                # 地图标记工具模块（Phase 3 新增）
 └── stores/theme-store.ts         # Zustand 主题状态管理
 
 types/index.ts                    # 核心类型定义
@@ -246,6 +275,151 @@ npm run cleanup           # 自动清理
   - `test:` 测试相关
   - `chore:` 构建/工具相关
 
+## 组件架构 (Phase 3 重构)
+
+项目已完成 Phase 3 组件层优化，建立了清晰的组件层次结构和复用体系。
+
+### 组件组织原则
+
+1. **按功能模块分类**
+   - `components/shared/` - 通用 UI 组件（跨功能使用）
+   - `components/map/` - 地图相关组件
+   - `components/settings/` - 设置页面组件
+   - 主组件放在 `components/` 根目录
+
+2. **单一职责原则**
+   - 每个组件专注于单一功能
+   - 大型组件已拆分为多个子组件
+   - 避免单个文件超过 400 行
+
+3. **高复用性**
+   - 提取通用 UI 组件（PhotoCarousel, RatingDisplay 等）
+   - 创建可复用的工具函数模块
+   - 使用 Hooks 封装通用逻辑
+
+### 核心共享组件
+
+**PhotoCarousel** (`components/shared/PhotoCarousel.tsx`)
+- 统一的照片轮播组件
+- 支持多张图片导航、占位内容、覆盖层
+- 使用示例：`<PhotoCarousel photos={photos} alt="..." />`
+
+**RatingDisplay** (`components/shared/RatingDisplay.tsx`)
+- 统一的星级评分显示
+- 支持半星、可选数字评分
+- 使用示例：`<RatingDisplay rating={4.5} showNumeric />`
+
+**MapLegend** (`components/map/MapLegend.tsx`)
+- 地图图例组件
+- 支持可选的路线说明
+- 使用示例：`<MapLegend showRoute={true} />`
+
+**TripMapToolbar** (`components/map/TripMapToolbar.tsx`)
+- 行程地图工具栏
+- 天数切换、路线控制、视图折叠功能
+- 可复用于不同的地图视图
+
+### 核心工具模块
+
+**ui-helpers.ts** - UI 常量和辅助函数
+```typescript
+import { getDayColor, getActivityEmoji, renderStars } from '@/lib/ui-helpers'
+
+// 使用统一的颜色
+const dayColor = getDayColor(dayNumber)  // 自动循环8种颜色
+
+// 使用统一的 emoji
+const emoji = getActivityEmoji(activity.type)
+
+// 渲染星级评分
+const stars = renderStars(rating)  // 返回星星配置数组
+```
+
+**map-markers.ts** - 地图标记工具
+```typescript
+import {
+  calculateMapCenter,
+  createMapInfoWindowContent,
+  createActivityMarkerIcon,
+  createAccommodationMarkerIcon
+} from '@/lib/map-markers'
+
+// 计算地图中心点
+const center = calculateMapCenter(locations)
+
+// 创建标记图标
+const icon = createActivityMarkerIcon(dayNumber, indexInDay)
+
+// 创建信息窗口
+const content = createMapInfoWindowContent(location, index)
+```
+
+### Hooks 使用
+
+**useAMapLoader** - 统一地图加载
+```typescript
+import { useAMapLoader } from '@/hooks/useAMapLoader'
+
+// 使用配置文件的 API Key
+const { loading, error, isLoaded } = useAMapLoader()
+
+// 使用环境变量的 API Key
+const { loading, error, isLoaded } = useAMapLoader({ apiKeySource: 'env' })
+
+// 使用自定义 API Key
+const { loading, error, isLoaded } = useAMapLoader({ apiKeySource: 'sk-xxx' })
+```
+
+**usePhotoCarousel** - 照片轮播逻辑
+```typescript
+import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
+
+const { currentIndex, currentPhoto, hasPhotos, nextPhoto, prevPhoto } =
+  usePhotoCarousel({ photos })
+```
+
+### 组件拆分案例
+
+**大型组件优化成果**：
+- `TripOverviewMap`: 594 → 323 行 (-45.6%)
+- `ApiKeyManager`: 561 → 351 行 (-37.4%)
+- `MapView`: 484 → 401 行 (-17.1%)
+
+**拆分策略**：
+1. 提取工具栏/头部为独立组件
+2. 提取重复的 UI 片段为共享组件
+3. 将内联工具函数移至工具模块
+4. 使用 Hooks 封装复杂逻辑
+
+### 开发最佳实践
+
+1. **优先使用共享组件**
+   - 使用 PhotoCarousel 而非自己实现轮播
+   - 使用 RatingDisplay 而非自己渲染星星
+   - 使用 InfoBox 而非重复写提示框
+
+2. **优先使用工具函数**
+   - 使用 `getDayColor()` 而非硬编码颜色
+   - 使用 `getActivityEmoji()` 而非 switch 语句
+   - 使用 `renderStars()` 而非自己计算星星
+
+3. **优先使用 Hooks**
+   - 使用 `useAMapLoader` 而非手动加载地图
+   - 使用 `usePhotoCarousel` 而非重复实现轮播逻辑
+
+4. **组件文件大小控制**
+   - 单个组件文件不超过 400 行
+   - 超过后考虑拆分子组件或提取工具函数
+
+5. **类型安全**
+   - 使用统一导出的类型（如 MapLocation）
+   - 为所有组件和函数添加 TypeScript 类型
+
+### 重构文档
+
+详细的重构过程和成果见：
+- `docs/PHASE_3_COMPLETION_REPORT.md` - Phase 3 完成报告
+
 ## 性能优化
 
 ### 前端
@@ -253,6 +427,7 @@ npm run cleanup           # 自动清理
 - IndexedDB 用于离线数据缓存
 - Service Worker 缓存静态资源
 - 图片使用 Next.js Image 组件优化
+- 组件粒度优化，便于代码分割和懒加载
 
 ### 后端
 - 高德 API 调用限制（每次生成最多 30 次）
@@ -286,13 +461,21 @@ npm run cleanup           # 自动清理
 ## 文档参考
 
 项目包含详细的功能文档，位于 `docs/` 目录：
+
+### 用户指南
 - `QUICK_START.md` - 快速启动指南
+- `SETTINGS_GUIDE.md` - 用户设置指南
+- `OFFLINE_USAGE.md` - 离线功能用户指南
+
+### 技术文档
 - `PROCESS_MANAGEMENT.md` - 进程管理详解
 - `MAP_INTEGRATION.md` - 地图集成说明
 - `DATABASE_SETUP.md` - 数据库设置
-- `SETTINGS_GUIDE.md` - 用户设置指南
 - `PWA_IMPLEMENTATION.md` - PWA 技术实现
-- `OFFLINE_USAGE.md` - 离线功能用户指南
 - `DEPLOYMENT.md` - 部署指南
+
+### 重构文档
+- `PHASE_3_COMPLETION_REPORT.md` - Phase 3 组件层重构完成报告
+- 包含详细的重构过程、代码统计、最佳实践
 
 遇到问题时，优先查阅对应功能的文档。
