@@ -3,7 +3,7 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { formatCurrency } from '@/lib/pdfHelpers';
+import { formatCurrency } from '@/lib/pdf/helpers';
 import { setPdfFont, FONT_SIZES } from '@/lib/fonts/loadPdfFonts';
 import { MARGIN, CONTENT_WIDTH } from '@/lib/pdf/utils/layout';
 

@@ -5,7 +5,7 @@
 
 import OpenAI from 'openai'
 import { ApiKeyClient } from '@/lib/api-keys'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 import { logger } from '@/lib/logger'
 
 /**
@@ -80,10 +80,10 @@ async function getAIClient(options: AIClientOptions): Promise<{
 
   // 如果指定了模型，根据模型名称判断 provider
   if (selectedModel) {
-    if (selectedModel.includes('Qwen') && (userModelScopeKey || config.modelscope.apiKey)) {
+    if (selectedModel.includes('Qwen') && (userModelScopeKey || appConfig.modelscope.apiKey)) {
       useProvider = 'modelscope'
       finalModel = selectedModel
-    } else if (selectedModel.includes('deepseek') && (userDeepSeekKey || config.deepseek.apiKey)) {
+    } else if (selectedModel.includes('deepseek') && (userDeepSeekKey || appConfig.deepseek.apiKey)) {
       useProvider = 'deepseek'
       finalModel = selectedModel
     }
@@ -91,12 +91,12 @@ async function getAIClient(options: AIClientOptions): Promise<{
 
   // 如果未指定模型或指定的模型没有可用的 Key，按优先级选择
   if (!useProvider) {
-    if (userModelScopeKey || config.modelscope.apiKey) {
+    if (userModelScopeKey || appConfig.modelscope.apiKey) {
       useProvider = 'modelscope'
-      finalModel = config.modelscope.model
-    } else if (userDeepSeekKey || config.deepseek.apiKey) {
+      finalModel = appConfig.modelscope.model
+    } else if (userDeepSeekKey || appConfig.deepseek.apiKey) {
       useProvider = 'deepseek'
-      finalModel = config.deepseek.model
+      finalModel = appConfig.deepseek.model
     }
   }
 
@@ -104,16 +104,16 @@ async function getAIClient(options: AIClientOptions): Promise<{
   if (useProvider === 'modelscope') {
     return {
       client: new OpenAI({
-        apiKey: userModelScopeKey || config.modelscope.apiKey,
-        baseURL: config.modelscope.baseURL,
+        apiKey: userModelScopeKey || appConfig.modelscope.apiKey,
+        baseURL: appConfig.modelscope.baseURL,
       }),
       model: finalModel,
     }
   } else if (useProvider === 'deepseek') {
     return {
       client: new OpenAI({
-        apiKey: userDeepSeekKey || config.deepseek.apiKey,
-        baseURL: config.deepseek.baseURL,
+        apiKey: userDeepSeekKey || appConfig.deepseek.apiKey,
+        baseURL: appConfig.deepseek.baseURL,
       }),
       model: finalModel,
     }

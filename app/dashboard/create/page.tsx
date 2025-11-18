@@ -12,7 +12,7 @@ import ModelSelector from '@/components/ModelSelector'
 import ProgressModal, { GenerationStage } from '@/components/ProgressModal'
 import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
-import { getDefaultModel } from '@/lib/models'
+import { getDefaultModel } from '@/lib/config'
 import { ApiKeyChecker } from '@/lib/api-keys'
 
 // 定义生成阶段

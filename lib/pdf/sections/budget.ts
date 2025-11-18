@@ -4,7 +4,7 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatCurrency } from '@/lib/pdfHelpers';
+import { formatCurrency } from '@/lib/pdf/helpers';
 import { setPdfFont, FONT_SIZES } from '@/lib/fonts/loadPdfFonts';
 import { MARGIN } from '@/lib/pdf/utils/layout';
 

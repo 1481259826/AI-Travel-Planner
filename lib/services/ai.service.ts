@@ -5,10 +5,10 @@
 
 import OpenAI from 'openai'
 import { logger } from '@/lib/logger'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 import { ApiKeyClient } from '@/lib/api-keys'
 import { AIModel } from '@/types'
-import { getModelById } from '@/lib/models'
+import { getModelById } from '@/lib/config'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -53,17 +53,17 @@ export class AIService {
     this.supabaseClient = supabaseClient
 
     // 初始化系统默认客户端
-    this.systemDeepSeek = config.deepseek.apiKey
+    this.systemDeepSeek = appConfig.deepseek.apiKey
       ? new OpenAI({
-          apiKey: config.deepseek.apiKey,
-          baseURL: config.deepseek.baseURL,
+          apiKey: appConfig.deepseek.apiKey,
+          baseURL: appConfig.deepseek.baseURL,
         })
       : null
 
-    this.systemModelScope = config.modelscope.apiKey
+    this.systemModelScope = appConfig.modelscope.apiKey
       ? new OpenAI({
-          apiKey: config.modelscope.apiKey,
-          baseURL: config.modelscope.baseURL,
+          apiKey: appConfig.modelscope.apiKey,
+          baseURL: appConfig.modelscope.baseURL,
         })
       : null
 
@@ -97,7 +97,7 @@ export class AIService {
 
           return new OpenAI({
             apiKey: userConfig.apiKey,
-            baseURL: userConfig.baseUrl || (provider === 'deepseek' ? config.deepseek.baseURL : config.modelscope.baseURL),
+            baseURL: userConfig.baseUrl || (provider === 'deepseek' ? appConfig.deepseek.baseURL : appConfig.modelscope.baseURL),
           })
         }
       } catch (error) {
@@ -240,16 +240,16 @@ export class AIService {
       'Qwen/Qwen2.5-72B-Instruct',
     ]
 
-    const availableModels: AIModel[] = []
+    const AI_MODELS: AIModel[] = []
 
     for (const model of models) {
       if (await this.hasApiKey(model)) {
-        availableModels.push(model)
+        AI_MODELS.push(model)
       }
     }
 
-    logger.debug(`${this.serviceName}: Available models`, { count: availableModels.length, models: availableModels })
+    logger.debug(`${this.serviceName}: Available models`, { count: AI_MODELS.length, models: AI_MODELS })
 
-    return availableModels
+    return AI_MODELS
   }
 }

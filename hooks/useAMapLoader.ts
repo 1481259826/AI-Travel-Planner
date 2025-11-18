@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 
 /**
  * 高德地图加载状态
@@ -81,7 +81,7 @@ export function useAMapLoader(options: AMapLoaderOptions = {}): AMapLoaderState 
     let apiKey: string | undefined
 
     if (apiKeySource === 'config') {
-      apiKey = config.map.apiKey
+      apiKey = appConfig.map.apiKey
     } else if (apiKeySource === 'env') {
       apiKey = process.env.NEXT_PUBLIC_MAP_API_KEY
     } else {

@@ -8,7 +8,7 @@ import { ExportOptions, PdfGenerationProgress } from '@/types/pdf';
 import {
   captureMap,
   captureChart,
-} from './pdfHelpers';
+} from './pdf/helpers';
 import { loadChineseFont } from './fonts/loadPdfFonts';
 import { PAGE_WIDTH, PAGE_HEIGHT, MARGIN } from '@/lib/pdf/utils/layout';
 import { addCoverPage } from '@/lib/pdf/sections/cover';

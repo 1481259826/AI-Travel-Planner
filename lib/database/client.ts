@@ -8,15 +8,18 @@
  */
 
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 
 /**
  * 默认 Supabase 客户端实例
  * 用于客户端和服务端的通用操作
+ *
+ * 注意：如果环境变量未配置，将使用占位符创建客户端
+ * 实际使用时会在 API 调用时失败并提示配置错误
  */
 export const supabase = createSupabaseClient(
-  config.supabase.url,
-  config.supabase.anonKey
+  appConfig.supabase.url || 'https://placeholder.supabase.co',
+  appConfig.supabase.anonKey || 'placeholder-anon-key'
 )
 
 /**
@@ -32,8 +35,8 @@ export const supabase = createSupabaseClient(
  */
 export function createClient(): SupabaseClient {
   return createSupabaseClient(
-    config.supabase.url,
-    config.supabase.anonKey
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
+    appConfig.supabase.anonKey || 'placeholder-anon-key'
   )
 }
 
@@ -53,8 +56,8 @@ export function createClient(): SupabaseClient {
  */
 export function createServerSupabaseClient(token: string): SupabaseClient {
   return createSupabaseClient(
-    config.supabase.url,
-    config.supabase.anonKey,
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
+    appConfig.supabase.anonKey || 'placeholder-anon-key',
     {
       global: {
         headers: {
@@ -78,12 +81,12 @@ export function createServerSupabaseClient(token: string): SupabaseClient {
  * ```
  */
 export function createAdminClient(): SupabaseClient {
-  if (!config.supabase.serviceRoleKey) {
+  if (!appConfig.supabase.serviceRoleKey) {
     throw new Error('Service Role Key 未配置，无法创建管理员客户端')
   }
 
   return createSupabaseClient(
-    config.supabase.url,
-    config.supabase.serviceRoleKey
+    appConfig.supabase.url || 'https://placeholder.supabase.co',
+    appConfig.supabase.serviceRoleKey
   )
 }

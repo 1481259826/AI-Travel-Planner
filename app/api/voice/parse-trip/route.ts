@@ -8,7 +8,7 @@ import { requireAuth } from '@/app/api/_middleware/auth';
 import { handleApiError } from '@/app/api/_middleware/error-handler';
 import { successResponse } from '@/app/api/_utils/response';
 import { ApiKeyClient } from '@/lib/api-keys';
-import { config } from '@/lib/config';
+import { appConfig as config } from '@/lib/config';
 import { ValidationError, ConfigurationError } from '@/lib/errors';
 import {
   parseNaturalDate,

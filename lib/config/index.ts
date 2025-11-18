@@ -24,10 +24,14 @@ export {
   CACHE_DURATIONS,
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
+  AI_MODELS,
+  getDefaultModel,
+  getModelById,
   type TripStatus,
   type ExpenseCategory,
   type ActivityType,
   type TransportationMethod,
+  type AIModel,
 } from './constants'
 
 // 默认导出（向后兼容）
