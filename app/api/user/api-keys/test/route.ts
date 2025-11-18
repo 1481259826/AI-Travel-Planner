@@ -3,7 +3,7 @@ import { requireAuth } from '@/app/api/_middleware/auth'
 import { handleApiError } from '@/app/api/_middleware/error-handler'
 import { successResponse } from '@/app/api/_utils/response'
 import { decrypt } from '@/lib/encryption'
-import { testDeepSeekKey, testModelScopeKey, testMapKey, testVoiceKey } from '@/lib/api-keys'
+import { ApiKeyValidator } from '@/lib/api-keys'
 import { ValidationError, NotFoundError, EncryptionError } from '@/lib/errors'
 import type { ApiKeyService } from '@/types'
 
@@ -48,19 +48,19 @@ export async function POST(request: NextRequest) {
     try {
       switch (apiKey.service as ApiKeyService) {
         case 'deepseek':
-          isValid = await testDeepSeekKey(decryptedKey)
+          isValid = await ApiKeyValidator.testDeepSeekKey(decryptedKey)
           errorMessage = isValid ? '' : 'DeepSeek API Key 无效或无权限'
           break
         case 'modelscope':
-          isValid = await testModelScopeKey(decryptedKey)
+          isValid = await ApiKeyValidator.testModelScopeKey(decryptedKey)
           errorMessage = isValid ? '' : 'ModelScope API Key 无效或无权限'
           break
         case 'map':
-          isValid = await testMapKey(decryptedKey)
+          isValid = await ApiKeyValidator.testMapKey(decryptedKey)
           errorMessage = isValid ? '' : '高德地图 API Key 无效或无权限'
           break
         case 'voice':
-          isValid = await testVoiceKey(decryptedKey)
+          isValid = await ApiKeyValidator.testVoiceKey(decryptedKey)
           errorMessage = isValid ? '' : '科大讯飞语音 API Key 格式无效'
           break
         default:

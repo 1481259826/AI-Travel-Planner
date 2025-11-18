@@ -112,14 +112,25 @@ hooks/                            # React Hooks
 └── useAuthFetch.ts               # 认证请求 Hook
 
 lib/
-├── supabase.ts                   # Supabase 客户端 + 数据库辅助函数
+├── database/                     # Supabase 模块化目录（重构后）
+│   ├── client.ts                 # 客户端初始化
+│   ├── auth.ts                   # 认证操作
+│   ├── schema.ts                 # 类型定义
+│   └── index.ts                  # 统一导出
+├── api-keys/                     # API Key 管理模块化目录（重构后）
+│   ├── types.ts                  # 类型定义和常量
+│   ├── client.ts                 # 获取、解密、缓存
+│   ├── validator.ts              # API Key 测试
+│   ├── checker.ts                # 可用性检查
+│   └── index.ts                  # 统一导出
+├── supabase.ts                   # Supabase 向后兼容层（推荐使用 database/）
+├── api-keys.ts                   # API Keys 向后兼容层（推荐使用 api-keys/）
+├── check-api-keys.ts             # API Key 检查向后兼容层
 ├── models.ts                     # AI 模型配置
 ├── config.ts                     # 环境变量配置管理
 ├── encryption.ts                 # AES-256 加密（用于 API Keys）
-├── api-keys.ts                   # API Keys 获取/解密逻辑
 ├── offline.ts                    # IndexedDB 离线数据管理
 ├── sync.ts                       # 数据同步引擎
-├── amap-geocoding.ts             # 高德地图地理编码
 ├── coordinate-converter.ts       # WGS84 <-> GCJ-02 坐标转换
 ├── geo-clustering.ts             # 地理位置聚类优化
 ├── exportTripToPDF.ts            # PDF 导出核心逻辑
@@ -150,10 +161,45 @@ database/init.sql                 # Supabase 数据库初始化脚本
 - 冲突解决：Last-Write-Wins 策略（基于 `updated_at`）
 
 #### 3. API Keys 管理
+
+**模块化架构（已重构）**：
+- `lib/api-keys/` - 模块化目录，职责清晰分离
+  - `client.ts` - 获取和解密 API Key
+  - `validator.ts` - 测试 API Key 有效性
+  - `checker.ts` - 检查 API Key 可用性
+  - `types.ts` - 类型定义和常量
+
+**使用方式**：
+
+```typescript
+import { ApiKeyClient, ApiKeyValidator, ApiKeyChecker } from '@/lib/api-keys'
+
+// 1. 获取 API Key 配置（优先用户，回退系统）
+const config = await ApiKeyClient.getUserConfig(userId, 'deepseek', supabase)
+if (config) {
+  const { apiKey, baseUrl, extraConfig } = config
+  // 使用配置
+}
+
+// 2. 测试 API Key 有效性
+const isValid = await ApiKeyValidator.testDeepSeekKey(apiKey)
+
+// 3. 检查 API Key 可用性
+const result = await ApiKeyChecker.checkDeepSeekRequired(userId, token)
+if (!result.available) {
+  console.log(result.message) // 友好的提示信息
+}
+```
+
+**API Key 存储**：
 - 用户可在设置页面添加自己的 DeepSeek/ModelScope/高德 API Keys
 - 存储时使用 AES-256 加密（`lib/encryption.ts`）
-- 调用 API 时优先使用用户 Keys（`lib/api-keys.ts`）
+- 调用 API 时优先使用用户 Keys，回退到系统默认
 - 支持配置自定义 `base_url` 和额外配置（`extra_config`）
+
+**向后兼容**：
+- `lib/api-keys.ts` 和 `lib/check-api-keys.ts` 为向后兼容层
+- 旧的函数式 API 仍然可用，但推荐使用新的类式 API
 
 ### 数据库架构
 
@@ -175,12 +221,64 @@ database/init.sql                 # Supabase 数据库初始化脚本
 - 服务类型：`deepseek | modelscope | map | voice`
 - 字段：`encrypted_key`, `base_url`, `extra_config`, `is_active`
 
+## 模块化架构（重构）
+
+项目已完成核心模块的重构，建立了清晰的模块化架构。
+
+### Supabase 模块 (`lib/database/`)
+
+**职责分离**：
+- `client.ts` - Supabase 客户端初始化
+- `auth.ts` - 认证操作（signUp, signIn, signOut）
+- `schema.ts` - 数据库类型定义
+- `index.ts` - 统一导出
+
+**推荐用法**：
+```typescript
+import { supabase, signIn, signOut } from '@/lib/database'
+import type { Trip, TripInsert } from '@/lib/database'
+
+// 认证
+await signIn('user@example.com', 'password')
+
+// 数据库操作
+const { data } = await supabase.from('trips').select('*')
+```
+
+**向后兼容**：`lib/supabase.ts` 重新导出所有功能，保留 `db.trips` 和 `db.expenses` CRUD 操作。
+
+### API Key 管理模块 (`lib/api-keys/`)
+
+**职责分离**：
+- `types.ts` - 类型定义和常量
+- `client.ts` - 获取、解密、缓存 API Key
+- `validator.ts` - API Key 有效性测试
+- `checker.ts` - API Key 可用性检查
+- `index.ts` - 统一导出
+
+**推荐用法**：
+```typescript
+import { ApiKeyClient, ApiKeyValidator, ApiKeyChecker } from '@/lib/api-keys'
+
+// 获取配置
+const config = await ApiKeyClient.getUserConfig(userId, 'deepseek', supabase)
+
+// 测试 Key
+const isValid = await ApiKeyValidator.testDeepSeekKey(apiKey)
+
+// 检查可用性
+const result = await ApiKeyChecker.checkDeepSeekRequired(userId, token)
+```
+
+**向后兼容**：`lib/api-keys.ts` 和 `lib/check-api-keys.ts` 导出便捷函数。
+
 ## 开发注意事项
 
 ### AI 模型调用
 - **重要**: 检查 API Key 可用性
-  - 用户 Keys: `getUserApiKeyConfig(userId, service, supabaseClient)`
-  - 系统 Keys: `config.deepseek.apiKey` / `config.modelscope.apiKey`
+  - 推荐：`ApiKeyClient.getUserConfig(userId, service, supabaseClient)`
+  - 回退：`ApiKeyClient.getSystemKey(service)`
+  - 测试：`ApiKeyValidator.testDeepSeekKey(apiKey)`
   - 如果都不可用，返回 400 错误并提示用户配置
 
 ### 坐标处理

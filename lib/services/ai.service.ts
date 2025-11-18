@@ -6,7 +6,7 @@
 import OpenAI from 'openai'
 import { logger } from '@/lib/logger'
 import config from '@/lib/config'
-import { getUserApiKeyConfig } from '@/lib/api-keys'
+import { ApiKeyClient } from '@/lib/api-keys'
 import { AIModel } from '@/types'
 import { getModelById } from '@/lib/models'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -90,7 +90,7 @@ export class AIService {
     if (this.userId && this.supabaseClient) {
       try {
         const service = provider === 'deepseek' ? 'deepseek' : 'modelscope'
-        const userConfig = await getUserApiKeyConfig(this.userId, service, this.supabaseClient)
+        const userConfig = await ApiKeyClient.getUserConfig(this.userId, service, this.supabaseClient)
 
         if (userConfig) {
           logger.debug(`${this.serviceName}: Using user API key`, { model, service })

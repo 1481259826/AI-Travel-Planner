@@ -13,7 +13,7 @@ import {
   generateItinerary,
   correctItineraryCoordinates,
 } from '@/app/api/_utils'
-import { getUserApiKeyConfig } from '@/lib/api-keys'
+import { ApiKeyClient } from '@/lib/api-keys'
 import { getModelById } from '@/lib/models'
 import { getWeatherByCityName } from '@/lib/amap-weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     const weatherInfo = await fetchWeatherInfo(formData.destination, days)
 
     // 检查用户 API Key 配置
-    const userApiKeyConfig = await getUserApiKeyConfig(
+    const userApiKeyConfig = await ApiKeyClient.getUserConfig(
       user.id,
       modelConfig.provider as 'deepseek' | 'modelscope',
       supabase

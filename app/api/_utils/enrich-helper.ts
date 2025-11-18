@@ -4,7 +4,7 @@
  */
 
 import OpenAI from 'openai'
-import { getUserApiKey } from '@/lib/api-keys'
+import { ApiKeyClient } from '@/lib/api-keys'
 import config from '@/lib/config'
 import { logger } from '@/lib/logger'
 
@@ -71,8 +71,8 @@ async function getAIClient(options: AIClientOptions): Promise<{
   const { userId, selectedModel } = options
 
   // 检查用户和系统的 API Keys
-  const userModelScopeKey = await getUserApiKey(userId, 'modelscope')
-  const userDeepSeekKey = await getUserApiKey(userId, 'deepseek')
+  const userModelScopeKey = await ApiKeyClient.getUserKey(userId, 'modelscope')
+  const userDeepSeekKey = await ApiKeyClient.getUserKey(userId, 'deepseek')
 
   // 判断使用哪个 provider
   let useProvider: 'modelscope' | 'deepseek' | null = null

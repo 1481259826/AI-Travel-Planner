@@ -13,7 +13,7 @@ import ProgressModal, { GenerationStage } from '@/components/ProgressModal'
 import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
 import { getDefaultModel } from '@/lib/models'
-import { checkDeepSeekKeyRequired } from '@/lib/check-api-keys'
+import { ApiKeyChecker } from '@/lib/api-keys'
 
 // 定义生成阶段
 const GENERATION_STAGES: Omit<GenerationStage, 'progress' | 'status'>[] = [
@@ -192,7 +192,7 @@ export default function CreateTripPage() {
       }
 
       // 检查 DeepSeek Key 是否配置（必需）
-      const deepseekCheck = await checkDeepSeekKeyRequired(session.user.id, session.access_token)
+      const deepseekCheck = await ApiKeyChecker.checkDeepSeekRequired(session.user.id, session.access_token)
       if (!deepseekCheck.available) {
         alert(deepseekCheck.message)
         setLoading(false)

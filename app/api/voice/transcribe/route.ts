@@ -8,7 +8,7 @@ import { requireAuth } from '@/app/api/_middleware/auth';
 import { handleApiError } from '@/app/api/_middleware/error-handler';
 import { successResponse } from '@/app/api/_utils/response';
 import { generateXFYunAuthUrl } from '@/lib/xfyun-voice';
-import { getUserApiKeyConfig } from '@/lib/api-keys';
+import { ApiKeyClient } from '@/lib/api-keys';
 import { config } from '@/lib/config';
 import { ConfigurationError } from '@/lib/errors';
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     let apiSecret = '';
 
     // 优先使用用户自定义配置
-    const userConfig = await getUserApiKeyConfig(user.id, 'voice', supabase);
+    const userConfig = await ApiKeyClient.getUserConfig(user.id, 'voice', supabase);
 
     if (userConfig) {
       appId = (userConfig.extraConfig?.app_id as string) || appId;
