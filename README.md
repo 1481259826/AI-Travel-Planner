@@ -455,7 +455,7 @@ ai-travel-planner/
 
 ## 📝 更新日志
 
-查看 [CHANGELOG.md](CHANGELOG.md) 了解版本更新历史。
+查看 [CHANGELOG.md](docs/CHANGELOG.md) 了解版本更新历史。
 
 ## 🤝 贡献
 

@@ -547,7 +547,7 @@ const { currentIndex, currentPhoto, hasPhotos, nextPhoto, prevPhoto } =
 
 ### Docker
 - Dockerfile 已配置 standalone 输出
-- 参考 `DOCKER_DEPLOYMENT.md`
+- 参考 `docs/DOCKER_DEPLOYMENT.md`
 
 ### 环境变量检查清单
 - [ ] Supabase URL 和 Keys
