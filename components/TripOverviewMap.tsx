@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { DayPlan, Activity, Accommodation } from '@/types'
 import { Loader2, MapPin, Navigation, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAMapLoader } from '@/hooks/useAMapLoader'
+import {
+  getActivityEmoji,
+  isTransportationActivity,
+  DAY_COLORS
+} from '@/lib/ui-helpers'
 
 interface TripOverviewMapProps {
   days: DayPlan[]
@@ -11,43 +16,6 @@ interface TripOverviewMapProps {
   onHotelClick?: (hotel: Accommodation) => void  // 点击酒店标记的回调
   className?: string
 }
-
-// 获取景点类型对应的 emoji
-function getTypeEmoji(type: Activity['type']): string {
-  const emojiMap = {
-    'attraction': '🎯',
-    'shopping': '🛍️',
-    'entertainment': '🎭',
-    'relaxation': '🧘'
-  }
-  return emojiMap[type] || '📍'
-}
-
-// 交通站点关键词列表
-const TRANSPORTATION_KEYWORDS = [
-  '站', '机场', '火车站', '高铁站', '动车站',
-  '地铁站', '汽车站', '客运站', '码头', '港口',
-  'station', 'airport', 'railway', 'terminal', 'port'
-]
-
-// 判断是否为交通站点
-function isTransportationActivity(activity: Activity): boolean {
-  return TRANSPORTATION_KEYWORDS.some(keyword =>
-    activity.name.includes(keyword)
-  )
-}
-
-// 为每一天分配不同的颜色
-const DAY_COLORS = [
-  '#3b82f6', // blue-600
-  '#10b981', // green-600
-  '#f59e0b', // amber-600
-  '#ef4444', // red-600
-  '#8b5cf6', // violet-600
-  '#ec4899', // pink-600
-  '#14b8a6', // teal-600
-  '#f97316', // orange-600
-]
 
 /**
  * 全行程总览地图组件
@@ -179,7 +147,7 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
             ` : ''}
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
               <span style="background: ${dayColor}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">第${dayNumber}天</span>
-              <span style="font-size: 16px;">${getTypeEmoji(activity.type)}</span>
+              <span style="font-size: 16px;">${getActivityEmoji(activity.type)}</span>
               <h4 style="margin: 0; font-size: 15px; font-weight: bold; flex: 1; color: #1f2937;">${activity.name}</h4>
             </div>
             ${activity.rating ? `

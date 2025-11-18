@@ -5,23 +5,13 @@ import { Activity } from '@/types'
 import { AmapWeatherForecast } from '@/lib/amap-weather'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
 import { useAMapLoader } from '@/hooks/useAMapLoader'
+import { getActivityEmoji, getDayColor } from '@/lib/ui-helpers'
 
 interface DayMapPreviewProps {
   activities: Activity[]
   weather?: AmapWeatherForecast | null
   dayNumber: number
   onExpandMap?: () => void
-}
-
-// 获取景点类型对应的 emoji
-function getTypeEmoji(type: Activity['type']): string {
-  const emojiMap = {
-    'attraction': '🎯',
-    'shopping': '🛍️',
-    'entertainment': '🎭',
-    'relaxation': '🧘'
-  }
-  return emojiMap[type] || '📍'
 }
 
 /**
@@ -143,7 +133,7 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
               />
             ` : ''}
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span style="font-size: 18px;">${getTypeEmoji(activity.type)}</span>
+              <span style="font-size: 18px;">${getActivityEmoji(activity.type)}</span>
               <h4 style="margin: 0; font-size: 15px; font-weight: bold; flex: 1; color: #1f2937;">${activity.name}</h4>
             </div>
             ${activity.rating ? `

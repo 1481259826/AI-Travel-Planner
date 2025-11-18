@@ -5,6 +5,7 @@ import { Accommodation } from '@/types'
 import { MapPin, Calendar, DollarSign, Star, Wifi, Coffee, Utensils, Dumbbell, Waves, ShieldCheck, Car, Wind, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
+import { getAccommodationTypeStyle, renderStars } from '@/lib/ui-helpers'
 
 interface HotelCardProps {
   hotel: Accommodation
@@ -26,18 +27,17 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
   const [isExpanded, setIsExpanded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
-  // 渲染评分星星
-  const renderStars = (rating: number) => {
-    const stars = []
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 >= 0.5
+  const hotelStyle = getAccommodationTypeStyle(hotel.type)
 
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)
-      } else if (i === fullStars && hasHalfStar) {
-        stars.push(
-          <div key={i} className="relative w-4 h-4">
+  // 渲染星级评分
+  const renderStarsComponents = (rating: number) => {
+    const stars = renderStars(rating)
+    return stars.map((star) => {
+      if (star.type === 'full') {
+        return <Star key={star.key} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+      } else if (star.type === 'half') {
+        return (
+          <div key={star.key} className="relative w-4 h-4">
             <Star className="w-4 h-4 text-gray-300 absolute" />
             <div className="overflow-hidden w-2 absolute">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -45,21 +45,9 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
           </div>
         )
       } else {
-        stars.push(<Star key={i} className="w-4 h-4 text-gray-300" />)
+        return <Star key={star.key} className="w-4 h-4 text-gray-300" />
       }
-    }
-    return stars
-  }
-
-  // 获取酒店类型的样式
-  const getHotelTypeStyle = (type: Accommodation['type']) => {
-    const styles = {
-      hotel: { emoji: '🏨', label: '酒店', color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' },
-      hostel: { emoji: '🏠', label: '青年旅舍', color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' },
-      apartment: { emoji: '🏢', label: '公寓', color: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800' },
-      resort: { emoji: '🏝️', label: '度假村', color: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800' },
-    }
-    return styles[type] || styles.hotel
+    })
   }
 
   // 设施图标映射
@@ -75,7 +63,7 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
     return <Coffee className="w-4 h-4" />
   }
 
-  const hotelStyle = getHotelTypeStyle(hotel.type)
+  // hotelStyle already defined above
 
   // 格式化日期
   const formatDate = (dateString: string) => {
@@ -197,7 +185,7 @@ export default function HotelCard({ hotel, onShowOnMap, onEnrich, isEnriching = 
             {/* 评分 */}
             {hotel.rating && (
               <div className="flex items-center gap-1 mt-1">
-                <div className="flex">{renderStars(hotel.rating)}</div>
+                <div className="flex">{renderStarsComponents(hotel.rating)}</div>
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400 ml-1">
                   {hotel.rating.toFixed(1)} 分
                 </span>

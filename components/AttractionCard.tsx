@@ -5,6 +5,7 @@ import { Activity } from '@/types'
 import { MapPin, Clock, DollarSign, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Star, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
 import { usePhotoCarousel } from '@/hooks/usePhotoCarousel'
+import { getActivityTypeStyle, renderStars } from '@/lib/ui-helpers'
 
 interface AttractionCardProps {
   activity: Activity
@@ -28,18 +29,17 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
   const [imageError, setImageError] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-  // 渲染评分星星
-  const renderStars = (rating: number) => {
-    const stars = []
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 >= 0.5
+  const activityStyle = getActivityTypeStyle(activity.type)
 
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)
-      } else if (i === fullStars && hasHalfStar) {
-        stars.push(
-          <div key={i} className="relative w-4 h-4">
+  // 渲染星级评分
+  const renderStarsComponents = (rating: number) => {
+    const stars = renderStars(rating)
+    return stars.map((star) => {
+      if (star.type === 'full') {
+        return <Star key={star.key} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+      } else if (star.type === 'half') {
+        return (
+          <div key={star.key} className="relative w-4 h-4">
             <Star className="w-4 h-4 text-gray-300 absolute" />
             <div className="overflow-hidden w-2 absolute">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -47,24 +47,10 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
           </div>
         )
       } else {
-        stars.push(<Star key={i} className="w-4 h-4 text-gray-300" />)
+        return <Star key={star.key} className="w-4 h-4 text-gray-300" />
       }
-    }
-    return stars
+    })
   }
-
-  // 获取活动类型的图标和颜色
-  const getActivityStyle = (type: Activity['type']) => {
-    const styles = {
-      attraction: { emoji: '🎯', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-      shopping: { emoji: '🛍️', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-      entertainment: { emoji: '🎭', color: 'bg-pink-50 text-pink-700 border-pink-200' },
-      relaxation: { emoji: '🧘', color: 'bg-green-50 text-green-700 border-green-200' },
-    }
-    return styles[type] || styles.attraction
-  }
-
-  const activityStyle = getActivityStyle(activity.type)
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -187,7 +173,7 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
           </h3>
           {activity.rating && (
             <div className="flex items-center gap-1 flex-shrink-0">
-              <div className="flex">{renderStars(activity.rating)}</div>
+              <div className="flex">{renderStarsComponents(activity.rating)}</div>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400 ml-1">
                 {activity.rating.toFixed(1)}
               </span>
