@@ -111,8 +111,9 @@ function createConfig(): AppConfig {
   const isDev = env === 'development'
 
   // Supabase 配置（必需）
-  const supabaseUrl = getEnv('NEXT_PUBLIC_SUPABASE_URL')
-  const supabaseAnonKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  // 直接访问环境变量以支持 Next.js 的静态替换
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
   if (!supabaseUrl || !isValidUrl(supabaseUrl)) {
     logger.warn('AppConfig: Invalid or missing NEXT_PUBLIC_SUPABASE_URL')
@@ -131,7 +132,8 @@ function createConfig(): AppConfig {
   }
 
   // 地图配置（必需）
-  const mapApiKey = getEnv('NEXT_PUBLIC_MAP_API_KEY')
+  // 直接访问 NEXT_PUBLIC_* 环境变量以支持 Next.js 的静态替换
+  const mapApiKey = process.env.NEXT_PUBLIC_MAP_API_KEY || ''
   const mapWebServiceKey = getEnv('AMAP_WEB_SERVICE_KEY')
 
   if (!mapApiKey) {
@@ -152,8 +154,9 @@ function createConfig(): AppConfig {
   }
 
   const config: AppConfig = {
-    baseUrl: getEnv('NEXT_PUBLIC_BASE_URL', isProd ? '' : 'http://localhost:3008'),
-    appName: getEnv('NEXT_PUBLIC_APP_NAME', 'AI Travel Planner'),
+    // 直接访问 NEXT_PUBLIC_* 环境变量以支持 Next.js 的静态替换
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL || (isProd ? '' : 'http://localhost:3008'),
+    appName: process.env.NEXT_PUBLIC_APP_NAME || 'AI Travel Planner',
     env,
     isProd,
     isDev,
@@ -187,7 +190,8 @@ function createConfig(): AppConfig {
     map: {
       apiKey: mapApiKey,
       webServiceKey: mapWebServiceKey,
-      securityJsCode: getEnv('NEXT_PUBLIC_MAP_SECURITY_KEY'),
+      // 直接访问 NEXT_PUBLIC_* 环境变量
+      securityJsCode: process.env.NEXT_PUBLIC_MAP_SECURITY_KEY || '',
     },
 
     encryptionKey,
