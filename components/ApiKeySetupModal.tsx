@@ -113,7 +113,7 @@ export default function ApiKeySetupModal({
                           )}
                           {key.configMethod === 'user' && (
                             <div className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">
-                              <strong>配置方式：</strong>在"设置 → API Key 管理"中添加
+                              <strong>配置方式：</strong>在&ldquo;设置 → API Key 管理&rdquo;中添加
                             </div>
                           )}
                           {key.configMethod === 'both' && (
@@ -123,7 +123,7 @@ export default function ApiKeySetupModal({
                               方式 1: 在 <code>.env.local</code> 文件中配置{' '}
                               <code className="font-mono">{key.envKey}</code>
                               <br />
-                              方式 2: 在"设置 → API Key 管理"中添加（更灵活）
+                              方式 2: 在&ldquo;设置 → API Key 管理&rdquo;中添加（更灵活）
                             </div>
                           )}
                         </div>

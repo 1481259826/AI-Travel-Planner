@@ -100,7 +100,7 @@ export function ExportPdfDialog({ trip, open, onOpenChange }: ExportPdfDialogPro
                     💡 打印为 PDF
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    点击"打印"按钮将在新窗口打开打印页面，通过浏览器打印功能（Ctrl/Cmd+P）保存为 PDF，格式清晰、内容完整，完美支持中文显示。
+                    点击&ldquo;打印&rdquo;按钮将在新窗口打开打印页面，通过浏览器打印功能（Ctrl/Cmd+P）保存为 PDF，格式清晰、内容完整，完美支持中文显示。
                   </p>
                 </div>
               </div>

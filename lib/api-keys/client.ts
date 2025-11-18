@@ -11,6 +11,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ApiKeyService, ApiKeyConfig } from './types'
 import { logger } from '@/lib/logger'
+import appConfig from '@/lib/config'
 
 /**
  * API Key 客户端类
@@ -168,17 +169,15 @@ export class ApiKeyClient {
    * ```
    */
   static getSystemKey(service: ApiKeyService): string | null {
-    const config = require('@/lib/config').default
-
     switch (service) {
       case 'deepseek':
-        return config.deepseek.apiKey || null
+        return appConfig.deepseek.apiKey || null
       case 'modelscope':
-        return config.modelscope.apiKey || null
+        return appConfig.modelscope.apiKey || null
       case 'map':
-        return config.map.webServiceKey || null
+        return appConfig.map.webServiceKey || null
       case 'voice':
-        return config.voice.apiKey || null
+        return appConfig.voice.apiKey || null
       default:
         return null
     }
@@ -255,15 +254,14 @@ export class ApiKeyClient {
     const systemKey = this.getSystemKey(service)
     if (systemKey) {
       logger.debug('使用系统默认 API Key', { userId, service })
-      const config = require('@/lib/config').default
 
       let baseUrl: string | undefined
       switch (service) {
         case 'deepseek':
-          baseUrl = config.deepseek.baseURL
+          baseUrl = appConfig.deepseek.baseURL
           break
         case 'modelscope':
-          baseUrl = config.modelscope.baseURL
+          baseUrl = appConfig.modelscope.baseURL
           break
         default:
           baseUrl = undefined

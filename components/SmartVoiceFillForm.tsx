@@ -222,7 +222,7 @@ export default function SmartVoiceFillForm({ onFillForm, className = '' }: Smart
                 点击下方麦克风按钮，一次性说出您的旅行计划。例如：
               </p>
               <p className="text-gray-700 dark:text-gray-300 italic mt-1">
-                "我想去日本东京，5天，预算1万元，喜欢美食和动漫，带孩子"
+                &ldquo;我想去日本东京，5天，预算1万元，喜欢美食和动漫，带孩子&rdquo;
               </p>
             </AlertDescription>
           </Alert>

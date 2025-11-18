@@ -34,7 +34,7 @@ const eslintConfig = [
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     rules: {
-      // TypeScript 规则
+      // TypeScript 规则（严格模式）
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
@@ -43,18 +43,20 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "warn", // 保留为警告（太多需要修改）
       "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/no-empty-object-type": "error", // 恢复为错误
+      "@typescript-eslint/no-require-imports": "error", // 恢复为错误
 
-      // React 规则
-      "react/react-in-jsx-scope": "off", // Next.js 不需要
-      "react/prop-types": "off", // 使用 TypeScript
-      "react/no-unescaped-entities": "warn", // 降级为警告
+      // React 规则（严格模式）
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "react/no-unescaped-entities": "error", // 恢复为错误
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 
-      // Next.js 规则（降级为警告，避免阻塞 CI）
-      "@next/next/no-html-link-for-pages": "warn",
+      // Next.js 规则（严格模式）
+      "@next/next/no-html-link-for-pages": "error", // 恢复为错误
       "@next/next/no-img-element": "warn",
 
       // 通用规则
@@ -63,7 +65,7 @@ const eslintConfig = [
       "prefer-const": "warn",
       "no-var": "error",
 
-      // 代码风格（保持现有风格，不强制修改）
+      // 代码风格（保持现有风格）
       "semi": "off",
       "quotes": "off",
       "comma-dangle": "off",

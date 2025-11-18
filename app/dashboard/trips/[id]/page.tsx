@@ -800,7 +800,7 @@ export default function TripDetailPage() {
                   <BarChart3 className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">暂无费用数据</h3>
                   <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    请先在"费用追踪"标签页添加一些费用记录，才能查看数据分析
+                    请先在&ldquo;费用追踪&rdquo;标签页添加一些费用记录，才能查看数据分析
                   </p>
                   <Button onClick={() => setActiveTab('expenses')}>
                     前往添加费用

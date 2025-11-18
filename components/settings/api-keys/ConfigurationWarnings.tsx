@@ -59,7 +59,7 @@ export default function ConfigurationWarnings({
               <p className="text-xs text-yellow-700 dark:text-yellow-500">
                 您可以：
                 <br />
-                1. 在下方"高德地图 Web 服务"区域点击"添加 Key"按钮配置
+                1. 在下方&ldquo;高德地图 Web 服务&rdquo;区域点击&ldquo;添加 Key&rdquo;按钮配置
                 <br />
                 2. 或在{' '}
                 <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded">

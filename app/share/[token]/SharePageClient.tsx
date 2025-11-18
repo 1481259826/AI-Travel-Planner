@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Calendar, Users, MapPin, Map, ChevronDown, ChevronUp, Printer } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -401,12 +402,12 @@ export default function SharePageClient({ trip }: SharePageClientProps) {
           {/* Footer */}
           <div className="text-center py-8 text-gray-600 print:hidden">
             <p className="mb-2">使用 AI 旅行规划师创建您的专属行程</p>
-            <a
+            <Link
               href="/"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
               立即开始规划
-            </a>
+            </Link>
           </div>
         </div>
       </main>
