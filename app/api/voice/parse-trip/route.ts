@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
 - additional_notes: 补充说明（字符串，任何未分类的额外信息）
 
 **推断规则：**
-1. 日期推断：如果用户说"明天"、"下周"等相对时间，请根据今天 (${new Date().toLocaleDateString('zh-CN')}) 计算具体日期
+1. 日期推断：
+   - 如果用户说"明天"、"下周"等相对时间，根据今天 (${new Date().toLocaleDateString('zh-CN')}) 计算具体日期
+   - 如果用户只说天数（如"5天"）而没有说出发日期，默认推断为7天后出发，然后根据天数计算 end_date
+   - 如果用户说了出发日期但没说返回日期，根据 duration 计算 end_date
 2. 人数推断：如果提到"带孩子"、"带小孩"，adult_count 至少为 1，child_count 至少为 1；如果只说"2人"，默认都是成人
 3. 偏好推断：根据关键词推断，如"美食"、"动漫"（文化）、"海边"（自然）等
 4. 预算推断：识别"1万"、"5000元"、"1.5万"等表达方式，转换为数字
@@ -142,6 +145,13 @@ export async function POST(request: NextRequest) {
         if (parsedEndDate) {
           parsedData.end_date = parsedEndDate;
         }
+      }
+
+      // 如果只有 duration 没有日期，生成默认的 start_date（7天后）
+      if (parsedData.duration && !parsedData.start_date && !parsedData.end_date) {
+        const defaultStartDate = new Date();
+        defaultStartDate.setDate(defaultStartDate.getDate() + 7);
+        parsedData.start_date = defaultStartDate.toISOString().split('T')[0];
       }
 
       // 如果有 duration 但没有 end_date，计算 end_date
