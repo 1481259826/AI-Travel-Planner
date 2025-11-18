@@ -1,19 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Activity, Meal } from '@/types'
-import { MapPin, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import type AMap from '@/types/amap'
 import { useAMapLoader } from '@/hooks/useAMapLoader'
+import { calculateMapCenter, createMapInfoWindowContent, type MapLocation } from '@/lib/map-markers'
+import MapLegend from './map/MapLegend'
 
-export interface MapLocation {
-  name: string
-  lat: number
-  lng: number
-  type: 'activity' | 'meal' | 'hotel'
-  description?: string
-  time?: string
-}
+export type { MapLocation } from '@/lib/map-markers'
 
 interface MapViewProps {
   locations: MapLocation[]
@@ -74,7 +68,7 @@ export default function MapView({
 
     try {
       // 计算地图中心点
-      const mapCenter = center || calculateCenter(locations)
+      const mapCenter = center || calculateMapCenter(locations)
 
       // 创建地图实例
       const map = new window.AMap.Map(mapContainer.current, {
@@ -141,7 +135,7 @@ export default function MapView({
         setSelectedLocation(location)
 
         const infoWindow = new window.AMap.InfoWindow({
-          content: createInfoWindowContent(location, index + 1) as any,
+          content: createMapInfoWindowContent(location, index + 1) as any,
           offset: { x: 0, y: -30 } as any
         })
 
@@ -302,57 +296,6 @@ export default function MapView({
   }, [showRoute, locations])
 
   // 计算所有位置的中心点
-  const calculateCenter = (locs: MapLocation[]) => {
-    if (locs.length === 0) {
-      return { lat: 39.9042, lng: 116.4074 } // 默认北京
-    }
-
-    const sum = locs.reduce(
-      (acc, loc) => ({
-        lat: acc.lat + loc.lat,
-        lng: acc.lng + loc.lng
-      }),
-      { lat: 0, lng: 0 }
-    )
-
-    return {
-      lat: sum.lat / locs.length,
-      lng: sum.lng / locs.length
-    }
-  }
-
-  // 创建信息窗口内容
-  const createInfoWindowContent = (location: MapLocation, index: number) => {
-    const getIconAndType = () => {
-      switch (location.type) {
-        case 'activity':
-          return { icon: '🎯', typeText: '活动' }
-        case 'meal':
-          return { icon: '🍽️', typeText: '餐饮' }
-        case 'hotel':
-          return { icon: '🏨', typeText: '住宿' }
-        default:
-          return { icon: '📍', typeText: '地点' }
-      }
-    }
-
-    const { icon, typeText } = getIconAndType()
-
-    return `
-      <div style="padding: 12px; min-width: 200px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <span style="font-size: 20px;">${icon}</span>
-          <div>
-            <div style="font-weight: bold; font-size: 16px; color: #1f2937;">${location.name}</div>
-            <div style="font-size: 12px; color: #6b7280;">${typeText} · 第 ${index} 站</div>
-          </div>
-        </div>
-        ${location.time ? `<div style="font-size: 14px; color: #4b5563; margin-top: 4px;">⏰ ${location.time}</div>` : ''}
-        ${location.description ? `<div style="font-size: 14px; color: #4b5563; margin-top: 4px;">${location.description}</div>` : ''}
-      </div>
-    `
-  }
-
   // 显示加载错误或业务逻辑错误
   const displayError = mapLoadError || error
   if (displayError) {
@@ -387,33 +330,7 @@ export default function MapView({
       />
 
       {/* 图例 */}
-      {!mapLoading && locations.length > 0 && (
-        <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 text-sm z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin className="w-4 h-4 text-blue-600" />
-            <span className="font-semibold">图例</span>
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎯</span>
-              <span className="text-gray-700">活动景点</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🍽️</span>
-              <span className="text-gray-700">餐饮推荐</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🏨</span>
-              <span className="text-gray-700">推荐住宿</span>
-            </div>
-          </div>
-          {showRoute && (
-            <div className="mt-2 pt-2 border-t text-xs text-gray-500">
-              蓝色线路为推荐路线
-            </div>
-          )}
-        </div>
-      )}
+      {!mapLoading && locations.length > 0 && <MapLegend showRoute={showRoute} />}
 
       {/* 样式 */}
       <style jsx global>{`

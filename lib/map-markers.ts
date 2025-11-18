@@ -2,6 +2,74 @@ import { Activity, Accommodation } from '@/types'
 import { getActivityEmoji, DAY_COLORS } from './ui-helpers'
 
 /**
+ * 地图位置类型
+ */
+export interface MapLocation {
+  name: string
+  lat: number
+  lng: number
+  type: 'activity' | 'meal' | 'hotel'
+  description?: string
+  time?: string
+}
+
+/**
+ * 计算多个位置的中心点
+ */
+export function calculateMapCenter(locations: MapLocation[]): { lat: number; lng: number } {
+  if (locations.length === 0) {
+    return { lat: 39.9042, lng: 116.4074 } // 默认北京
+  }
+
+  const sum = locations.reduce(
+    (acc, loc) => ({
+      lat: acc.lat + loc.lat,
+      lng: acc.lng + loc.lng
+    }),
+    { lat: 0, lng: 0 }
+  )
+
+  return {
+    lat: sum.lat / locations.length,
+    lng: sum.lng / locations.length
+  }
+}
+
+/**
+ * 创建地图标记信息窗口内容
+ */
+export function createMapInfoWindowContent(location: MapLocation, index: number): string {
+  const getIconAndType = () => {
+    switch (location.type) {
+      case 'activity':
+        return { icon: '🎯', typeText: '活动' }
+      case 'meal':
+        return { icon: '🍽️', typeText: '餐饮' }
+      case 'hotel':
+        return { icon: '🏨', typeText: '住宿' }
+      default:
+        return { icon: '📍', typeText: '地点' }
+    }
+  }
+
+  const { icon, typeText } = getIconAndType()
+
+  return `
+    <div style="padding: 12px; min-width: 200px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 20px;">${icon}</span>
+        <div>
+          <div style="font-weight: bold; font-size: 16px; color: #1f2937;">${location.name}</div>
+          <div style="font-size: 12px; color: #6b7280;">${typeText} · 第 ${index} 站</div>
+        </div>
+      </div>
+      ${location.time ? `<div style="font-size: 14px; color: #4b5563; margin-top: 4px;">⏰ ${location.time}</div>` : ''}
+      ${location.description ? `<div style="font-size: 14px; color: #4b5563; margin-top: 4px;">${location.description}</div>` : ''}
+    </div>
+  `
+}
+
+/**
  * 创建活动标记的SVG图标
  */
 export function createActivityMarkerIcon(dayNumber: number, indexInDay: number): string {
