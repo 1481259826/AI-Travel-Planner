@@ -50,31 +50,18 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
               'Authorization': `Bearer ${session.access_token}`
             }
           })
-          console.log('[VoiceInput] API 响应:', {
-            ok: response.ok,
-            status: response.status
-          })
           if (response.ok) {
             const data = await response.json()
-            console.log('[VoiceInput] 解析后的数据:', {
-              success: data.success,
-              hasData: !!data.data,
-              hasAuthUrl: !!data.data?.authUrl,
-              dataKeys: data.data ? Object.keys(data.data) : []
-            })
             if (data.success && data.data?.authUrl) {
               setCurrentMode('xfyun')
               setIsSupported(true)
-              console.log('[VoiceInput] 使用科大讯飞语音识别')
               setIsCheckingXFYun(false)
               return
-            } else {
-              console.log('[VoiceInput] 条件不满足，回退到 Web Speech API')
             }
           }
         }
       } catch (error) {
-        console.log('[VoiceInput] 科大讯飞不可用，回退到 Web Speech API')
+        // 科大讯飞不可用，静默回退到 Web Speech API
       }
       setIsCheckingXFYun(false)
 
@@ -221,14 +208,18 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
       }
 
       const result = await response.json()
-      const { authUrl, appId, apiKey, apiSecret } = result.data
+      const { authUrl, appId } = result.data
 
       // 获取麦克风权限
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaStreamRef.current = stream
 
-      // 初始化科大讯飞客户端
-      const client = new XFYunVoiceClient({ appId, apiKey, apiSecret })
+      // 初始化科大讯飞客户端（直接使用后端生成的 authUrl）
+      const client = new XFYunVoiceClient({
+        appId,
+        apiKey: '', // 不需要，因为使用预生成的 authUrl
+        authUrl
+      })
       xfyunClientRef.current = client
 
       // 连接并开始识别

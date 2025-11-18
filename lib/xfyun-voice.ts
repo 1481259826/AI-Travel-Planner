@@ -10,6 +10,7 @@ export interface XFYunVoiceConfig {
   appId: string;
   apiKey: string;
   apiSecret?: string; // 可选，用于生成签名
+  authUrl?: string; // 可选，直接使用预生成的鉴权 URL
 }
 
 export interface XFYunTranscribeResult {
@@ -75,7 +76,8 @@ export class XFYunVoiceClient {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const authUrl = generateXFYunAuthUrl(this.config);
+        // 优先使用预生成的 authUrl，否则现场生成
+        const authUrl = this.config.authUrl || generateXFYunAuthUrl(this.config);
         this.ws = new WebSocket(authUrl);
         this.onResultCallback = onResult;
         this.onErrorCallback = onError;

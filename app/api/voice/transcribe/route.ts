@@ -35,14 +35,6 @@ export async function GET(request: NextRequest) {
       apiSecret = config.voice.apiSecret;
     }
 
-    // 调试日志：显示实际读取到的配置
-    console.log('[Voice API] 配置检查:', {
-      appId: appId ? '已配置' : '未配置',
-      apiKey: apiKey ? '已配置' : '未配置',
-      apiSecret: apiSecret ? '已配置' : '未配置',
-      hasUserConfig: !!userConfig
-    });
-
     // 验证必要参数
     if (!appId || !apiKey) {
       throw new ConfigurationError('请在设置页面配置科大讯飞语音 API，或联系管理员配置系统 API Key');
@@ -60,17 +52,9 @@ export async function GET(request: NextRequest) {
         apiSecret,
       });
 
-      console.log('[Voice API] 成功生成鉴权 URL:', {
-        hasAuthUrl: !!authUrl,
-        authUrlLength: authUrl?.length || 0,
-        appId: appId.substring(0, 8) + '***'
-      });
-
       return successResponse({
         authUrl,
         appId,
-        apiKey,
-        apiSecret,
       });
     } catch (error: any) {
       console.error('[Voice API] 生成鉴权 URL 失败:', error);
