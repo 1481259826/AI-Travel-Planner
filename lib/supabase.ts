@@ -72,7 +72,7 @@ export const db = {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-      return { data, error }
+      return { data: data || [], error } as SupabaseArrayResponse<Trip>
     },
 
     getById: async (id: string): Promise<SupabaseSingleResponse<Trip>> => {
@@ -103,7 +103,7 @@ export const db = {
       return { data, error }
     },
 
-    delete: async (id: string): Promise<{ error: AuthError | null }> => {
+    delete: async (id: string) => {
       const { error } = await supabase
         .from('trips')
         .delete()
@@ -120,7 +120,7 @@ export const db = {
         .select('*')
         .eq('trip_id', tripId)
         .order('date', { ascending: false })
-      return { data, error }
+      return { data: data || [], error } as SupabaseArrayResponse<Expense>
     },
 
     getById: async (id: string): Promise<SupabaseSingleResponse<Expense>> => {
@@ -151,7 +151,7 @@ export const db = {
       return { data, error }
     },
 
-    delete: async (id: string): Promise<{ error: AuthError | null }> => {
+    delete: async (id: string) => {
       const { error } = await supabase
         .from('expenses')
         .delete()

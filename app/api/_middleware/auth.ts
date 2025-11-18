@@ -6,7 +6,7 @@
 import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js'
 import { UnauthorizedError } from '@/lib/errors'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -108,7 +108,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
       throw error
     }
 
-    logger.error('Authentication error:', error)
+    logger.error('Authentication error:', error as Error)
     throw new UnauthorizedError('身份验证失败，请重新登录')
   }
 }
@@ -130,7 +130,9 @@ export async function optionalAuth(
     return await requireAuth(request)
   } catch (error) {
     // 认证失败时返回 null，而不是抛出错误
-    logger.debug('Optional auth failed:', error)
+    logger.debug('Optional auth failed:', {
+      error: error instanceof Error ? error.message : String(error)
+    })
     return null
   }
 }

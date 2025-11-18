@@ -5,14 +5,6 @@ import { DayPlan, Activity, Accommodation } from '@/types'
 import { Loader2, MapPin, Navigation, ChevronDown, ChevronUp } from 'lucide-react'
 import config from '@/lib/config'
 
-// 声明高德地图全局类型
-declare global {
-  interface Window {
-    AMap: any
-    _AMapSecurityConfig: any
-  }
-}
-
 interface TripOverviewMapProps {
   days: DayPlan[]
   accommodation?: Accommodation[]  // 住宿信息
@@ -149,7 +141,6 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
       mapStyle: 'amap://styles/normal',
       viewMode: '2D',
       features: ['bg', 'road', 'building', 'point'],
-      showLabel: true,
     })
 
     setMap(mapInstance)
@@ -206,17 +197,12 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
 
       const marker = new window.AMap.Marker({
         position: [activity.location!.lng, activity.location!.lat],
-        map: mapInstance,
         title: activity.name,
-        icon: new window.AMap.Icon({
-          image: iconUrl,
-          size: new window.AMap.Size(32, 42),
-          imageSize: new window.AMap.Size(32, 42),
-          imageOffset: new window.AMap.Pixel(0, 0),
-          anchor: new window.AMap.Pixel(16, 40), // 设置锚点在底部尖端
-        }),
-        anchor: 'bottom-center', // 标记锚点在底部中心
+        icon: iconUrl,
+        offset: { x: -16, y: -40 } as any,
       })
+
+      marker.setMap(mapInstance)
 
       // 添加信息窗口 - 增强版
       const infoWindow = new window.AMap.InfoWindow({
@@ -255,8 +241,8 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
               </div>
             ` : ''}
           </div>
-        `,
-        offset: new window.AMap.Pixel(0, -36),
+        `as any,
+        offset: { x: 0, y: -36 } as any,
       })
 
       marker.on('click', () => {
@@ -330,17 +316,12 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
 
         const hotelMarker = new window.AMap.Marker({
           position: [hotel.location.lng, hotel.location.lat],
-          map: mapInstance,
           title: hotel.name,
-          icon: new window.AMap.Icon({
-            image: hotelIconUrl,
-            size: new window.AMap.Size(32, 42),
-            imageSize: new window.AMap.Size(32, 42),
-            imageOffset: new window.AMap.Pixel(0, 0),
-            anchor: new window.AMap.Pixel(16, 40),
-          }),
-          anchor: 'bottom-center',
+          icon: hotelIconUrl,
+          offset: { x: -16, y: -40 } as any,
         })
+
+        hotelMarker.setMap(mapInstance)
 
         // 创建酒店信息窗口
         const hotelTypeMap: Record<string, string> = {
@@ -397,8 +378,8 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
                 <p style="margin: 8px 0 4px 0; font-size: 12px; color: #4b5563; line-height: 1.4;">${hotel.description}</p>
               ` : ''}
             </div>
-          `,
-          offset: new window.AMap.Pixel(0, -36),
+          `as any,
+          offset: { x: 0, y: -36 } as any,
         })
 
         hotelMarker.on('click', () => {
@@ -429,7 +410,7 @@ export default function TripOverviewMap({ days, accommodation = [], onHotelClick
       ) || []
 
       if (dayActivities.length >= 2) {
-        const path = dayActivities.map((a) => [a.location!.lng, a.location!.lat])
+        const path = dayActivities.map((a) => [a.location!.lng, a.location!.lat] as [number, number])
         const dayColor = DAY_COLORS[(day.day - 1) % DAY_COLORS.length]
 
         const polyline = new window.AMap.Polyline({

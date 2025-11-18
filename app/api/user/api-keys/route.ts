@@ -10,7 +10,7 @@ import { successResponse } from '@/app/api/_utils/response'
 import { encrypt, getKeyPrefix } from '@/lib/encryption'
 import type { ApiKeyService } from '@/types'
 import { ValidationError } from '@/lib/errors'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/user/api-keys
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       encryptedKey = encrypt(api_key)
       keyPrefix = getKeyPrefix(api_key, 8)
     } catch (encryptError) {
-      logger.error('API Key 加密失败', { error: encryptError })
+      logger.error('API Key 加密失败', encryptError as Error)
       throw new Error('加密失败，请检查 ENCRYPTION_KEY 环境变量')
     }
 

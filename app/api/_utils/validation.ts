@@ -227,7 +227,7 @@ export const addApiKeySchema = z.object({
   keyName: z.string().min(1, '密钥名称不能为空').max(50, '密钥名称过长'),
   apiKey: z.string().min(1, 'API Key 不能为空'),
   baseUrl: z.string().url('无效的 URL 格式').optional(),
-  extraConfig: z.record(z.any()).optional(),
+  extraConfig: z.record(z.string(), z.any()).optional(),
 })
 
 /**

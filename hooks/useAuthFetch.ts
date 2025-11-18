@@ -44,7 +44,7 @@ export function useAuthFetch(): UseAuthFetchResult {
       if (!session?.access_token) {
         const error = new Error('未认证：请先登录')
         if (!skipErrorLog) {
-          logger.error('authFetch: 未认证', { url })
+          logger.error('authFetch: 未认证', undefined, { url: url })
         }
         throw error
       }
@@ -65,7 +65,7 @@ export function useAuthFetch(): UseAuthFetchResult {
             errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
           )
           if (!skipErrorLog) {
-            logger.error('authFetch: 请求失败', {
+            logger.error('authFetch: 请求失败', undefined, {
               url,
               status: response.status,
               error: errorData,
@@ -78,7 +78,7 @@ export function useAuthFetch(): UseAuthFetchResult {
         return data as T
       } catch (error) {
         if (!skipErrorLog) {
-          logger.error('authFetch: 请求异常', { url, error })
+          logger.error('authFetch: 请求异常', error as Error, { url })
         }
         throw error
       }

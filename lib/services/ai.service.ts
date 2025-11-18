@@ -80,7 +80,7 @@ export class AIService {
   private async getClient(model: AIModel): Promise<OpenAI | null> {
     const modelInfo = getModelById(model)
     if (!modelInfo) {
-      logger.error(`${this.serviceName}: Invalid model`, { model })
+      logger.error(`${this.serviceName}: Invalid model`, undefined, { model })
       return null
     }
 
@@ -101,7 +101,9 @@ export class AIService {
           })
         }
       } catch (error) {
-        logger.warn(`${this.serviceName}: Failed to get user API key, falling back to system key`, error as Error)
+        logger.warn(`${this.serviceName}: Failed to get user API key, falling back to system key`, {
+          error: error instanceof Error ? error.message : String(error)
+        })
       }
     }
 
@@ -235,9 +237,7 @@ export class AIService {
     const models: AIModel[] = [
       'deepseek-chat',
       'deepseek-reasoner',
-      'qwen-max',
-      'qwen-plus',
-      'qwen-turbo',
+      'Qwen/Qwen2.5-72B-Instruct',
     ]
 
     const availableModels: AIModel[] = []

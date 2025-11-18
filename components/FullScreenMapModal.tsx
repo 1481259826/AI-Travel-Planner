@@ -5,14 +5,6 @@ import { Activity } from '@/types'
 import { X, MapPin, Navigation, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
 
-// 声明高德地图全局类型
-declare global {
-  interface Window {
-    AMap: any
-    _AMapSecurityConfig: any
-  }
-}
-
 interface FullScreenMapModalProps {
   isOpen: boolean
   onClose: () => void
@@ -128,7 +120,6 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
       mapStyle: 'amap://styles/normal',
       viewMode: '2D',
       features: ['bg', 'road', 'building', 'point'],
-      showLabel: true,
     })
 
     setMap(mapInstance)
@@ -139,18 +130,15 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
     locatedActivities.forEach((activity, index) => {
       const marker = new window.AMap.Marker({
         position: [activity.location!.lng, activity.location!.lat],
-        map: mapInstance,
         title: activity.name,
         label: {
           content: `<div style="background: #3b82f6; color: white; padding: 4px 10px; border-radius: 16px; font-size: 13px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${index + 1}</div>`,
-          offset: new window.AMap.Pixel(0, -40),
+          offset: { x: 0, y: -40 } as any,
         },
-        icon: new window.AMap.Icon({
-          image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
-          size: new window.AMap.Size(30, 40),
-          imageSize: new window.AMap.Size(30, 40),
-        }),
+        icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
       })
+
+      marker.setMap(mapInstance)
 
       // 添加信息窗口 - 增强版，包含图片、评分、价格、tips
       const infoWindow = new window.AMap.InfoWindow({
@@ -188,8 +176,8 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
               </div>
             ` : ''}
           </div>
-        `,
-        offset: new window.AMap.Pixel(0, -40),
+        `as any,
+        offset: { x: 0, y: -40 } as any,
       })
 
       marker.on('click', () => {
@@ -237,7 +225,7 @@ export default function FullScreenMapModal({ isOpen, onClose, activities, dayNum
       setShowRoute(false)
     } else {
       // 显示路线
-      const path = locatedActivities.map(a => [a.location!.lng, a.location!.lat])
+      const path = locatedActivities.map(a => [a.location!.lng, a.location!.lat] as [number, number])
 
       const polyline = new window.AMap.Polyline({
         path: path,

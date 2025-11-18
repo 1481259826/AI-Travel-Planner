@@ -6,14 +6,6 @@ import { AmapWeatherForecast } from '@/lib/amap-weather'
 import { Maximize2, MapPin, Cloud, Loader2 } from 'lucide-react'
 import config from '@/lib/config'
 
-// 声明高德地图全局类型
-declare global {
-  interface Window {
-    AMap: any
-    _AMapSecurityConfig: any
-  }
-}
-
 interface DayMapPreviewProps {
   activities: Activity[]
   weather?: AmapWeatherForecast | null
@@ -118,7 +110,6 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
       mapStyle: 'amap://styles/normal',
       viewMode: '2D',
       features: ['bg', 'road', 'building', 'point'], // 添加 point 以显示周边建筑 POI
-      showLabel: true,
       zoomEnable: false, // 禁用缩放
       dragEnable: true,  // 保持拖动功能
       doubleClickZoom: false, // 禁用双击缩放
@@ -175,17 +166,12 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
 
       const marker = new window.AMap.Marker({
         position: [activity.location!.lng, activity.location!.lat],
-        map: mapInstance,
         title: activity.name,
-        icon: new window.AMap.Icon({
-          image: iconUrl,
-          size: new window.AMap.Size(30, 40),
-          imageSize: new window.AMap.Size(30, 40),
-          imageOffset: new window.AMap.Pixel(0, 0),
-          anchor: new window.AMap.Pixel(15, 38),
-        }),
-        anchor: 'bottom-center',
+        icon: iconUrl,
+        offset: { x: -15, y: -38 } as any,
       })
+
+      marker.setMap(mapInstance)
 
       // 添加信息窗口 - 增强版，包含图片、评分、价格、tips
       const infoWindow = new window.AMap.InfoWindow({
@@ -222,8 +208,8 @@ export default function DayMapPreview({ activities, weather, dayNumber, onExpand
               </div>
             ` : ''}
           </div>
-        `,
-        offset: new window.AMap.Pixel(0, -34),
+        `as any,
+        offset: { x: 0, y: -34 } as any,
       })
 
       marker.on('click', () => {

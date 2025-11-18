@@ -65,7 +65,6 @@ export function useMapRoutes(options: UseMapRoutesOptions): UseMapRoutesResult {
 
       try {
         const polyline = new window.AMap.Polyline({
-          map,
           path: config.path,
           strokeColor: config.strokeColor || '#3b82f6',
           strokeWeight: config.strokeWeight || 5,
@@ -74,6 +73,8 @@ export function useMapRoutes(options: UseMapRoutesOptions): UseMapRoutesResult {
           showDir: config.showDir !== false,
           extData: { ...config.extData, id: config.id },
         })
+
+        polyline.setMap(map)
 
         setRoutes((prev) => {
           const newRoutes = new Map(prev)

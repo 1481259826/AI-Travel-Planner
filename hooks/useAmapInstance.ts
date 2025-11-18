@@ -135,7 +135,6 @@ export function useAmapInstance(options: UseAmapInstanceOptions): UseAmapInstanc
         viewMode,
         pitch,
         rotation,
-        showLabel,
         dragEnable,
         scrollWheel,
       })

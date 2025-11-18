@@ -14,7 +14,6 @@ export interface MarkerConfig {
   content?: string
   icon?: string | AMap.Icon
   offset?: AMap.Pixel
-  anchor?: AMap.MarkerAnchor
   clickable?: boolean
   draggable?: boolean
   extData?: Record<string, unknown>
@@ -69,7 +68,7 @@ export function useMapMarkers(options: UseMapMarkersOptions): UseMapMarkersResul
     if (!map || infoWindow) return
 
     const iw = new window.AMap.InfoWindow({
-      offset: new window.AMap.Pixel(0, -30),
+      offset: { x: 0, y: -30 } as any,
       autoMove: true,
       closeWhenClickMap: true,
     })
@@ -91,17 +90,17 @@ export function useMapMarkers(options: UseMapMarkersOptions): UseMapMarkersResul
 
       try {
         const marker = new window.AMap.Marker({
-          map,
           position: config.position,
           title: config.title,
           content: config.content,
           icon: config.icon,
-          offset: config.offset,
-          anchor: config.anchor,
+          offset: config.offset as any,
           clickable: config.clickable !== false,
           draggable: config.draggable || false,
           extData: { ...config.extData, id: config.id },
         })
+
+        marker.setMap(map)
 
         // 添加点击事件
         if (onMarkerClick) {
@@ -201,11 +200,11 @@ export function useMapMarkers(options: UseMapMarkersOptions): UseMapMarkersResul
       infoWindow.setContent(config.content)
 
       if (config.offset) {
-        infoWindow.setOffset(config.offset)
+        (infoWindow as any).setOffset(config.offset)
       }
 
       if (config.autoMove !== undefined) {
-        infoWindow.setAutoMove(config.autoMove)
+        (infoWindow as any).setAutoMove(config.autoMove)
       }
 
       infoWindow.open(map!, marker.getPosition())
@@ -229,8 +228,8 @@ export function useMapMarkers(options: UseMapMarkersOptions): UseMapMarkersResul
       return
     }
 
-    const positions = Array.from(markers.values()).map((marker) => marker.getPosition())
-    map.setFitView(positions as AMap.LngLat[], true, [50, 50, 50, 50])
+    const markerArray = Array.from(markers.values())
+    map.setFitView(markerArray, true, [50, 50, 50, 50])
 
     logger.debug('useMapMarkers: Map fitted to markers bounds', { count: markers.size })
   }, [map, markers])

@@ -7,26 +7,8 @@ export interface User {
   created_at: string
 }
 
-// Trip types
-export interface Trip {
-  id: string
-  user_id: string
-  origin?: string
-  destination: string
-  start_date: string
-  end_date: string
-  start_time?: string
-  end_time?: string
-  budget: number
-  travelers: number
-  preferences: string[]
-  itinerary?: Itinerary
-  status: 'draft' | 'planned' | 'ongoing' | 'completed'
-  share_token?: string
-  is_public: boolean
-  created_at: string
-  updated_at: string
-}
+// Trip types - 从 supabase.d.ts 导出以保持一致性
+export type { Trip, TripStatus, TripInsert, TripUpdate } from './supabase'
 
 export interface Itinerary {
   days: DayPlan[]

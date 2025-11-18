@@ -111,21 +111,20 @@ export default function MapView({
         center: [mapCenter.lng, mapCenter.lat],
         viewMode: '3D', // 3D视图
         pitch: 40, // 俯仰角
-        showIndoorMap: false,
       })
 
       mapInstance.current = map
 
       // 添加控件 - 使用 AMap.plugin 加载控件
-      if (window.AMap && typeof window.AMap.plugin === 'function') {
-        window.AMap.plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
+      if (window.AMap && typeof (window.AMap as any).plugin === 'function') {
+        (window.AMap as any).plugin(['AMap.Scale', 'AMap.ToolBar'], () => {
           try {
             // 检查构造函数是否存在
-            if (window.AMap.Scale && window.AMap.ToolBar) {
-              const scale = new window.AMap.Scale()
-              const toolbar = new window.AMap.ToolBar()
-              map.addControl(scale)
-              map.addControl(toolbar)
+            if ((window.AMap as any).Scale && (window.AMap as any).ToolBar) {
+              const scale = new (window.AMap as any).Scale()
+              const toolbar = new (window.AMap as any).ToolBar();
+              (map as any).addControl(scale);
+              (map as any).addControl(toolbar)
             } else {
               console.warn('地图控件类不存在，跳过控件添加')
             }
@@ -171,14 +170,14 @@ export default function MapView({
         setSelectedLocation(location)
 
         const infoWindow = new window.AMap.InfoWindow({
-          content: createInfoWindowContent(location, index + 1),
-          offset: new window.AMap.Pixel(0, -30)
+          content: createInfoWindowContent(location, index + 1) as any,
+          offset: { x: 0, y: -30 } as any
         })
 
-        infoWindow.open(mapInstance.current, marker.getPosition())
+        infoWindow.open(mapInstance.current!, marker.getPosition())
       })
 
-      marker.setMap(mapInstance.current)
+      marker.setMap(mapInstance.current!)
       markers.current.push(marker)
     })
 
@@ -228,22 +227,22 @@ export default function MapView({
     const waypoints = locations.map(loc => [loc.lng, loc.lat])
 
     // 使用 plugin 加载驾车路线规划插件
-    if (!window.AMap || typeof window.AMap.plugin !== 'function') {
+    if (!window.AMap || typeof (window.AMap as any).plugin !== 'function') {
       console.warn('AMap.plugin 不可用，跳过路线规划')
       return
     }
 
-    window.AMap.plugin('AMap.Driving', () => {
+    (window.AMap as any).plugin('AMap.Driving', () => {
       try {
         // 检查 Driving 类是否存在
-        if (!window.AMap.Driving) {
+        if (!(window.AMap as any).Driving) {
           console.warn('AMap.Driving 类不存在，跳过路线规划')
           return
         }
 
         // 创建驾车路线规划实例（不自动在地图上显示）
-        const driving = new window.AMap.Driving({
-          policy: window.AMap.DrivingPolicy?.LEAST_TIME || 0, // 最快捷路线
+        const driving = new (window.AMap as any).Driving({
+          policy: (window.AMap as any).DrivingPolicy?.LEAST_TIME || 0, // 最快捷路线
           hideMarkers: true, // 隐藏起终点标记，使用我们自己的标记
         })
 
@@ -267,8 +266,8 @@ export default function MapView({
           if (routePlanningCancelled.current) return
 
           driving.search(
-            new window.AMap.LngLat(waypoints[index][0], waypoints[index][1]),
-            new window.AMap.LngLat(waypoints[index + 1][0], waypoints[index + 1][1]),
+            waypoints[index] as [number, number],
+            waypoints[index + 1] as [number, number],
             async (status: string, result: any) => {
               // 检查是否已取消
               if (routePlanningCancelled.current) return
@@ -297,7 +296,6 @@ export default function MapView({
                   zIndex: 50,
                   showDir: true, // 显示方向箭头
                   borderWeight: 2, // 添加边框
-                  outlineColor: '#1e40af', // 深蓝色边框
                 })
 
                 polyline.setMap(mapInstance.current)

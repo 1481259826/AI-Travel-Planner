@@ -8,7 +8,7 @@ import { requireAuth } from '@/app/api/_middleware'
 import { handleApiError } from '@/app/api/_middleware/error-handler'
 import { successResponse } from '@/app/api/_utils/response'
 import type { ProfileUpdateData } from '@/types'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * 确保 profile 存在，不存在则自动创建

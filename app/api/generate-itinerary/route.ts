@@ -20,7 +20,7 @@ import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
 import config from '@/lib/config'
 import type { TripFormData, Itinerary } from '@/types'
 import { ValidationError, ConfigurationError } from '@/lib/errors'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * 获取天气信息（可选，失败不影响主流程）
@@ -70,7 +70,7 @@ async function ensureUserProfile(supabase: any, userId: string, email?: string):
       })
 
     if (profileError) {
-      logger.error('创建 profile 失败', { error: profileError })
+      logger.error('创建 profile 失败', profileError as Error)
       throw new ConfigurationError('无法创建用户配置，请检查数据库 RLS 策略')
     }
   }
@@ -111,7 +111,7 @@ async function saveTripToDatabase(
     .single()
 
   if (error) {
-    logger.error('保存行程失败', { error })
+    logger.error('保存行程失败', error as Error)
     throw error
   }
 

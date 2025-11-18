@@ -5,7 +5,7 @@
 
 import { GeocodingService } from '@/lib/services/geocoding.service'
 import { wgs84ToGcj02 } from '@/lib/coordinate-converter'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 import type { Itinerary, Location } from '@/types'
 
 // 创建全局地理编码服务实例

@@ -5,7 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ApiKeyService } from '@/types/supabase'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * API Key 配置对象
@@ -53,7 +53,7 @@ async function testApiKeyGeneric(
     // 默认验证：检查 HTTP 状态码
     return response.ok
   } catch (error) {
-    logger.error(`测试 ${serviceName} API Key 失败`, { error })
+    logger.error(`测试 ${serviceName} API Key 失败`, error as Error)
     return false
   }
 }
@@ -172,7 +172,7 @@ export async function testVoiceKey(apiKey: string): Promise<boolean> {
     // 建议用户在实际使用时测试语音功能是否正常
     return true
   } catch (error) {
-    logger.error('测试科大讯飞语音 API Key 失败', { error })
+    logger.error('测试科大讯飞语音 API Key 失败', error as Error)
     return false
   }
 }
@@ -209,7 +209,7 @@ export async function getUserApiKey(
     // 解密并返回
     return decrypt(apiKey.encrypted_key)
   } catch (error) {
-    logger.error('获取用户 API Key 失败', { userId, service, error })
+    logger.error('获取用户 API Key 失败', error as Error, { userId, service })
     return null
   }
 }
@@ -244,7 +244,7 @@ export async function getUserApiKeyConfig(
       .maybeSingle()  // 使用 maybeSingle() 而不是 single()，避免在没有数据时抛出错误
 
     if (queryError) {
-      logger.error('查询用户 API Key 失败', { userId, service, error: queryError })
+      logger.error('查询用户 API Key 失败', queryError as Error, { userId, service })
       return null
     }
 
@@ -285,7 +285,7 @@ export async function getUserApiKeyConfig(
       extraConfig,
     }
   } catch (error) {
-    logger.error('获取用户 API Key 配置失败', { userId, service, error })
+    logger.error('获取用户 API Key 配置失败', error as Error, { userId, service })
     return null
   }
 }

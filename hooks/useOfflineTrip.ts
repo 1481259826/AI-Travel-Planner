@@ -51,8 +51,8 @@ export function useOfflineTrip(tripId: string | null): UseOfflineTripReturn {
             const isDifferent = JSON.stringify(cachedTrip) !== JSON.stringify(serverTrip)
             if (isDifferent) {
               // Update cache with fresh data
-              await offlineTrips.save(serverTrip)
-              setTrip(serverTrip)
+              await offlineTrips.save(serverTrip as Trip)
+              setTrip(serverTrip as Trip)
               setFromCache(false)
             }
           }

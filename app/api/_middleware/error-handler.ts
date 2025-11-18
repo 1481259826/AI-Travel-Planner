@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server'
 import { AppError, extractErrorMessage } from '@/lib/errors'
 import { errorResponse } from '@/app/api/_utils/response'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * Supabase 错误类型
@@ -37,9 +37,8 @@ function handleSupabaseError(error: SupabaseError): NextResponse {
   const { message, code, details, hint } = error
 
   // 记录详细错误信息
-  logger.error('Supabase Error:', {
+  logger.error('Supabase Error:', error as Error, {
     code,
-    message,
     details,
     hint,
   })
@@ -103,12 +102,7 @@ export function handleApiError(
 
   // 1. 处理自定义 AppError
   if (error instanceof AppError) {
-    logger.error(`${operationName || 'API'} Error:`, {
-      name: error.name,
-      message: error.message,
-      statusCode: error.statusCode,
-      context: error.context,
-    })
+    logger.error(`${operationName || 'API'} Error:`, error, error.context)
 
     return errorResponse(
       error.name,
@@ -130,11 +124,7 @@ export function handleApiError(
 
   // 4. 处理标准 Error 对象
   if (error instanceof Error) {
-    logger.error(`${operationName || 'API'} Error:`, {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    })
+    logger.error(`${operationName || 'API'} Error:`, error, context)
 
     // 某些特定的 Error 名称
     if (error.name === 'SyntaxError') {
@@ -166,7 +156,7 @@ export function handleApiError(
 
   // 5. 处理未知错误
   const message = extractErrorMessage(error)
-  logger.error(`${operationName || 'API'} Unknown Error:`, error)
+  logger.error(`${operationName || 'API'} Unknown Error:`, error as Error, context)
 
   return errorResponse('InternalServerError', message, 500, context)
 }

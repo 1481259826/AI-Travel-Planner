@@ -6,7 +6,7 @@
 import OpenAI from 'openai'
 import { getUserApiKey } from '@/lib/api-keys'
 import config from '@/lib/config'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * 从高德地图获取 POI 照片
@@ -148,7 +148,7 @@ export async function generateAIDescription(
 
     return description
   } catch (error) {
-    logger.error('AI 描述生成失败', { error })
+    logger.error('AI 描述生成失败', error as Error)
     return ''
   }
 }

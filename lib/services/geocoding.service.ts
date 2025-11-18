@@ -161,7 +161,7 @@ export class GeocodingService {
       const [lng, lat] = location.location.split(',').map(Number)
 
       if (isNaN(lng) || isNaN(lat)) {
-        logger.error(`${this.serviceName}: Invalid coordinates`, { location: location.location })
+        logger.error(`${this.serviceName}: Invalid coordinates`, undefined, { location: location.location })
         return null
       }
 

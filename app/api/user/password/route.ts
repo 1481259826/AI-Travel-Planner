@@ -56,23 +56,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = changePasswordSchema.parse(body)
 
-    const { current_password, new_password, confirm_password } = validatedData
+    const { currentPassword, newPassword, confirmPassword } = validatedData
 
     // 验证新密码和确认密码是否一致
-    if (new_password !== confirm_password) {
+    if (newPassword !== confirmPassword) {
       throw new ValidationError('两次输入的密码不一致')
     }
 
     // 验证新密码强度
-    if (!isPasswordValid(new_password)) {
+    if (!isPasswordValid(newPassword)) {
       throw new ValidationError('密码强度不足，请满足所有要求')
     }
 
     // 验证当前密码
-    await verifyCurrentPassword(supabase, user.email!, current_password)
+    await verifyCurrentPassword(supabase, user.email!, currentPassword)
 
     // 更新密码
-    await updateUserPassword(user.id, new_password)
+    await updateUserPassword(user.id, newPassword)
 
     return successResponse(
       { success: true },

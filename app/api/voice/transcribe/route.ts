@@ -25,11 +25,11 @@ export async function GET(request: NextRequest) {
     const userConfig = await getUserApiKeyConfig(user.id, 'voice', supabase);
 
     if (userConfig) {
-      appId = userConfig.extraConfig?.app_id || appId;
+      appId = (userConfig.extraConfig?.app_id as string) || appId;
       apiKey = userConfig.apiKey;
 
       // API Secret 可能存储在 extraConfig 中
-      apiSecret = userConfig.extraConfig?.api_secret || '';
+      apiSecret = (userConfig.extraConfig?.api_secret as string) || '';
     } else {
       // 使用系统默认配置
       apiSecret = config.voice.apiSecret;

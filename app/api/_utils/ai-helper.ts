@@ -5,7 +5,7 @@
 import OpenAI from 'openai'
 import type { TripFormData, Itinerary, AIModel } from '@/types'
 import { AIModelError } from '@/lib/errors'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '@/lib/logger'
 
 /**
  * AI 客户端配置
@@ -204,11 +204,11 @@ export async function generateItinerary(
     return itinerary
   } catch (error) {
     if (error instanceof SyntaxError) {
-      logger.error('AI 响应 JSON 解析失败', { error })
+      logger.error('AI 响应 JSON 解析失败', error as Error)
       throw new AIModelError('AI 返回的数据格式无效', model)
     }
 
-    logger.error('AI 行程生成失败', { error })
+    logger.error('AI 行程生成失败', error as Error)
     throw new AIModelError(
       error instanceof Error ? error.message : 'AI 调用失败',
       model
