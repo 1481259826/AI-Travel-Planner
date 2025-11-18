@@ -8,7 +8,7 @@ import { requireAuth } from '@/app/api/_middleware/auth';
 import { handleApiError } from '@/app/api/_middleware/error-handler';
 import { successResponse } from '@/app/api/_utils/response';
 import { ApiKeyClient } from '@/lib/api-keys';
-import { config } from '@/lib/config';
+import { appConfig as config } from '@/lib/config';
 import { ValidationError, ConfigurationError } from '@/lib/errors';
 import {
   parseNaturalDate,
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
 
     // 获取 AI API 配置
     const userConfig = await ApiKeyClient.getUserConfig(user.id, 'deepseek', supabase);
-    const apiKey = userConfig?.apiKey || config.deepseek.apiKey;
-    const baseURL = userConfig?.baseUrl || config.deepseek.baseURL;
+    const apiKey = userConfig?.apiKey || appConfig.deepseek.apiKey;
+    const baseURL = userConfig?.baseUrl || appConfig.deepseek.baseURL;
 
     if (!apiKey) {
       throw new ConfigurationError('请在设置页面配置 DeepSeek API Key');

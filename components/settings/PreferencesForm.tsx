@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ThemeToggle from '@/components/ThemeToggle'
 import { supabase } from '@/lib/supabase'
-import { availableModels } from '@/lib/models'
+import { AI_MODELS } from '@/lib/config'
 import type { UserProfile, AIModel } from '@/types'
 
 export default function PreferencesForm() {
@@ -129,7 +129,7 @@ export default function PreferencesForm() {
                 className="flex h-10 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm dark:text-white"
               >
                 <option value="">不设置默认</option>
-                {availableModels.map(model => (
+                {AI_MODELS.map(model => (
                   <option key={model.id} value={model.id}>{model.name}</option>
                 ))}
               </select>

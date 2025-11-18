@@ -9,7 +9,7 @@ import { handleApiError } from '@/app/api/_middleware/error-handler';
 import { successResponse } from '@/app/api/_utils/response';
 import { generateXFYunAuthUrl } from '@/lib/xfyun-voice';
 import { ApiKeyClient } from '@/lib/api-keys';
-import { config } from '@/lib/config';
+import { appConfig as config } from '@/lib/config';
 import { ConfigurationError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
     const { user, supabase } = await requireAuth(request);
 
     // 获取用户自定义或系统默认的语音 API 配置
-    let appId = config.voice.appId;
-    let apiKey = config.voice.apiKey;
+    let appId = appConfig.voice.appId;
+    let apiKey = appConfig.voice.apiKey;
     let apiSecret = '';
 
     // 优先使用用户自定义配置
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       apiSecret = (userConfig.extraConfig?.api_secret as string) || '';
     } else {
       // 使用系统默认配置
-      apiSecret = config.voice.apiSecret;
+      apiSecret = appConfig.voice.apiSecret;
     }
 
     // 验证必要参数

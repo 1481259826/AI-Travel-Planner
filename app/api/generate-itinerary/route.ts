@@ -14,10 +14,10 @@ import {
   correctItineraryCoordinates,
 } from '@/app/api/_utils'
 import { ApiKeyClient } from '@/lib/api-keys'
-import { getModelById } from '@/lib/models'
+import { getModelById } from '@/lib/config'
 import { getWeatherByCityName } from '@/lib/amap-weather'
 import { optimizeItineraryByClustering } from '@/lib/geo-clustering'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 import type { TripFormData, Itinerary } from '@/types'
 import { ValidationError, ConfigurationError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
@@ -166,10 +166,10 @@ export async function POST(request: NextRequest) {
 
     // 确定使用的 API Key
     const apiKey = userApiKeyConfig?.apiKey ||
-      (modelConfig.provider === 'deepseek' ? config.deepseek.apiKey : config.modelscope.apiKey)
+      (modelConfig.provider === 'deepseek' ? appConfig.deepseek.apiKey : appConfig.modelscope.apiKey)
 
     const baseURL = userApiKeyConfig?.baseUrl ||
-      (modelConfig.provider === 'deepseek' ? config.deepseek.baseURL : config.modelscope.baseURL)
+      (modelConfig.provider === 'deepseek' ? appConfig.deepseek.baseURL : appConfig.modelscope.baseURL)
 
     if (!apiKey) {
       throw new ConfigurationError(
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
     logger.info('调用 AI 生成行程...')
     let itinerary = await generateItinerary(
       aiClient,
-      modelConfig.provider === 'deepseek' ? config.deepseek.model : selectedModel,
+      modelConfig.provider === 'deepseek' ? appConfig.deepseek.model : selectedModel,
       prompt,
       modelConfig.maxTokens
     )

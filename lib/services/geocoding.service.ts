@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@/lib/logger'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 import { wgs84ToGcj02, gcj02ToWgs84 } from '@/lib/coordinate-converter'
 import https from 'https'
 
@@ -56,7 +56,7 @@ export class GeocodingService {
   private serviceName = 'GeocodingService'
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || config.map.webServiceKey || ''
+    this.apiKey = apiKey || appConfig.map.webServiceKey || ''
 
     if (!this.apiKey) {
       logger.warn(`${this.serviceName}: No API key configured`)

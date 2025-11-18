@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useRef, RefObject } from 'react'
 import type AMap from '@/types/amap'
-import config from '@/lib/config'
+import { appConfig } from '@/lib/config'
 import { logger } from '@/lib/logger'
 
 export interface UseAmapInstanceOptions {
@@ -100,7 +100,7 @@ export function useAmapInstance(options: UseAmapInstanceOptions): UseAmapInstanc
 
   // 加载高德地图 API
   useEffect(() => {
-    const apiKey = config.map.apiKey
+    const apiKey = appConfig.map.apiKey
     const securityKey = process.env.NEXT_PUBLIC_MAP_SECURITY_KEY
 
     if (!apiKey) {

@@ -127,7 +127,7 @@ export interface AmapDistrictResponse {
  * @returns Adcode 或 null
  */
 export async function getCityAdcode(cityName: string): Promise<string | null> {
-  const apiKey = config.map.webServiceKey
+  const apiKey = appConfig.map.webServiceKey
 
   if (!apiKey) {
     console.error('Amap Web Service API key not configured')
@@ -161,7 +161,7 @@ export async function getCityAdcode(cityName: string): Promise<string | null> {
  * @returns 天气数据或 null
  */
 export async function getWeatherByAdcode(adcode: string): Promise<AmapWeatherResponse | null> {
-  const apiKey = config.map.webServiceKey
+  const apiKey = appConfig.map.webServiceKey
 
   if (!apiKey) {
     console.error('Amap Web Service API key not configured')
