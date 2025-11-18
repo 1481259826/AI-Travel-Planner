@@ -43,8 +43,21 @@ export type {
 
 // ==================== 数据库表名映射 ====================
 
-export { DATABASE_TABLES } from '@/types/supabase'
-export type { DatabaseTable } from '@/types/supabase'
+/**
+ * 数据库表名常量
+ * 用于类型安全的表引用
+ */
+export const DATABASE_TABLES = {
+  PROFILES: 'profiles',
+  TRIPS: 'trips',
+  EXPENSES: 'expenses',
+  API_KEYS: 'api_keys',
+} as const
+
+/**
+ * 数据库表名类型
+ */
+export type DatabaseTable = (typeof DATABASE_TABLES)[keyof typeof DATABASE_TABLES]
 
 // ==================== 查询过滤器类型 ====================
 
