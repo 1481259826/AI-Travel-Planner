@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
     const { user, supabase } = await requireAuth(request);
 
     // 获取用户自定义或系统默认的语音 API 配置
-    let appId = appConfig.voice.appId;
-    let apiKey = appConfig.voice.apiKey;
+    let appId = config.voice.appId;
+    let apiKey = config.voice.apiKey;
     let apiSecret = '';
 
     // 优先使用用户自定义配置
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       apiSecret = (userConfig.extraConfig?.api_secret as string) || '';
     } else {
       // 使用系统默认配置
-      apiSecret = appConfig.voice.apiSecret;
+      apiSecret = config.voice.apiSecret;
     }
 
     // 验证必要参数

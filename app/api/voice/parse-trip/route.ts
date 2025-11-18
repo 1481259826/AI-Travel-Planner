@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
 
     // 获取 AI API 配置
     const userConfig = await ApiKeyClient.getUserConfig(user.id, 'deepseek', supabase);
-    const apiKey = userConfig?.apiKey || appConfig.deepseek.apiKey;
-    const baseURL = userConfig?.baseUrl || appConfig.deepseek.baseURL;
+    const apiKey = userConfig?.apiKey || config.deepseek.apiKey;
+    const baseURL = userConfig?.baseUrl || config.deepseek.baseURL;
 
     if (!apiKey) {
       throw new ConfigurationError('请在设置页面配置 DeepSeek API Key');
