@@ -14,13 +14,9 @@ export default defineConfig({
       '.next/**',
       'dist/**',
     ],
-    // 使用 forks 模式
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    // 使用 threads 池以减少内存消耗
+    pool: 'threads',
+    maxConcurrency: 1, // 限制并发数
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
