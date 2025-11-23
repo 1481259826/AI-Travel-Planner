@@ -8,6 +8,19 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./__tests__/setup.ts'],
+    exclude: [
+      'node_modules/**',
+      'e2e/**',
+      '.next/**',
+      'dist/**',
+    ],
+    // 使用 forks 模式
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
