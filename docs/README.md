@@ -91,6 +91,24 @@
   - 健康检查脚本
   - 常见问题排查
 
+#### 🧪 测试文档
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - 单元测试指南
+  - Vitest 配置和使用
+  - 测试文件组织
+  - Mock 和辅助函数
+  - 覆盖率报告
+
+- **[E2E_TESTING.md](E2E_TESTING.md)** - E2E 测试指南
+  - Playwright 配置
+  - 测试用例编写
+  - CI/CD 集成
+  - 调试技巧
+
+- **[TESTING_IMPROVEMENT_PLAN.md](TESTING_IMPROVEMENT_PLAN.md)** - 测试改进计划
+  - 测试框架改进历史
+  - 各阶段完成情况
+  - 未来计划
+
 #### 📊 项目重构
 - **[PHASE_3_COMPLETION_REPORT.md](PHASE_3_COMPLETION_REPORT.md)** - Phase 3 组件层优化完成报告
   - 代码重构成果
@@ -208,6 +226,6 @@
 
 ---
 
-**文档最后更新**: 2025-11-18
+**文档最后更新**: 2025-11-23
 
 感谢你对项目文档的关注！ 📖✨

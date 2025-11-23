@@ -9,6 +9,65 @@
 - 费用预测分析
 - 智能推荐优化
 
+## [1.1.0] - 2025-11-23
+
+### 测试框架完成 - Phase 4-7
+
+这是一个重要的质量保障版本，完成了完整的测试基础设施建设。
+
+#### Phase 4: API 路由测试 ✅
+- ✅ **行程生成 API 测试** - `generate-itinerary.test.ts`
+- ✅ **行程 CRUD 测试** - `trips.test.ts`
+- ✅ **费用管理 API 测试** - `expenses.test.ts`
+- ✅ **用户资料 API 测试** - `user/profile.test.ts`
+- ✅ **密码修改 API 测试** - `user/password.test.ts`
+- ✅ **API Key 管理测试** - `user/api-keys.test.ts`
+
+#### Phase 5: 集成测试 ✅
+- ✅ **行程生成流程测试** - `trip-generation.test.ts`
+  - AI 生成 → 坐标修正 → 地理聚类 → 保存
+- ✅ **离线同步测试** - `offline-sync.test.ts`
+  - IndexedDB 存储 → 队列管理 → 冲突解决
+- ✅ **行程分享测试** - `trip-sharing.test.ts`
+  - 分享链接生成 → 公开访问 → 权限控制
+
+#### Phase 6: E2E 测试框架 ✅
+- ✅ **Playwright 配置** - `playwright.config.ts`
+- ✅ **测试辅助函数** - `e2e/helpers.ts`
+- ✅ **创建行程测试** - `create-trip.spec.ts`
+- ✅ **PDF 导出测试** - `export-pdf.spec.ts`
+- ✅ **分享行程测试** - `share-trip.spec.ts`
+
+#### Phase 7: 测试基础设施 ✅
+- ✅ **Vitest 配置** - 覆盖率阈值 80%
+- ✅ **全局测试设置** - `__tests__/setup.ts`
+- ✅ **Mock 系统**
+  - Supabase Mock - 数据库和认证
+  - Amap Mock - 地图 API
+  - AI Models Mock - AI 模型调用
+- ✅ **GitHub Actions CI**
+  - 自动运行测试
+  - 覆盖率报告
+  - PR 检查
+
+#### 测试覆盖统计
+- **测试文件**: 30+
+- **单元测试覆盖率**: 80%+ 阈值
+- **API 路由**: 6/6 完成
+- **集成测试**: 3/3 完成
+- **E2E 测试**: 4 个场景
+
+### 新增文档
+- ✅ `docs/TESTING_GUIDE.md` - 单元测试完整指南
+- ✅ `docs/E2E_TESTING.md` - E2E 测试完整指南
+- ✅ `docs/TESTING_IMPROVEMENT_PLAN.md` - 测试改进计划
+
+### 依赖包更新
+- ✅ `vitest@^4.0.9` - 单元测试框架
+- ✅ `@playwright/test@^1.56.1` - E2E 测试框架
+- ✅ `@testing-library/react@^16.3.0` - React 测试库
+- ✅ `msw@^2.x` - API Mock
+
 ## [1.0.0] - 2025-11-18
 
 ### 重大重构 - Phase 1-3 代码质量提升
@@ -421,4 +480,4 @@ BASE_URL=https://api.anthropic.com
 
 ---
 
-**最后更新**: 2025-10-20
+**最后更新**: 2025-11-23
