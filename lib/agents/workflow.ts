@@ -184,6 +184,16 @@ async function finalizeAgent(state: TripState): Promise<TripStateUpdate> {
 // 工作流构建
 // ============================================================================
 
+// 节点名称类型
+type NodeName =
+  | 'weather_scout'
+  | 'itinerary_planner'
+  | 'accommodation_agent'
+  | 'transport_agent'
+  | 'dining_agent'
+  | 'budget_critic'
+  | 'finalize'
+
 /**
  * 创建 LangGraph 状态图工作流
  */
@@ -193,33 +203,31 @@ export function createTripPlanningWorkflow() {
 
   // 2. 添加节点（每个节点是一个 Agent）
   // 注意：节点名称不能与状态字段名称相同
-  workflow
-    .addNode('weather_scout', weatherScoutAgent)
-    .addNode('itinerary_planner', itineraryPlannerAgent)
-    .addNode('accommodation_agent', accommodationAgent)
-    .addNode('transport_agent', transportAgent)
-    .addNode('dining_agent', diningAgent)
-    .addNode('budget_critic', budgetCriticAgent)
-    .addNode('finalize', finalizeAgent)
+  workflow.addNode('weather_scout' as any, weatherScoutAgent)
+  workflow.addNode('itinerary_planner' as any, itineraryPlannerAgent)
+  workflow.addNode('accommodation_agent' as any, accommodationAgent)
+  workflow.addNode('transport_agent' as any, transportAgent)
+  workflow.addNode('dining_agent' as any, diningAgent)
+  workflow.addNode('budget_critic' as any, budgetCriticAgent)
+  workflow.addNode('finalize' as any, finalizeAgent)
 
   // 3. 定义边（执行顺序）
-  workflow
-    // 入口 → 天气
-    .addEdge(START, 'weather_scout')
-    // 天气 → 规划
-    .addEdge('weather_scout', 'itinerary_planner')
-    // 规划 → 资源 (并行扇出)
-    .addEdge('itinerary_planner', 'accommodation_agent')
-    .addEdge('itinerary_planner', 'transport_agent')
-    .addEdge('itinerary_planner', 'dining_agent')
-    // 资源 → 预算 (扇入汇合)
-    .addEdge('accommodation_agent', 'budget_critic')
-    .addEdge('transport_agent', 'budget_critic')
-    .addEdge('dining_agent', 'budget_critic')
+  // 入口 → 天气
+  workflow.addEdge(START, 'weather_scout' as any)
+  // 天气 → 规划
+  workflow.addEdge('weather_scout' as any, 'itinerary_planner' as any)
+  // 规划 → 资源 (并行扇出)
+  workflow.addEdge('itinerary_planner' as any, 'accommodation_agent' as any)
+  workflow.addEdge('itinerary_planner' as any, 'transport_agent' as any)
+  workflow.addEdge('itinerary_planner' as any, 'dining_agent' as any)
+  // 资源 → 预算 (扇入汇合)
+  workflow.addEdge('accommodation_agent' as any, 'budget_critic' as any)
+  workflow.addEdge('transport_agent' as any, 'budget_critic' as any)
+  workflow.addEdge('dining_agent' as any, 'budget_critic' as any)
 
   // 4. 条件边：预算审计后的决策
   workflow.addConditionalEdges(
-    'budget_critic',
+    'budget_critic' as any,
     (state: TripState) => {
       // 通过审计
       if (state.budgetResult?.isWithinBudget) {
@@ -239,13 +247,13 @@ export function createTripPlanningWorkflow() {
       return 'retry'
     },
     {
-      finalize: 'finalize',
-      retry: 'itinerary_planner', // 循环回规划节点
+      finalize: 'finalize' as any,
+      retry: 'itinerary_planner' as any, // 循环回规划节点
     }
   )
 
   // 5. 结束边
-  workflow.addEdge('finalize', END)
+  workflow.addEdge('finalize' as any, END)
 
   // 6. 配置检查点存储（开发环境用内存）
   const checkpointer = new MemorySaver()
