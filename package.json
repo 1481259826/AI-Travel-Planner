@@ -28,6 +28,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@langchain/core": "^1.1.0",
+    "@langchain/langgraph": "^1.0.2",
     "@supabase/supabase-js": "^2.48.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
