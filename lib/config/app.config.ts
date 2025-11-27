@@ -43,6 +43,16 @@ export interface MapConfig {
 }
 
 /**
+ * Feature Flags 配置
+ */
+export interface FeatureFlags {
+  /** 是否使用 LangGraph 多智能体架构 */
+  useLangGraph: boolean
+  /** 是否启用 PWA 开发模式 */
+  enablePwaDev: boolean
+}
+
+/**
  * 应用配置
  */
 export interface AppConfig {
@@ -68,6 +78,8 @@ export interface AppConfig {
   map: MapConfig
   /** 加密密钥 */
   encryptionKey: string
+  /** Feature Flags */
+  features: FeatureFlags
 }
 
 /**
@@ -195,6 +207,14 @@ function createConfig(): AppConfig {
     },
 
     encryptionKey,
+
+    features: {
+      // 是否使用 LangGraph 多智能体架构（默认关闭，可通过环境变量开启）
+      // 使用 NEXT_PUBLIC_ 前缀以便前端可以访问
+      useLangGraph: (process.env.NEXT_PUBLIC_USE_LANGGRAPH || 'false').toLowerCase() === 'true',
+      // 是否启用 PWA 开发模式
+      enablePwaDev: getEnv('ENABLE_PWA_DEV', 'false').toLowerCase() === 'true',
+    },
   }
 
   return config
@@ -275,6 +295,7 @@ logger.info('AppConfig: Configuration loaded', {
   hasModelScope: !!appConfig.modelscope.apiKey,
   hasMap: !!appConfig.map.apiKey && !!appConfig.map.webServiceKey,
   hasEncryption: !!appConfig.encryptionKey && appConfig.encryptionKey.length >= 32,
+  features: appConfig.features,
 })
 
 /**

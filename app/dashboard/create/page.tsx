@@ -14,9 +14,13 @@ import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
 import { getDefaultModel } from '@/lib/config'
 import { ApiKeyChecker } from '@/lib/api-keys'
+import { useLangGraphProgress } from '@/hooks/useLangGraphProgress'
 
-// 定义生成阶段
-const GENERATION_STAGES: Omit<GenerationStage, 'progress' | 'status'>[] = [
+// 检测是否启用 LangGraph
+const USE_LANGGRAPH = process.env.NEXT_PUBLIC_USE_LANGGRAPH === 'true'
+
+// 定义传统模式的生成阶段
+const LEGACY_GENERATION_STAGES: Omit<GenerationStage, 'progress' | 'status'>[] = [
   {
     id: 'search',
     name: '正在搜索景点和餐厅',
@@ -50,13 +54,16 @@ export default function CreateTripPage() {
   const [showProgress, setShowProgress] = useState(false)
   const [currentStage, setCurrentStage] = useState(0)
   const [stages, setStages] = useState<GenerationStage[]>(
-    GENERATION_STAGES.map(stage => ({
+    LEGACY_GENERATION_STAGES.map(stage => ({
       ...stage,
       progress: 0,
       status: 'pending' as const,
     }))
   )
   const [overallProgress, setOverallProgress] = useState(0)
+
+  // LangGraph 进度 Hook（仅在启用时使用）
+  const langGraphProgress = useLangGraphProgress()
 
   const [formData, setFormData] = useState<TripFormData>({
     origin: '',
@@ -124,7 +131,7 @@ export default function CreateTripPage() {
     }))
   }
 
-  // 模拟进度更新
+  // 模拟进度更新（传统模式）
   const simulateProgress = async (stageIndex: number, duration: number) => {
     const steps = 20 // 每个阶段20步
     const stepDuration = duration / steps
@@ -142,7 +149,7 @@ export default function CreateTripPage() {
       }))
 
       // 更新总体进度
-      const totalProgress = ((stageIndex + i / steps) / GENERATION_STAGES.length) * 100
+      const totalProgress = ((stageIndex + i / steps) / LEGACY_GENERATION_STAGES.length) * 100
       setOverallProgress(totalProgress)
     }
 
@@ -174,11 +181,16 @@ export default function CreateTripPage() {
     // 重置进度状态
     setCurrentStage(0)
     setOverallProgress(0)
-    setStages(GENERATION_STAGES.map(stage => ({
+    setStages(LEGACY_GENERATION_STAGES.map(stage => ({
       ...stage,
       progress: 0,
       status: 'pending' as const,
     })))
+
+    // 如果使用 LangGraph，也重置其状态
+    if (USE_LANGGRAPH) {
+      langGraphProgress.reset()
+    }
 
     try {
       // Get current session
@@ -201,52 +213,68 @@ export default function CreateTripPage() {
         return
       }
 
-      // 模拟各个阶段的进度（与API调用并行）
-      const progressSimulation = (async () => {
-        for (let i = 0; i < GENERATION_STAGES.length; i++) {
-          setCurrentStage(i)
-          // 每个阶段的持续时间（毫秒）
-          const stageDuration = i === GENERATION_STAGES.length - 1 ? 3000 : 4000
-          await simulateProgress(i, stageDuration)
+      if (USE_LANGGRAPH) {
+        // 使用 LangGraph 工作流 (v2 API)
+        await langGraphProgress.startGeneration(formData, session.access_token)
+
+        // 检查结果
+        if (langGraphProgress.error) {
+          alert(langGraphProgress.error)
+          setShowProgress(false)
+        } else if (langGraphProgress.result) {
+          // 短暂延迟后跳转，让用户看到完成状态
+          await new Promise(resolve => setTimeout(resolve, 500))
+          router.push(`/dashboard/trips/${langGraphProgress.result.trip_id}`)
         }
-      })()
-
-      // Call API to generate itinerary
-      const response = await fetch('/api/generate-itinerary', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(formData),
-      })
-
-      // 等待进度模拟完成
-      await progressSimulation
-
-      if (response.ok) {
-        const result = await response.json()
-        const data = result.data
-
-        // 标记所有阶段为完成
-        setStages(prev => prev.map(stage => ({
-          ...stage,
-          progress: 100,
-          status: 'completed' as const,
-        })))
-        setOverallProgress(100)
-
-        // 短暂延迟后跳转，让用户看到完成状态
-        await new Promise(resolve => setTimeout(resolve, 500))
-
-        router.push(`/dashboard/trips/${data?.trip_id}`)
       } else {
-        const error = await response.json()
-        const errorMsg = error.details
-          ? `${error.error}\n\n详细信息：${error.details}${error.hint ? `\n\n提示：${error.hint}` : ''}`
-          : (error.error || '生成行程失败，请重试')
-        alert(errorMsg)
-        setShowProgress(false)
+        // 使用传统单体 API (v1)
+        // 模拟各个阶段的进度（与API调用并行）
+        const progressSimulation = (async () => {
+          for (let i = 0; i < LEGACY_GENERATION_STAGES.length; i++) {
+            setCurrentStage(i)
+            // 每个阶段的持续时间（毫秒）
+            const stageDuration = i === LEGACY_GENERATION_STAGES.length - 1 ? 3000 : 4000
+            await simulateProgress(i, stageDuration)
+          }
+        })()
+
+        // Call API to generate itinerary
+        const response = await fetch('/api/generate-itinerary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(formData),
+        })
+
+        // 等待进度模拟完成
+        await progressSimulation
+
+        if (response.ok) {
+          const result = await response.json()
+          const data = result.data
+
+          // 标记所有阶段为完成
+          setStages(prev => prev.map(stage => ({
+            ...stage,
+            progress: 100,
+            status: 'completed' as const,
+          })))
+          setOverallProgress(100)
+
+          // 短暂延迟后跳转，让用户看到完成状态
+          await new Promise(resolve => setTimeout(resolve, 500))
+
+          router.push(`/dashboard/trips/${data?.trip_id}`)
+        } else {
+          const error = await response.json()
+          const errorMsg = error.details
+            ? `${error.error}\n\n详细信息：${error.details}${error.hint ? `\n\n提示：${error.hint}` : ''}`
+            : (error.error || '生成行程失败，请重试')
+          alert(errorMsg)
+          setShowProgress(false)
+        }
       }
     } catch (error) {
       console.error('Error creating trip:', error)
@@ -583,10 +611,10 @@ export default function CreateTripPage() {
 
       {/* Progress Modal */}
       <ProgressModal
-        isOpen={showProgress}
-        stages={stages}
-        currentStage={currentStage}
-        overallProgress={overallProgress}
+        isOpen={showProgress || langGraphProgress.isGenerating}
+        stages={USE_LANGGRAPH ? langGraphProgress.stages : stages}
+        currentStage={USE_LANGGRAPH ? langGraphProgress.currentStage : currentStage}
+        overallProgress={USE_LANGGRAPH ? langGraphProgress.progress : overallProgress}
       />
     </div>
   )

@@ -2,7 +2,7 @@
  * 配置模块统一导出
  */
 
-export { appConfig, type AppConfig, type SupabaseConfig, type AIModelConfig, type VoiceConfig, type MapConfig } from './app.config'
+export { appConfig, type AppConfig, type SupabaseConfig, type AIModelConfig, type VoiceConfig, type MapConfig, type FeatureFlags } from './app.config'
 
 export {
   DATE_FORMATS,
