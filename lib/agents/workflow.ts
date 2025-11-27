@@ -5,11 +5,17 @@
 
 import { StateGraph, END, START } from '@langchain/langgraph'
 import { MemorySaver } from '@langchain/langgraph'
+import type { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 import {
   TripStateAnnotation,
   type TripState,
   type TripStateUpdate,
 } from './state'
+import {
+  getCheckpointer,
+  type CheckpointerType,
+} from './checkpointer'
+import { logger } from '@/lib/logger'
 
 // 导入 Agent 节点
 import { createWeatherScoutAgent } from './nodes/weather-scout'
@@ -38,7 +44,12 @@ export interface AIClientConfig {
  */
 export interface WorkflowConfig {
   ai?: Partial<AIClientConfig>
+  /** 是否启用检查点（默认 true） */
   checkpointer?: boolean
+  /** 检查点存储类型（默认根据环境自动选择） */
+  checkpointerType?: CheckpointerType
+  /** PostgreSQL 连接字符串（仅 postgres 类型需要） */
+  checkpointerConnectionString?: string
   maxRetries?: number
 }
 
@@ -47,7 +58,7 @@ export interface WorkflowConfig {
 // ============================================================================
 
 /**
- * 创建 LangGraph 状态图工作流
+ * 创建 LangGraph 状态图工作流（同步版本，使用 MemorySaver）
  * @param config 可选配置
  */
 export function createTripPlanningWorkflow(config?: WorkflowConfig) {
@@ -96,19 +107,21 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
     (state: TripState) => {
       // 通过审计
       if (state.budgetResult?.isWithinBudget) {
-        console.log('[Workflow] Budget check passed, proceeding to finalize')
+        logger.info('Workflow', 'Budget check passed, proceeding to finalize')
         return 'finalize'
       }
       // 超过最大重试次数，强制结束
       if (state.retryCount >= maxRetries) {
-        console.warn(
-          `[Workflow] Exceeded max retries (${state.retryCount}), proceeding anyway`
+        logger.warn(
+          'Workflow',
+          `Exceeded max retries (${state.retryCount}), proceeding anyway`
         )
         return 'finalize'
       }
       // 超预算，返回重新规划
-      console.log(
-        `[Workflow] Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
+      logger.info(
+        'Workflow',
+        `Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
       )
       return 'retry'
     },
@@ -121,10 +134,111 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
   // 5. 结束边
   workflow.addEdge('finalize' as any, END)
 
-  // 6. 配置检查点存储（可选）
-  let checkpointer = undefined
+  // 6. 配置检查点存储
+  let checkpointer: MemorySaver | undefined = undefined
   if (enableCheckpointer) {
+    // 同步版本始终使用 MemorySaver
     checkpointer = new MemorySaver()
+  }
+
+  // 7. 编译工作流
+  const app = workflow.compile({ checkpointer })
+
+  return app
+}
+
+/**
+ * 创建 LangGraph 状态图工作流（异步版本，支持 PostgreSQL）
+ * @param config 可选配置
+ */
+export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
+  const aiConfig = config?.ai
+  const enableCheckpointer = config?.checkpointer !== false
+  const maxRetries = config?.maxRetries ?? 3
+
+  // 创建 Agent 实例
+  const weatherScoutAgent = createWeatherScoutAgent(aiConfig)
+  const itineraryPlannerAgent = createItineraryPlannerAgent(aiConfig)
+  const accommodationAgent = createAccommodationAgent(aiConfig)
+  const transportAgent = createTransportAgent(aiConfig)
+  const diningAgent = createDiningAgent(aiConfig)
+  const budgetCriticAgent = createBudgetCriticAgent()
+  const finalizeAgent = createFinalizeAgent(aiConfig)
+
+  // 1. 创建状态图
+  const workflow = new StateGraph(TripStateAnnotation)
+
+  // 2. 添加节点（每个节点是一个 Agent）
+  workflow.addNode('weather_scout' as any, weatherScoutAgent)
+  workflow.addNode('itinerary_planner' as any, itineraryPlannerAgent)
+  workflow.addNode('accommodation_agent' as any, accommodationAgent)
+  workflow.addNode('transport_agent' as any, transportAgent)
+  workflow.addNode('dining_agent' as any, diningAgent)
+  workflow.addNode('budget_critic' as any, budgetCriticAgent)
+  workflow.addNode('finalize' as any, finalizeAgent)
+
+  // 3. 定义边（执行顺序）
+  // 入口 → 天气
+  workflow.addEdge(START, 'weather_scout' as any)
+  // 天气 → 规划
+  workflow.addEdge('weather_scout' as any, 'itinerary_planner' as any)
+  // 规划 → 资源 (并行扇出)
+  workflow.addEdge('itinerary_planner' as any, 'accommodation_agent' as any)
+  workflow.addEdge('itinerary_planner' as any, 'transport_agent' as any)
+  workflow.addEdge('itinerary_planner' as any, 'dining_agent' as any)
+  // 资源 → 预算 (扇入汇合)
+  workflow.addEdge('accommodation_agent' as any, 'budget_critic' as any)
+  workflow.addEdge('transport_agent' as any, 'budget_critic' as any)
+  workflow.addEdge('dining_agent' as any, 'budget_critic' as any)
+
+  // 4. 条件边：预算审计后的决策
+  workflow.addConditionalEdges(
+    'budget_critic' as any,
+    (state: TripState) => {
+      // 通过审计
+      if (state.budgetResult?.isWithinBudget) {
+        logger.info('Workflow', 'Budget check passed, proceeding to finalize')
+        return 'finalize'
+      }
+      // 超过最大重试次数，强制结束
+      if (state.retryCount >= maxRetries) {
+        logger.warn(
+          'Workflow',
+          `Exceeded max retries (${state.retryCount}), proceeding anyway`
+        )
+        return 'finalize'
+      }
+      // 超预算，返回重新规划
+      logger.info(
+        'Workflow',
+        `Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
+      )
+      return 'retry'
+    },
+    {
+      finalize: 'finalize' as any,
+      retry: 'itinerary_planner' as any, // 循环回规划节点
+    }
+  )
+
+  // 5. 结束边
+  workflow.addEdge('finalize' as any, END)
+
+  // 6. 配置检查点存储（异步获取）
+  let checkpointer: PostgresSaver | MemorySaver | undefined = undefined
+  if (enableCheckpointer) {
+    try {
+      checkpointer = await getCheckpointer({
+        type: config?.checkpointerType,
+        connectionString: config?.checkpointerConnectionString,
+      })
+      logger.info('Workflow', `Using ${config?.checkpointerType || 'auto'} checkpointer`)
+    } catch (error) {
+      logger.warn('Workflow', 'Failed to initialize checkpointer, falling back to memory', {
+        error: (error as Error).message,
+      })
+      checkpointer = new MemorySaver()
+    }
   }
 
   // 7. 编译工作流
@@ -141,10 +255,11 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
  * 全局工作流实例（单例）
  */
 let workflowInstance: ReturnType<typeof createTripPlanningWorkflow> | null = null
+let workflowInstanceAsync: Awaited<ReturnType<typeof createTripPlanningWorkflowAsync>> | null = null
 let workflowConfig: WorkflowConfig | undefined = undefined
 
 /**
- * 获取工作流实例
+ * 获取工作流实例（同步版本，使用 MemorySaver）
  * 使用单例模式避免重复编译
  * @param config 可选配置（仅在首次创建时生效）
  */
@@ -162,16 +277,35 @@ export function getTripPlanningWorkflow(config?: WorkflowConfig) {
 }
 
 /**
+ * 获取工作流实例（异步版本，支持 PostgreSQL）
+ * 使用单例模式避免重复编译
+ * @param config 可选配置
+ */
+export async function getTripPlanningWorkflowAsync(config?: WorkflowConfig) {
+  // 如果配置变化，重新创建实例
+  if (config && JSON.stringify(config) !== JSON.stringify(workflowConfig)) {
+    workflowInstanceAsync = null
+    workflowConfig = config
+  }
+
+  if (!workflowInstanceAsync) {
+    workflowInstanceAsync = await createTripPlanningWorkflowAsync(workflowConfig)
+  }
+  return workflowInstanceAsync
+}
+
+/**
  * 重置工作流实例
  * 用于测试或配置变更
  */
 export function resetTripPlanningWorkflow() {
   workflowInstance = null
+  workflowInstanceAsync = null
   workflowConfig = undefined
 }
 
 /**
- * 执行工作流
+ * 执行工作流（使用 MemorySaver）
  * @param userInput - 用户输入的行程表单数据
  * @param options - 执行选项
  */
@@ -189,10 +323,11 @@ export async function executeTripPlanningWorkflow(
     userInput,
   }
 
-  console.log('[Workflow] Starting trip planning workflow...')
-  console.log(`[Workflow] Destination: ${userInput.destination}`)
-  console.log(`[Workflow] Date: ${userInput.start_date} - ${userInput.end_date}`)
-  console.log(`[Workflow] Budget: ¥${userInput.budget}`)
+  logger.info('Workflow', 'Starting trip planning workflow...', {
+    destination: userInput.destination,
+    dateRange: `${userInput.start_date} - ${userInput.end_date}`,
+    budget: userInput.budget,
+  })
 
   const startTime = Date.now()
 
@@ -202,13 +337,54 @@ export async function executeTripPlanningWorkflow(
   })
 
   const duration = Date.now() - startTime
-  console.log(`[Workflow] Completed in ${duration}ms`)
+  logger.info('Workflow', `Completed in ${duration}ms`)
 
   return finalState
 }
 
 /**
- * 流式执行工作流
+ * 执行工作流（支持 PostgreSQL Checkpointer）
+ * @param userInput - 用户输入的行程表单数据
+ * @param options - 执行选项
+ */
+export async function executeTripPlanningWorkflowWithPersistence(
+  userInput: TripState['userInput'],
+  options?: {
+    thread_id?: string
+    config?: WorkflowConfig
+  }
+) {
+  const app = await getTripPlanningWorkflowAsync(options?.config)
+
+  // 初始状态
+  const initialState: Partial<TripState> = {
+    userInput,
+  }
+
+  const threadId = options?.thread_id || `trip-${Date.now()}`
+
+  logger.info('Workflow', 'Starting trip planning workflow (with persistence)...', {
+    destination: userInput.destination,
+    dateRange: `${userInput.start_date} - ${userInput.end_date}`,
+    budget: userInput.budget,
+    threadId,
+  })
+
+  const startTime = Date.now()
+
+  // 执行工作流
+  const finalState = await app.invoke(initialState, {
+    configurable: { thread_id: threadId },
+  })
+
+  const duration = Date.now() - startTime
+  logger.info('Workflow', `Completed in ${duration}ms`)
+
+  return finalState
+}
+
+/**
+ * 流式执行工作流（使用 MemorySaver）
  * 用于实时进度反馈
  * @param userInput - 用户输入的行程表单数据
  * @param options - 执行选项
@@ -227,7 +403,7 @@ export async function* streamTripPlanningWorkflow(
     userInput,
   }
 
-  console.log('[Workflow] Starting trip planning workflow (streaming)...')
+  logger.info('Workflow', 'Starting trip planning workflow (streaming)...')
 
   // 流式执行
   const stream = await app.stream(initialState, {
@@ -237,7 +413,51 @@ export async function* streamTripPlanningWorkflow(
   for await (const event of stream) {
     // 提取节点名称
     const nodeName = Object.keys(event)[0]
-    console.log(`[Workflow] Completed node: ${nodeName}`)
+    logger.debug('Workflow', `Completed node: ${nodeName}`)
+
+    yield {
+      node: nodeName,
+      state: (event as Record<string, unknown>)[nodeName],
+      timestamp: Date.now(),
+    }
+  }
+}
+
+/**
+ * 流式执行工作流（支持 PostgreSQL Checkpointer）
+ * 用于实时进度反馈，支持中断恢复
+ * @param userInput - 用户输入的行程表单数据
+ * @param options - 执行选项
+ */
+export async function* streamTripPlanningWorkflowWithPersistence(
+  userInput: TripState['userInput'],
+  options?: {
+    thread_id?: string
+    config?: WorkflowConfig
+  }
+) {
+  const app = await getTripPlanningWorkflowAsync(options?.config)
+
+  // 初始状态
+  const initialState: Partial<TripState> = {
+    userInput,
+  }
+
+  const threadId = options?.thread_id || `trip-${Date.now()}`
+
+  logger.info('Workflow', 'Starting trip planning workflow (streaming with persistence)...', {
+    threadId,
+  })
+
+  // 流式执行
+  const stream = await app.stream(initialState, {
+    configurable: { thread_id: threadId },
+  })
+
+  for await (const event of stream) {
+    // 提取节点名称
+    const nodeName = Object.keys(event)[0]
+    logger.debug('Workflow', `Completed node: ${nodeName}`)
 
     yield {
       node: nodeName,

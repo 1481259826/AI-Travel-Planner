@@ -2,6 +2,7 @@
  * LangGraph 多智能体系统 - 统一导出
  * Phase 3: 专家 Agent 实现完成
  * Phase 5.1: 添加结果缓存支持
+ * Phase 5.2: 添加 PostgreSQL Checkpointer 支持
  */
 
 // ============================================================================
@@ -14,13 +15,29 @@ export * from './state'
 // ============================================================================
 export {
   createTripPlanningWorkflow,
+  createTripPlanningWorkflowAsync,
   getTripPlanningWorkflow,
+  getTripPlanningWorkflowAsync,
   resetTripPlanningWorkflow,
   executeTripPlanningWorkflow,
+  executeTripPlanningWorkflowWithPersistence,
   streamTripPlanningWorkflow,
+  streamTripPlanningWorkflowWithPersistence,
   getWorkflowNodes,
 } from './workflow'
 export type { AIClientConfig, WorkflowConfig } from './workflow'
+
+// ============================================================================
+// Checkpointer
+// ============================================================================
+export {
+  getCheckpointer,
+  closeCheckpointer,
+  cleanupOldCheckpoints,
+  isCheckpointerInitialized,
+  getCheckpointerType,
+} from './checkpointer'
+export type { CheckpointerType, CheckpointerConfig } from './checkpointer'
 
 // ============================================================================
 // Agent 节点
@@ -87,7 +104,7 @@ export type { CacheType } from './cache'
 // ============================================================================
 
 /*
-// 基本用法
+// 基本用法（使用内存检查点）
 import { executeTripPlanningWorkflow } from '@/lib/agents'
 
 const userInput = {
@@ -104,12 +121,31 @@ const userInput = {
 const result = await executeTripPlanningWorkflow(userInput)
 console.log(result.finalItinerary)
 
+// 使用 PostgreSQL 持久化（支持中断恢复）
+import { executeTripPlanningWorkflowWithPersistence } from '@/lib/agents'
+
+const result = await executeTripPlanningWorkflowWithPersistence(userInput, {
+  thread_id: 'trip-123', // 自定义线程 ID，用于中断恢复
+  config: {
+    checkpointerType: 'postgres', // 使用 PostgreSQL 存储
+  },
+})
+
 // 流式执行（用于实时进度反馈）
 import { streamTripPlanningWorkflow } from '@/lib/agents'
 
 for await (const event of streamTripPlanningWorkflow(userInput)) {
   console.log('Current node:', event.node)
   console.log('State:', event.state)
+}
+
+// 流式执行 + PostgreSQL 持久化
+import { streamTripPlanningWorkflowWithPersistence } from '@/lib/agents'
+
+for await (const event of streamTripPlanningWorkflowWithPersistence(userInput, {
+  thread_id: 'trip-123',
+})) {
+  console.log('Current node:', event.node)
 }
 
 // 使用自定义配置
@@ -145,4 +181,22 @@ const nodes = getWorkflowNodes()
 //   { id: 'itinerary_planner', name: '行程规划', description: '...' },
 //   ...
 // ]
+
+// Checkpointer 管理
+import {
+  getCheckpointer,
+  closeCheckpointer,
+  cleanupOldCheckpoints,
+  getCheckpointerType,
+} from '@/lib/agents'
+
+// 获取当前使用的 checkpointer 类型
+console.log('Checkpointer type:', getCheckpointerType())
+
+// 清理旧的检查点数据（建议定期调用）
+const deletedCount = await cleanupOldCheckpoints(7) // 保留 7 天
+console.log(`Cleaned up ${deletedCount} old checkpoints`)
+
+// 应用关闭时释放连接
+await closeCheckpointer()
 */
