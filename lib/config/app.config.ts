@@ -122,6 +122,9 @@ function createConfig(): AppConfig {
   const isProd = env === 'production'
   const isDev = env === 'development'
 
+  // 检测是否在服务端运行
+  const isServer = typeof window === 'undefined'
+
   // Supabase 配置（必需）
   // 直接访问环境变量以支持 Next.js 的静态替换
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -136,10 +139,11 @@ function createConfig(): AppConfig {
   }
 
   // AI 模型配置（可选，但至少需要一个）
+  // 这些是服务端环境变量，只在服务端检查
   const deepseekApiKey = getEnv('DEEPSEEK_API_KEY')
   const modelscopeApiKey = getEnv('MODELSCOPE_API_KEY')
 
-  if (!deepseekApiKey && !modelscopeApiKey) {
+  if (isServer && !deepseekApiKey && !modelscopeApiKey) {
     logger.warn('AppConfig: No AI model API keys configured (DeepSeek or ModelScope)')
   }
 
@@ -152,16 +156,17 @@ function createConfig(): AppConfig {
     logger.warn('AppConfig: Missing NEXT_PUBLIC_MAP_API_KEY')
   }
 
-  if (!mapWebServiceKey) {
+  // 服务端环境变量，只在服务端检查
+  if (isServer && !mapWebServiceKey) {
     logger.warn('AppConfig: Missing AMAP_WEB_SERVICE_KEY')
   }
 
-  // 加密密钥（必需）
+  // 加密密钥（必需）- 服务端环境变量
   const encryptionKey = getEnv('ENCRYPTION_KEY')
 
-  if (!encryptionKey) {
+  if (isServer && !encryptionKey) {
     logger.warn('AppConfig: Missing ENCRYPTION_KEY')
-  } else if (encryptionKey.length < 32) {
+  } else if (isServer && encryptionKey && encryptionKey.length < 32) {
     logger.warn('AppConfig: ENCRYPTION_KEY should be at least 32 characters for AES-256')
   }
 
@@ -226,7 +231,10 @@ function createConfig(): AppConfig {
 function validateConfig(config: AppConfig): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
-  // 验证必需配置
+  // 检测是否在服务端运行
+  const isServer = typeof window === 'undefined'
+
+  // 验证必需配置（客户端可访问的）
   if (!config.supabase.url) {
     errors.push('Supabase URL is required')
   }
@@ -235,22 +243,25 @@ function validateConfig(config: AppConfig): { isValid: boolean; errors: string[]
     errors.push('Supabase anon key is required')
   }
 
-  if (!config.deepseek.apiKey && !config.modelscope.apiKey) {
-    errors.push('At least one AI model API key is required (DeepSeek or ModelScope)')
-  }
-
   if (!config.map.apiKey) {
     errors.push('Map API key is required')
   }
 
-  if (!config.map.webServiceKey) {
-    errors.push('Map Web Service key is required')
-  }
+  // 服务端环境变量只在服务端验证
+  if (isServer) {
+    if (!config.deepseek.apiKey && !config.modelscope.apiKey) {
+      errors.push('At least one AI model API key is required (DeepSeek or ModelScope)')
+    }
 
-  if (!config.encryptionKey) {
-    errors.push('Encryption key is required')
-  } else if (config.encryptionKey.length < 32) {
-    errors.push('Encryption key must be at least 32 characters')
+    if (!config.map.webServiceKey) {
+      errors.push('Map Web Service key is required')
+    }
+
+    if (!config.encryptionKey) {
+      errors.push('Encryption key is required')
+    } else if (config.encryptionKey.length < 32) {
+      errors.push('Encryption key must be at least 32 characters')
+    }
   }
 
   // 验证 URL 格式
