@@ -8,6 +8,39 @@ import {
 } from './offline'
 import { Trip, Expense } from '@/types'
 
+// 提取错误详情的工具函数，支持标准 Error 和 Supabase PostgrestError
+function extractErrorDetails(err: unknown): string | object {
+  if (err instanceof Error) {
+    return err.message
+  }
+  if (err && typeof err === 'object') {
+    const pgError = err as { message?: string; code?: string; details?: string; hint?: string }
+    if (pgError.message) {
+      return {
+        message: pgError.message,
+        code: pgError.code,
+        details: pgError.details,
+        hint: pgError.hint
+      }
+    }
+  }
+  return 'Unknown error'
+}
+
+// 提取错误消息为字符串
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message
+  }
+  if (err && typeof err === 'object') {
+    const pgError = err as { message?: string; code?: string }
+    if (pgError.message) {
+      return pgError.code ? `[${pgError.code}] ${pgError.message}` : pgError.message
+    }
+  }
+  return 'Unknown error'
+}
+
 // Sync status type
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error'
 
@@ -88,7 +121,7 @@ async function uploadLocalChanges(): Promise<void> {
 
       await syncQueue.updateStatus(item.id!, 'synced')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = extractErrorMessage(error)
       console.error(`Failed to sync item ${item.id}:`, errorMessage)
       await syncQueue.updateStatus(item.id!, 'failed', errorMessage)
     }
@@ -331,7 +364,7 @@ export async function prefetchAllTripDetails(userId: string): Promise<void> {
               console.log(`Prefetched trip: ${fullTrip.destination}`)
             }
           } catch (err) {
-            console.error(`Failed to prefetch trip ${trip.id}:`, err)
+            console.error(`Failed to prefetch trip ${trip.id}:`, extractErrorDetails(err))
             // Continue with other trips even if one fails
           }
         })
