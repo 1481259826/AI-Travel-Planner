@@ -1,6 +1,7 @@
 /**
  * LangGraph 多智能体系统 - 统一导出
  * Phase 3: 专家 Agent 实现完成
+ * Phase 5.1: 添加结果缓存支持
  */
 
 // ============================================================================
@@ -57,7 +58,7 @@ export {
 // ============================================================================
 // MCP 客户端
 // ============================================================================
-export { MCPClient, getMCPClient } from './mcp-client'
+export { MCPClient, getMCPClient, resetMCPClient } from './mcp-client'
 export type {
   WeatherForecastResult,
   POI,
@@ -67,6 +68,19 @@ export type {
   GeocodeResult,
   DistanceResult,
 } from './mcp-client'
+
+// ============================================================================
+// 缓存
+// ============================================================================
+export {
+  MemoryCache,
+  getMCPCache,
+  resetMCPCache,
+  withCache,
+  logCacheStats,
+  CACHE_TTL,
+} from './cache'
+export type { CacheType } from './cache'
 
 // ============================================================================
 // 使用示例

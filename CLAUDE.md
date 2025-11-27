@@ -11,6 +11,7 @@ AI 旅行规划师 - 基于 Next.js 15 的全栈 AI 旅行规划 Web 应用，�
 - **框架**: Next.js 15 (App Router + TypeScript)
 - **认证/数据库**: Supabase (PostgreSQL + RLS 行级安全)
 - **AI 模型**: DeepSeek (OpenAI 兼容 API) + ModelScope (Qwen 系列)
+- **AI 编排**: LangGraph (多智能体状态图编排)
 - **状态管理**: Zustand (主题存储等)
 - **离线存储**: IndexedDB (idb 库)
 - **地图**: 高德地图 API (GCJ-02 坐标系)
@@ -71,7 +72,8 @@ npm run lint              # ESLint 检查
 ```
 app/
 ├── api/                          # API 路由（Next.js Route Handlers）
-│   ├── generate-itinerary/       # 核心：AI 行程生成
+│   ├── generate-itinerary/       # AI 行程生成 (v1 单体架构)
+│   ├── v2/generate-itinerary/    # AI 行程生成 (v2 多智能体架构)
 │   ├── user/                     # 用户相关（profile/password/api-keys）
 │   ├── trips/[id]/               # 行程 CRUD + 分享功能
 │   ├── expenses/                 # 费用追踪
@@ -109,9 +111,25 @@ components/                       # React 组件（已优化，Phase 3 重构）
 hooks/                            # React Hooks
 ├── useAMapLoader.ts              # 高德地图加载 Hook
 ├── usePhotoCarousel.ts           # 照片轮播 Hook
+├── useLangGraphProgress.ts       # LangGraph 进度监听 Hook
 └── useAuthFetch.ts               # 认证请求 Hook
 
 lib/
+├── agents/                       # LangGraph 多智能体系统
+│   ├── state.ts                  # TripState Annotation 定义
+│   ├── workflow.ts               # StateGraph 工作流定义
+│   ├── mcp-client.ts             # MCP 客户端封装（高德 API）
+│   ├── nodes/                    # Agent 节点函数
+│   │   ├── weather-scout.ts      # 天气感知 Agent
+│   │   ├── itinerary-planner.ts  # 核心规划 Agent
+│   │   ├── accommodation.ts      # 住宿专家 Agent
+│   │   ├── transport.ts          # 交通调度 Agent
+│   │   ├── dining.ts             # 餐饮推荐 Agent
+│   │   ├── budget-critic.ts      # 预算审计 Agent
+│   │   └── finalize.ts           # 汇总输出 Agent
+│   ├── prompts/                  # Agent System Prompts
+│   │   └── *.ts                  # 各 Agent 的提示词
+│   └── index.ts                  # 统一导出
 ├── database/                     # Supabase 模块化目录（重构后）
 │   ├── client.ts                 # 客户端初始化
 │   ├── auth.ts                   # 认证操作
@@ -144,7 +162,7 @@ database/init.sql                 # Supabase 数据库初始化脚本
 
 ### 核心数据流
 
-#### 1. 行程生成流程
+#### 1. 行程生成流程 (v1 单体架构)
 1. 用户在 `app/dashboard/create` 填写表单
 2. 提交到 `app/api/generate-itinerary/route.ts`
 3. 获取用户 API Keys（优先用户自定义，否则用系统默认）
@@ -153,6 +171,21 @@ database/init.sql                 # Supabase 数据库初始化脚本
 6. 地理聚类优化：将相近景点安排在同一天
 7. 保存到 Supabase `trips` 表
 8. 重定向到行程详情页
+
+#### 1b. 行程生成流程 (v2 多智能体架构)
+1. 用户在 `app/dashboard/create` 填写表单
+2. 提交到 `app/api/v2/generate-itinerary/route.ts`
+3. 执行 LangGraph 工作流（7 个专家 Agent）：
+   - **Weather Scout**: 获取天气预报，生成策略标签
+   - **Itinerary Planner**: 根据天气策略生成行程骨架
+   - **Accommodation Agent**: 推荐酒店住宿（并行）
+   - **Transport Agent**: 计算交通路线（并行）
+   - **Dining Agent**: 推荐餐厅（并行）
+   - **Budget Critic**: 预算审计，超预算触发重试
+   - **Finalize Agent**: 整合输出最终行程
+4. SSE 流式响应，实时推送 Agent 执行进度
+5. 保存到 Supabase `trips` 表
+6. 返回行程 ID 和结果
 
 #### 2. 离线数据同步
 - 使用 IndexedDB 存储行程和费用数据（`lib/offline.ts`）
@@ -271,6 +304,198 @@ const result = await ApiKeyChecker.checkDeepSeekRequired(userId, token)
 ```
 
 **向后兼容**：`lib/api-keys.ts` 和 `lib/check-api-keys.ts` 导出便捷函数。
+
+## LangGraph 多智能体架构
+
+项目已实现基于 LangGraph 的多智能体协作系统，用于智能行程生成。
+
+### 架构概述
+
+```
+用户输入
+    │
+    ▼
+┌───────────────────┐
+│  Weather Scout    │  获取天气 + 生成策略标签
+└───────────────────┘
+    │
+    ▼
+┌───────────────────┐
+│ Itinerary Planner │  生成行程骨架
+└───────────────────┘
+    │
+    ├──────────────────┬──────────────────┐
+    ▼                  ▼                  ▼
+┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Hotel   │    │Transport │    │  Dining  │    并行执行
+│  Agent   │    │  Agent   │    │  Agent   │
+└──────────┘    └──────────┘    └──────────┘
+    │                  │                  │
+    └──────────────────┴──────────────────┘
+                       │
+                       ▼
+              ┌───────────────────┐
+              │  Budget Critic    │  预算审计
+              └───────────────────┘
+                       │
+              ┌───────┴───────┐
+              │ 超预算?       │
+              │ Yes → 重试    │
+              │ No  → 完成    │
+              └───────────────┘
+                       │
+                       ▼
+              ┌───────────────────┐
+              │  Finalize Agent   │  生成最终行程
+              └───────────────────┘
+```
+
+### 启用方式
+
+通过 Feature Flag 控制，在 `.env.local` 中设置：
+
+```bash
+# 启用 LangGraph 多智能体架构（默认关闭）
+NEXT_PUBLIC_USE_LANGGRAPH=true
+```
+
+### 核心模块 (`lib/agents/`)
+
+**状态定义 (`state.ts`)**
+```typescript
+import { TripStateAnnotation, type TripState } from '@/lib/agents'
+
+// TripState 包含以下字段：
+// - userInput: 用户输入
+// - weather: 天气数据和策略标签
+// - draftItinerary: 行程草稿
+// - accommodation: 住宿推荐
+// - transport: 交通规划
+// - dining: 餐饮推荐
+// - budgetResult: 预算审计结果
+// - finalItinerary: 最终行程
+```
+
+**工作流执行**
+```typescript
+import {
+  executeTripPlanningWorkflow,
+  streamTripPlanningWorkflow,
+  getWorkflowNodes,
+} from '@/lib/agents'
+
+// 执行工作流（返回最终状态）
+const result = await executeTripPlanningWorkflow(formData, {
+  config: {
+    ai: { apiKey, baseURL, model },
+    maxRetries: 3,
+  },
+})
+
+// 流式执行（用于进度反馈）
+for await (const event of streamTripPlanningWorkflow(formData)) {
+  console.log('Completed:', event.node)
+}
+
+// 获取节点列表（用于 UI 显示）
+const nodes = getWorkflowNodes()
+// [{ id: 'weather_scout', name: '天气分析', ... }, ...]
+```
+
+**MCP 客户端 (`mcp-client.ts`)**
+```typescript
+import { getMCPClient } from '@/lib/agents'
+
+const mcp = getMCPClient()
+
+// 天气查询
+const weather = await mcp.getWeatherForecast('杭州')
+
+// POI 搜索
+const pois = await mcp.searchPOI({ keywords: '西湖', city: '杭州' })
+
+// 路线规划
+const route = await mcp.getDrivingRoute(origin, destination)
+
+// 地理编码
+const location = await mcp.geocode('杭州西湖', '杭州')
+```
+
+### 前端进度监听
+
+使用 `useLangGraphProgress` Hook 监听工作流执行进度：
+
+```typescript
+import { useLangGraphProgress } from '@/hooks/useLangGraphProgress'
+
+function CreateTripPage() {
+  const {
+    isGenerating,
+    progress,
+    stages,
+    currentStage,
+    error,
+    result,
+    startGeneration,
+    reset,
+  } = useLangGraphProgress()
+
+  const handleSubmit = async (formData) => {
+    await startGeneration(formData, accessToken)
+    if (result?.trip_id) {
+      router.push(`/dashboard/trips/${result.trip_id}`)
+    }
+  }
+
+  return (
+    <div>
+      {isGenerating && (
+        <ProgressModal
+          stages={stages}
+          currentStage={currentStage}
+          progress={progress}
+        />
+      )}
+    </div>
+  )
+}
+```
+
+### v2 API 端点
+
+**POST `/api/v2/generate-itinerary`**
+- 支持普通 JSON 响应和 SSE 流式响应
+- 根据 `Accept: text/event-stream` 头决定响应类型
+- SSE 事件类型：`start`, `node_complete`, `progress`, `error`, `complete`
+
+**GET `/api/v2/generate-itinerary`**
+- 返回工作流节点列表（用于前端进度显示）
+
+### Agent 详细说明
+
+| Agent | 职责 | MCP 工具 |
+|-------|------|----------|
+| Weather Scout | 获取天气预报，输出策略标签 | `getWeatherForecast` |
+| Itinerary Planner | 生成行程骨架（景点顺序） | `searchPOI`, `geocode` |
+| Accommodation | 推荐酒店住宿 | `searchNearby` |
+| Transport | 计算交通路线和费用 | `getDrivingRoute`, `getWalkingRoute`, `getTransitRoute` |
+| Dining | 推荐餐厅 | `searchPOI` |
+| Budget Critic | 预算审计，超支触发重试 | 无（纯计算） |
+| Finalize | 整合数据，输出最终行程 | 无 |
+
+### 预算审计与重试
+
+Budget Critic Agent 会检查总成本是否在预算范围内：
+- 允许 10% 的预算溢价
+- 超预算时返回反馈，触发 Itinerary Planner 重新规划
+- 最多重试 3 次
+
+### 开发注意事项
+
+1. **Feature Flag 检查**：前端通过 `appConfig.features.useLangGraph` 判断使用 v1 还是 v2 API
+2. **AI 配置**：工作流会自动获取用户或系统的 AI 配置
+3. **错误处理**：所有 Agent 都有完整的错误处理，失败时会记录到 `meta.errors`
+4. **调试日志**：工作流执行会输出详细日志，包含节点执行时间
 
 ## 开发注意事项
 
@@ -574,6 +799,8 @@ const { currentIndex, currentPhoto, hasPhotos, nextPhoto, prevPhoto } =
 
 ### 重构文档
 - `PHASE_3_COMPLETION_REPORT.md` - Phase 3 组件层重构完成报告
+- `多智能体架构升级计划.md` - LangGraph 多智能体架构设计与实施计划
 - 包含详细的重构过程、代码统计、最佳实践
 
 遇到问题时，优先查阅对应功能的文档。
+- 不要擅自启动服务器，我自己来手动启动服务器就可以
