@@ -79,10 +79,13 @@ app/
 │   ├── expenses/                 # 费用追踪
 │   ├── enrich-attraction/        # 景点信息增强（高德 POI）
 │   ├── enrich-hotel/             # 酒店信息增强
-│   └── weather/                  # 天气预报
+│   ├── weather/                  # 天气预报
+│   ├── metrics/                  # Prometheus 指标端点
+│   └── workflow-debug/           # 工作流调试 API（追踪数据）
 ├── dashboard/                    # 主应用页面
 │   ├── create/                   # 创建行程表单
 │   ├── settings/                 # 用户设置页面
+│   ├── debug/                    # 工作流调试页面（开发环境）
 │   └── trips/[id]/               # 行程详情 + 打印页面
 └── share/[token]/                # 公开分享页面
 
@@ -119,6 +122,9 @@ lib/
 │   ├── state.ts                  # TripState Annotation 定义
 │   ├── workflow.ts               # StateGraph 工作流定义
 │   ├── mcp-client.ts             # MCP 客户端封装（高德 API）
+│   ├── checkpointer.ts           # 检查点存储（MemorySaver/PostgreSQL）
+│   ├── tracer.ts                 # 工作流追踪器（Console/JSON/LangSmith）
+│   ├── metrics.ts                # 执行指标收集（Prometheus 格式）
 │   ├── nodes/                    # Agent 节点函数
 │   │   ├── weather-scout.ts      # 天气感知 Agent
 │   │   ├── itinerary-planner.ts  # 核心规划 Agent
@@ -552,6 +558,25 @@ Budget Critic Agent 会检查总成本是否在预算范围内：
 ```bash
 npm run dev:check         # 检查端口和服务器状态
 ```
+
+### 工作流调试页面
+开发环境下可访问工作流可视化调试页面：
+
+**访问方式**：
+1. Dashboard 顶部导航栏点击「调试」按钮
+2. 直接访问 `http://localhost:3008/dashboard/debug`
+
+**功能特性**：
+- **工作流状态图**: SVG 可视化展示 LangGraph 工作流结构和节点状态
+- **追踪记录列表**: 查看历史执行记录，支持状态筛选
+- **执行时间线**: 按时间顺序显示各节点执行情况和耗时对比
+- **状态数据查看器**: 查看工作流输入输出的 JSON 数据
+
+**API 端点**：
+- `GET /api/workflow-debug` - 获取追踪数据
+- `GET /api/workflow-debug?type=graph` - 获取工作流图结构
+- `GET /api/metrics` - Prometheus 格式指标
+- `GET /api/metrics?format=json` - JSON 格式指标
 
 ### 查看日志
 ```bash

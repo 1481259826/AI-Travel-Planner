@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud, Settings } from 'lucide-react'
+import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud, Settings, Bug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { auth, db } from '@/lib/supabase'
@@ -203,6 +203,15 @@ export default function DashboardPage() {
                 设置
               </Button>
             </Link>
+            {/* 调试入口 - 仅开发环境显示 */}
+            {process.env.NODE_ENV === 'development' && (
+              <Link href="/dashboard/debug">
+                <Button variant="outline" size="sm" className="text-purple-600 border-purple-300 hover:bg-purple-50">
+                  <Bug className="w-4 h-4 mr-1" />
+                  调试
+                </Button>
+              </Link>
+            )}
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               退出
