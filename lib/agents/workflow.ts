@@ -2,6 +2,7 @@
  * LangGraph 工作流定义
  * 定义多智能体协作的状态图
  * Phase 5.3: 添加追踪支持
+ * Phase 5.4: 添加指标收集支持
  */
 
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -23,6 +24,11 @@ import {
   type TracerConfig,
   type TracerType,
 } from './tracer'
+import {
+  getMetricsCollector,
+  createTimer,
+  type MetricsConfig,
+} from './metrics'
 
 // 导入 Agent 节点
 import { createWeatherScoutAgent } from './nodes/weather-scout'
@@ -62,6 +68,8 @@ export interface WorkflowConfig {
   tracer?: Partial<TracerConfig>
   /** 追踪器类型（快捷配置） */
   tracerType?: TracerType
+  /** 指标配置 */
+  metrics?: Partial<MetricsConfig>
 }
 
 // ============================================================================
@@ -331,6 +339,9 @@ export async function executeTripPlanningWorkflow(
     type: options?.config?.tracerType || options?.config?.tracer?.type,
   })
 
+  // 获取指标收集器
+  const metrics = getMetricsCollector(options?.config?.metrics)
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
@@ -342,11 +353,16 @@ export async function executeTripPlanningWorkflow(
     budget: userInput.budget,
   })
 
-  const startTime = Date.now()
+  const timer = createTimer()
   const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
     thread_id: options?.thread_id,
     destination: userInput.destination,
   })
+
+  // 更新活跃工作流计数
+  metrics.setActiveWorkflows((metrics.getMetricsSummary().gauges.find(
+    g => g.name.endsWith('_active_workflows')
+  )?.value || 0) + 1)
 
   try {
     // 执行工作流
@@ -354,7 +370,7 @@ export async function executeTripPlanningWorkflow(
       configurable: { thread_id: options?.thread_id || `trip-${Date.now()}` },
     })
 
-    const duration = Date.now() - startTime
+    const duration = timer.stop()
     logger.info(`[Workflow] Completed in ${duration}ms`)
 
     // 结束追踪
@@ -364,15 +380,40 @@ export async function executeTripPlanningWorkflow(
       hasItinerary: !!finalState.finalItinerary,
     })
 
+    // 记录工作流指标
+    metrics.recordWorkflowExecution({
+      workflowName: 'TripPlanningWorkflow',
+      status: 'success',
+      durationMs: duration,
+      agentCount: 7, // 7 个 Agent 节点
+      retryCount: finalState.retryCount || 0,
+    })
+
     return finalState
   } catch (error) {
-    const duration = Date.now() - startTime
+    const duration = timer.stop()
     logger.error(`[Workflow] Failed after ${duration}ms`, error as Error)
 
     // 记录错误
     tracer.endTrace(traceId, undefined, (error as Error).message)
 
+    // 记录失败指标
+    metrics.recordWorkflowExecution({
+      workflowName: 'TripPlanningWorkflow',
+      status: 'error',
+      durationMs: duration,
+      agentCount: 0,
+      retryCount: 0,
+      errorMessage: (error as Error).message,
+    })
+
     throw error
+  } finally {
+    // 更新活跃工作流计数
+    const currentActive = metrics.getMetricsSummary().gauges.find(
+      g => g.name.endsWith('_active_workflows')
+    )?.value || 0
+    metrics.setActiveWorkflows(Math.max(0, currentActive - 1))
   }
 }
 
@@ -396,6 +437,9 @@ export async function executeTripPlanningWorkflowWithPersistence(
     type: options?.config?.tracerType || options?.config?.tracer?.type,
   })
 
+  // 获取指标收集器
+  const metrics = getMetricsCollector(options?.config?.metrics)
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
@@ -410,12 +454,17 @@ export async function executeTripPlanningWorkflowWithPersistence(
     threadId,
   })
 
-  const startTime = Date.now()
+  const timer = createTimer()
   const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
     thread_id: threadId,
     destination: userInput.destination,
     persistence: true,
   })
+
+  // 更新活跃工作流计数
+  metrics.setActiveWorkflows((metrics.getMetricsSummary().gauges.find(
+    g => g.name.endsWith('_active_workflows')
+  )?.value || 0) + 1)
 
   try {
     // 执行工作流
@@ -423,7 +472,7 @@ export async function executeTripPlanningWorkflowWithPersistence(
       configurable: { thread_id: threadId },
     })
 
-    const duration = Date.now() - startTime
+    const duration = timer.stop()
     logger.info(`[Workflow] Completed in ${duration}ms`)
 
     // 结束追踪
@@ -433,15 +482,40 @@ export async function executeTripPlanningWorkflowWithPersistence(
       hasItinerary: !!finalState.finalItinerary,
     })
 
+    // 记录工作流指标
+    metrics.recordWorkflowExecution({
+      workflowName: 'TripPlanningWorkflow',
+      status: 'success',
+      durationMs: duration,
+      agentCount: 7,
+      retryCount: finalState.retryCount || 0,
+    })
+
     return finalState
   } catch (error) {
-    const duration = Date.now() - startTime
+    const duration = timer.stop()
     logger.error(`[Workflow] Failed after ${duration}ms`, error as Error)
 
     // 记录错误
     tracer.endTrace(traceId, undefined, (error as Error).message)
 
+    // 记录失败指标
+    metrics.recordWorkflowExecution({
+      workflowName: 'TripPlanningWorkflow',
+      status: 'error',
+      durationMs: duration,
+      agentCount: 0,
+      retryCount: 0,
+      errorMessage: (error as Error).message,
+    })
+
     throw error
+  } finally {
+    // 更新活跃工作流计数
+    const currentActive = metrics.getMetricsSummary().gauges.find(
+      g => g.name.endsWith('_active_workflows')
+    )?.value || 0
+    metrics.setActiveWorkflows(Math.max(0, currentActive - 1))
   }
 }
 

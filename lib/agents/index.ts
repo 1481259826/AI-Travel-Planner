@@ -127,6 +127,27 @@ export {
 export type { CacheType } from './cache'
 
 // ============================================================================
+// 指标收集 (Metrics)
+// ============================================================================
+export {
+  MetricsCollector,
+  getMetricsCollector,
+  resetMetricsCollector,
+  createTimer,
+  withAgentMetrics,
+  withMCPToolMetrics,
+} from './metrics'
+export type {
+  MetricsConfig,
+  AgentExecutionRecord,
+  WorkflowExecutionRecord,
+  MCPToolCallRecord,
+  CounterMetric,
+  HistogramMetric,
+  GaugeMetric,
+} from './metrics'
+
+// ============================================================================
 // 使用示例
 // ============================================================================
 

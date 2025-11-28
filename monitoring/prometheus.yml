@@ -1,0 +1,27 @@
+# Prometheus 配置示例
+# 用于抓取 AI Travel Planner 的 LangGraph 指标
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # AI Travel Planner LangGraph 指标
+  - job_name: 'ai-travel-planner'
+    static_configs:
+      - targets: ['localhost:3008']
+    metrics_path: '/api/metrics'
+    scheme: 'http'
+    # 如果配置了认证令牌，取消下面的注释
+    # authorization:
+    #   type: Bearer
+    #   credentials: 'your-metrics-auth-token'
+
+    # 可选：添加标签
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'ai-travel-planner'
+      - source_labels: []
+        target_label: environment
+        replacement: 'development'
