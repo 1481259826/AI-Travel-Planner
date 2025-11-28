@@ -362,7 +362,7 @@ class JsonTracer extends ConsoleTracer {
         fs.mkdirSync(this.outputDir, { recursive: true })
       }
     } catch (error) {
-      logger.warn('Tracer', `Failed to create output directory: ${this.outputDir}`)
+      logger.warn(`[Tracer] Failed to create output directory: ${this.outputDir}`)
     }
   }
 
@@ -381,9 +381,9 @@ class JsonTracer extends ConsoleTracer {
       const filename = `trace-${trace.id}.json`
       const filepath = path.join(this.outputDir, filename)
       fs.writeFileSync(filepath, JSON.stringify(trace, null, 2))
-      logger.debug('Tracer', `Saved trace to ${filepath}`)
+      logger.debug(`[Tracer] Saved trace to ${filepath}`)
     } catch (error) {
-      logger.warn('Tracer', `Failed to save trace to file: ${(error as Error).message}`)
+      logger.warn(`[Tracer] Failed to save trace to file: ${(error as Error).message}`)
     }
   }
 }
@@ -414,11 +414,10 @@ class LangSmithTracer extends ConsoleTracer {
         apiKey: this.config.langsmithApiKey,
       })
       this.initialized = true
-      logger.info('Tracer', 'LangSmith client initialized')
+      logger.info('[Tracer] LangSmith client initialized')
     } catch (error) {
       logger.warn(
-        'Tracer',
-        'LangSmith not available. Install with: npm install langsmith'
+        '[Tracer] LangSmith not available. Install with: npm install langsmith'
       )
       // 回退到 Console 追踪
     }
@@ -434,7 +433,7 @@ class LangSmithTracer extends ConsoleTracer {
     // 异步发送到 LangSmith（不阻塞）
     if (this.langsmithClient && this.initialized) {
       this.sendStartTraceToLangSmith(traceId, workflowName, input, metadata).catch((err) => {
-        logger.warn('Tracer', `LangSmith createRun failed: ${(err as Error).message}`)
+        logger.warn(`[Tracer] LangSmith createRun failed: ${(err as Error).message}`)
       })
     }
 
@@ -460,7 +459,7 @@ class LangSmithTracer extends ConsoleTracer {
       })
       this.runMap.set(traceId, run)
     } catch (error) {
-      logger.warn('Tracer', `LangSmith createRun failed: ${(error as Error).message}`)
+      logger.warn(`[Tracer] LangSmith createRun failed: ${(error as Error).message}`)
     }
   }
 
@@ -470,7 +469,7 @@ class LangSmithTracer extends ConsoleTracer {
     // 异步发送到 LangSmith（不阻塞）
     if (this.langsmithClient && this.initialized) {
       this.sendEndTraceToLangSmith(traceId, output, error).catch((err) => {
-        logger.warn('Tracer', `LangSmith updateRun failed: ${(err as Error).message}`)
+        logger.warn(`[Tracer] LangSmith updateRun failed: ${(err as Error).message}`)
       })
     }
   }
@@ -492,7 +491,7 @@ class LangSmithTracer extends ConsoleTracer {
         })
         this.runMap.delete(traceId)
       } catch (err) {
-        logger.warn('Tracer', `LangSmith updateRun failed: ${(err as Error).message}`)
+        logger.warn(`[Tracer] LangSmith updateRun failed: ${(err as Error).message}`)
       }
     }
   }

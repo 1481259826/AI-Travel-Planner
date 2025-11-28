@@ -64,8 +64,7 @@ function getDatabaseUrl(): string | null {
   }
 
   logger.warn(
-    'Checkpointer',
-    'No PostgreSQL connection string found. Set DATABASE_URL or SUPABASE_DB_URL environment variable.'
+    '[Checkpointer] No PostgreSQL connection string found. Set DATABASE_URL or SUPABASE_DB_URL environment variable.'
   )
   return null
 }
@@ -81,7 +80,7 @@ function getDatabaseUrl(): string | null {
 function createMemoryCheckpointer(): MemorySaver {
   if (!memorySaver) {
     memorySaver = new MemorySaver()
-    logger.info('Checkpointer', 'Memory checkpointer created')
+    logger.info('[Checkpointer] Memory checkpointer created')
   }
   return memorySaver
 }
@@ -122,7 +121,7 @@ async function createPostgresCheckpointer(
     await client.query('SELECT 1')
     client.release()
 
-    logger.info('Checkpointer', 'PostgreSQL connection established')
+    logger.info('[Checkpointer] PostgreSQL connection established')
 
     // 创建 PostgresSaver
     postgresSaver = PostgresSaver.fromConnString(dbUrl)
@@ -130,14 +129,12 @@ async function createPostgresCheckpointer(
     // 设置表（如果不存在）
     await postgresSaver.setup()
 
-    logger.info('Checkpointer', 'PostgreSQL checkpointer initialized')
+    logger.info('[Checkpointer] PostgreSQL checkpointer initialized')
     isInitialized = true
 
     return postgresSaver
   } catch (error) {
-    logger.error('Checkpointer', error as Error, {
-      context: 'Failed to create PostgreSQL checkpointer',
-    })
+    logger.error('[Checkpointer] Failed to create PostgreSQL checkpointer', error as Error)
     throw error
   }
 }
@@ -205,7 +202,7 @@ export async function closeCheckpointer(): Promise<void> {
     await postgresPool.end()
     postgresPool = null
     postgresSaver = null
-    logger.info('Checkpointer', 'PostgreSQL connection pool closed')
+    logger.info('[Checkpointer] PostgreSQL connection pool closed')
   }
 
   memorySaver = null
@@ -224,8 +221,7 @@ export async function cleanupOldCheckpoints(
 ): Promise<number> {
   if (!postgresPool) {
     logger.warn(
-      'Checkpointer',
-      'Cannot cleanup: PostgreSQL checkpointer not initialized'
+      '[Checkpointer] Cannot cleanup: PostgreSQL checkpointer not initialized'
     )
     return 0
   }
@@ -237,12 +233,10 @@ export async function cleanupOldCheckpoints(
     )
     const deletedCount = result.rows[0]?.cleanup_old_checkpoints || 0
 
-    logger.info('Checkpointer', `Cleaned up ${deletedCount} old checkpoints`)
+    logger.info(`[Checkpointer] Cleaned up ${deletedCount} old checkpoints`)
     return deletedCount
   } catch (error) {
-    logger.error('Checkpointer', error as Error, {
-      context: 'Failed to cleanup old checkpoints',
-    })
+    logger.error('[Checkpointer] Failed to cleanup old checkpoints', error as Error)
     throw error
   }
 }

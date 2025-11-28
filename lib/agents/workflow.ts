@@ -118,21 +118,19 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
     (state: TripState) => {
       // 通过审计
       if (state.budgetResult?.isWithinBudget) {
-        logger.info('Workflow', 'Budget check passed, proceeding to finalize')
+        logger.info('[Workflow] Budget check passed, proceeding to finalize')
         return 'finalize'
       }
       // 超过最大重试次数，强制结束
       if (state.retryCount >= maxRetries) {
         logger.warn(
-          'Workflow',
-          `Exceeded max retries (${state.retryCount}), proceeding anyway`
+          `[Workflow] Exceeded max retries (${state.retryCount}), proceeding anyway`
         )
         return 'finalize'
       }
       // 超预算，返回重新规划
       logger.info(
-        'Workflow',
-        `Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
+        `[Workflow] Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
       )
       return 'retry'
     },
@@ -208,21 +206,19 @@ export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
     (state: TripState) => {
       // 通过审计
       if (state.budgetResult?.isWithinBudget) {
-        logger.info('Workflow', 'Budget check passed, proceeding to finalize')
+        logger.info('[Workflow] Budget check passed, proceeding to finalize')
         return 'finalize'
       }
       // 超过最大重试次数，强制结束
       if (state.retryCount >= maxRetries) {
         logger.warn(
-          'Workflow',
-          `Exceeded max retries (${state.retryCount}), proceeding anyway`
+          `[Workflow] Exceeded max retries (${state.retryCount}), proceeding anyway`
         )
         return 'finalize'
       }
       // 超预算，返回重新规划
       logger.info(
-        'Workflow',
-        `Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
+        `[Workflow] Budget exceeded, retry ${state.retryCount + 1}/${maxRetries}`
       )
       return 'retry'
     },
@@ -243,9 +239,9 @@ export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
         type: config?.checkpointerType,
         connectionString: config?.checkpointerConnectionString,
       })
-      logger.info('Workflow', `Using ${config?.checkpointerType || 'auto'} checkpointer`)
+      logger.info(`[Workflow] Using ${config?.checkpointerType || 'auto'} checkpointer`)
     } catch (error) {
-      logger.warn('Workflow', 'Failed to initialize checkpointer, falling back to memory', {
+      logger.warn('[Workflow] Failed to initialize checkpointer, falling back to memory', {
         error: (error as Error).message,
       })
       checkpointer = new MemorySaver()
@@ -340,7 +336,7 @@ export async function executeTripPlanningWorkflow(
     userInput,
   }
 
-  logger.info('Workflow', 'Starting trip planning workflow...', {
+  logger.info('[Workflow] Starting trip planning workflow...', {
     destination: userInput.destination,
     dateRange: `${userInput.start_date} - ${userInput.end_date}`,
     budget: userInput.budget,
@@ -359,7 +355,7 @@ export async function executeTripPlanningWorkflow(
     })
 
     const duration = Date.now() - startTime
-    logger.info('Workflow', `Completed in ${duration}ms`)
+    logger.info(`[Workflow] Completed in ${duration}ms`)
 
     // 结束追踪
     tracer.endTrace(traceId, {
@@ -371,7 +367,7 @@ export async function executeTripPlanningWorkflow(
     return finalState
   } catch (error) {
     const duration = Date.now() - startTime
-    logger.error('Workflow', `Failed after ${duration}ms`, error as Error)
+    logger.error(`[Workflow] Failed after ${duration}ms`, error as Error)
 
     // 记录错误
     tracer.endTrace(traceId, undefined, (error as Error).message)
@@ -407,7 +403,7 @@ export async function executeTripPlanningWorkflowWithPersistence(
 
   const threadId = options?.thread_id || `trip-${Date.now()}`
 
-  logger.info('Workflow', 'Starting trip planning workflow (with persistence)...', {
+  logger.info('[Workflow] Starting trip planning workflow (with persistence)...', {
     destination: userInput.destination,
     dateRange: `${userInput.start_date} - ${userInput.end_date}`,
     budget: userInput.budget,
@@ -428,7 +424,7 @@ export async function executeTripPlanningWorkflowWithPersistence(
     })
 
     const duration = Date.now() - startTime
-    logger.info('Workflow', `Completed in ${duration}ms`)
+    logger.info(`[Workflow] Completed in ${duration}ms`)
 
     // 结束追踪
     tracer.endTrace(traceId, {
@@ -440,7 +436,7 @@ export async function executeTripPlanningWorkflowWithPersistence(
     return finalState
   } catch (error) {
     const duration = Date.now() - startTime
-    logger.error('Workflow', `Failed after ${duration}ms`, error as Error)
+    logger.error(`[Workflow] Failed after ${duration}ms`, error as Error)
 
     // 记录错误
     tracer.endTrace(traceId, undefined, (error as Error).message)
@@ -477,7 +473,7 @@ export async function* streamTripPlanningWorkflow(
 
   const threadId = options?.thread_id || `trip-${Date.now()}`
 
-  logger.info('Workflow', 'Starting trip planning workflow (streaming)...')
+  logger.info('[Workflow] Starting trip planning workflow (streaming)...')
 
   // 开始追踪
   const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
@@ -498,7 +494,7 @@ export async function* streamTripPlanningWorkflow(
     for await (const event of stream) {
       // 提取节点名称
       const nodeName = Object.keys(event)[0]
-      logger.debug('Workflow', `Completed node: ${nodeName}`)
+      logger.debug(`[Workflow] Completed node: ${nodeName}`)
 
       // 结束上一个节点的 span（如果存在）
       const prevSpanId = nodeSpans.get(nodeName)
@@ -559,7 +555,7 @@ export async function* streamTripPlanningWorkflowWithPersistence(
 
   const threadId = options?.thread_id || `trip-${Date.now()}`
 
-  logger.info('Workflow', 'Starting trip planning workflow (streaming with persistence)...', {
+  logger.info('[Workflow] Starting trip planning workflow (streaming with persistence)...', {
     threadId,
   })
 
@@ -580,7 +576,7 @@ export async function* streamTripPlanningWorkflowWithPersistence(
     for await (const event of stream) {
       // 提取节点名称
       const nodeName = Object.keys(event)[0]
-      logger.debug('Workflow', `Completed node: ${nodeName}`)
+      logger.debug(`[Workflow] Completed node: ${nodeName}`)
 
       // 开始并立即结束 span（节点已完成）
       const spanId = tracer.startSpan(traceId, nodeName, 'node')
