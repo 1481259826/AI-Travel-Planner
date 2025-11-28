@@ -3,6 +3,7 @@
  * Phase 3: 专家 Agent 实现完成
  * Phase 5.1: 添加结果缓存支持
  * Phase 5.2: 添加 PostgreSQL Checkpointer 支持
+ * Phase 5.3: 添加工作流追踪支持
  */
 
 // ============================================================================
@@ -38,6 +39,32 @@ export {
   getCheckpointerType,
 } from './checkpointer'
 export type { CheckpointerType, CheckpointerConfig } from './checkpointer'
+
+// ============================================================================
+// Tracer (追踪器)
+// ============================================================================
+export {
+  createTracer,
+  getTracer,
+  resetTracer,
+  getDefaultTracerConfig,
+  withTracing,
+  withSpan,
+  BaseTracer,
+  ConsoleTracer,
+  JsonTracer,
+  LangSmithTracer,
+  NoopTracer,
+} from './tracer'
+export type {
+  TracerType,
+  SpanType,
+  SpanStatus,
+  TraceSpan,
+  TraceRecord,
+  TracerConfig,
+  Tracer,
+} from './tracer'
 
 // ============================================================================
 // Agent 节点

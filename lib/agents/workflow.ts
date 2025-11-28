@@ -1,6 +1,7 @@
 /**
  * LangGraph 工作流定义
  * 定义多智能体协作的状态图
+ * Phase 5.3: 添加追踪支持
  */
 
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -16,6 +17,12 @@ import {
   type CheckpointerType,
 } from './checkpointer'
 import { logger } from '@/lib/logger'
+import {
+  getTracer,
+  type Tracer,
+  type TracerConfig,
+  type TracerType,
+} from './tracer'
 
 // 导入 Agent 节点
 import { createWeatherScoutAgent } from './nodes/weather-scout'
@@ -51,6 +58,10 @@ export interface WorkflowConfig {
   /** PostgreSQL 连接字符串（仅 postgres 类型需要） */
   checkpointerConnectionString?: string
   maxRetries?: number
+  /** 追踪配置 */
+  tracer?: Partial<TracerConfig>
+  /** 追踪器类型（快捷配置） */
+  tracerType?: TracerType
 }
 
 // ============================================================================
@@ -318,6 +329,12 @@ export async function executeTripPlanningWorkflow(
 ) {
   const app = getTripPlanningWorkflow(options?.config)
 
+  // 获取追踪器
+  const tracer = getTracer({
+    ...options?.config?.tracer,
+    type: options?.config?.tracerType || options?.config?.tracer?.type,
+  })
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
@@ -330,16 +347,37 @@ export async function executeTripPlanningWorkflow(
   })
 
   const startTime = Date.now()
-
-  // 执行工作流
-  const finalState = await app.invoke(initialState, {
-    configurable: { thread_id: options?.thread_id || `trip-${Date.now()}` },
+  const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
+    thread_id: options?.thread_id,
+    destination: userInput.destination,
   })
 
-  const duration = Date.now() - startTime
-  logger.info('Workflow', `Completed in ${duration}ms`)
+  try {
+    // 执行工作流
+    const finalState = await app.invoke(initialState, {
+      configurable: { thread_id: options?.thread_id || `trip-${Date.now()}` },
+    })
 
-  return finalState
+    const duration = Date.now() - startTime
+    logger.info('Workflow', `Completed in ${duration}ms`)
+
+    // 结束追踪
+    tracer.endTrace(traceId, {
+      success: true,
+      duration,
+      hasItinerary: !!finalState.finalItinerary,
+    })
+
+    return finalState
+  } catch (error) {
+    const duration = Date.now() - startTime
+    logger.error('Workflow', `Failed after ${duration}ms`, error as Error)
+
+    // 记录错误
+    tracer.endTrace(traceId, undefined, (error as Error).message)
+
+    throw error
+  }
 }
 
 /**
@@ -356,6 +394,12 @@ export async function executeTripPlanningWorkflowWithPersistence(
 ) {
   const app = await getTripPlanningWorkflowAsync(options?.config)
 
+  // 获取追踪器
+  const tracer = getTracer({
+    ...options?.config?.tracer,
+    type: options?.config?.tracerType || options?.config?.tracer?.type,
+  })
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
@@ -371,16 +415,38 @@ export async function executeTripPlanningWorkflowWithPersistence(
   })
 
   const startTime = Date.now()
-
-  // 执行工作流
-  const finalState = await app.invoke(initialState, {
-    configurable: { thread_id: threadId },
+  const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
+    thread_id: threadId,
+    destination: userInput.destination,
+    persistence: true,
   })
 
-  const duration = Date.now() - startTime
-  logger.info('Workflow', `Completed in ${duration}ms`)
+  try {
+    // 执行工作流
+    const finalState = await app.invoke(initialState, {
+      configurable: { thread_id: threadId },
+    })
 
-  return finalState
+    const duration = Date.now() - startTime
+    logger.info('Workflow', `Completed in ${duration}ms`)
+
+    // 结束追踪
+    tracer.endTrace(traceId, {
+      success: true,
+      duration,
+      hasItinerary: !!finalState.finalItinerary,
+    })
+
+    return finalState
+  } catch (error) {
+    const duration = Date.now() - startTime
+    logger.error('Workflow', `Failed after ${duration}ms`, error as Error)
+
+    // 记录错误
+    tracer.endTrace(traceId, undefined, (error as Error).message)
+
+    throw error
+  }
 }
 
 /**
@@ -398,28 +464,70 @@ export async function* streamTripPlanningWorkflow(
 ) {
   const app = getTripPlanningWorkflow(options?.config)
 
+  // 获取追踪器
+  const tracer = getTracer({
+    ...options?.config?.tracer,
+    type: options?.config?.tracerType || options?.config?.tracer?.type,
+  })
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
   }
 
+  const threadId = options?.thread_id || `trip-${Date.now()}`
+
   logger.info('Workflow', 'Starting trip planning workflow (streaming)...')
 
-  // 流式执行
-  const stream = await app.stream(initialState, {
-    configurable: { thread_id: options?.thread_id || `trip-${Date.now()}` },
+  // 开始追踪
+  const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
+    thread_id: threadId,
+    destination: userInput.destination,
+    streaming: true,
   })
 
-  for await (const event of stream) {
-    // 提取节点名称
-    const nodeName = Object.keys(event)[0]
-    logger.debug('Workflow', `Completed node: ${nodeName}`)
+  // 记录每个节点的 span
+  const nodeSpans: Map<string, string> = new Map()
 
-    yield {
-      node: nodeName,
-      state: (event as Record<string, unknown>)[nodeName],
-      timestamp: Date.now(),
+  try {
+    // 流式执行
+    const stream = await app.stream(initialState, {
+      configurable: { thread_id: threadId },
+    })
+
+    for await (const event of stream) {
+      // 提取节点名称
+      const nodeName = Object.keys(event)[0]
+      logger.debug('Workflow', `Completed node: ${nodeName}`)
+
+      // 结束上一个节点的 span（如果存在）
+      const prevSpanId = nodeSpans.get(nodeName)
+      if (prevSpanId) {
+        tracer.endSpan(prevSpanId, (event as Record<string, unknown>)[nodeName])
+      }
+
+      // 开始新节点的 span
+      const spanId = tracer.startSpan(traceId, nodeName, 'node')
+      nodeSpans.set(nodeName, spanId)
+
+      yield {
+        node: nodeName,
+        state: (event as Record<string, unknown>)[nodeName],
+        timestamp: Date.now(),
+        traceId,
+        spanId,
+      }
+
+      // 立即结束 span（因为节点已完成）
+      tracer.endSpan(spanId, (event as Record<string, unknown>)[nodeName])
     }
+
+    // 结束追踪
+    tracer.endTrace(traceId, { success: true })
+  } catch (error) {
+    // 记录错误
+    tracer.endTrace(traceId, undefined, (error as Error).message)
+    throw error
   }
 }
 
@@ -438,6 +546,12 @@ export async function* streamTripPlanningWorkflowWithPersistence(
 ) {
   const app = await getTripPlanningWorkflowAsync(options?.config)
 
+  // 获取追踪器
+  const tracer = getTracer({
+    ...options?.config?.tracer,
+    type: options?.config?.tracerType || options?.config?.tracer?.type,
+  })
+
   // 初始状态
   const initialState: Partial<TripState> = {
     userInput,
@@ -449,21 +563,44 @@ export async function* streamTripPlanningWorkflowWithPersistence(
     threadId,
   })
 
-  // 流式执行
-  const stream = await app.stream(initialState, {
-    configurable: { thread_id: threadId },
+  // 开始追踪
+  const traceId = tracer.startTrace('TripPlanningWorkflow', userInput, {
+    thread_id: threadId,
+    destination: userInput.destination,
+    streaming: true,
+    persistence: true,
   })
 
-  for await (const event of stream) {
-    // 提取节点名称
-    const nodeName = Object.keys(event)[0]
-    logger.debug('Workflow', `Completed node: ${nodeName}`)
+  try {
+    // 流式执行
+    const stream = await app.stream(initialState, {
+      configurable: { thread_id: threadId },
+    })
 
-    yield {
-      node: nodeName,
-      state: (event as Record<string, unknown>)[nodeName],
-      timestamp: Date.now(),
+    for await (const event of stream) {
+      // 提取节点名称
+      const nodeName = Object.keys(event)[0]
+      logger.debug('Workflow', `Completed node: ${nodeName}`)
+
+      // 开始并立即结束 span（节点已完成）
+      const spanId = tracer.startSpan(traceId, nodeName, 'node')
+      tracer.endSpan(spanId, (event as Record<string, unknown>)[nodeName])
+
+      yield {
+        node: nodeName,
+        state: (event as Record<string, unknown>)[nodeName],
+        timestamp: Date.now(),
+        traceId,
+        spanId,
+      }
     }
+
+    // 结束追踪
+    tracer.endTrace(traceId, { success: true })
+  } catch (error) {
+    // 记录错误
+    tracer.endTrace(traceId, undefined, (error as Error).message)
+    throw error
   }
 }
 
