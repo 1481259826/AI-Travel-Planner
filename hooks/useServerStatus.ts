@@ -3,10 +3,15 @@ import { useState, useEffect } from 'react'
 /**
  * Hook to detect if the server is actually reachable (not just network connection)
  * Checks by attempting to fetch a lightweight endpoint
+ *
+ * 注意：开发环境下禁用定时检查，避免日志刷屏
  */
 export function useServerStatus() {
   const [isServerOnline, setIsServerOnline] = useState(true)
   const [isChecking, setIsChecking] = useState(false)
+
+  // 开发环境下跳过定时检查
+  const isDev = process.env.NODE_ENV === 'development'
 
   const checkServerStatus = async () => {
     // Don't check if already checking
@@ -42,6 +47,12 @@ export function useServerStatus() {
   }
 
   useEffect(() => {
+    // 开发环境下不进行定时检查，直接假设在线
+    if (isDev) {
+      setIsServerOnline(true)
+      return
+    }
+
     // 初次检查延迟 1s，避免热更新/页面切换导致请求被中止
     const initialTimer = setTimeout(checkServerStatus, 1000)
 
@@ -62,7 +73,7 @@ export function useServerStatus() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [])
+  }, [isDev])
 
   return { isServerOnline, checkServerStatus }
 }
