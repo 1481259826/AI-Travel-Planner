@@ -14,6 +14,16 @@ export {
   default as itineraryPlannerAgent,
 } from './itinerary-planner'
 
+// Attraction Enricher
+export {
+  createAttractionEnricherAgent,
+  estimateTicketPrice,
+  inferOpeningHours,
+  inferDuration,
+  generateTags,
+  default as attractionEnricherAgent,
+} from './attraction-enricher'
+
 // Accommodation Specialist
 export {
   createAccommodationAgent,

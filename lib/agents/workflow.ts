@@ -33,6 +33,7 @@ import {
 // 导入 Agent 节点
 import { createWeatherScoutAgent } from './nodes/weather-scout'
 import { createItineraryPlannerAgent } from './nodes/itinerary-planner'
+import { createAttractionEnricherAgent } from './nodes/attraction-enricher'
 import { createAccommodationAgent } from './nodes/accommodation'
 import { createTransportAgent } from './nodes/transport'
 import { createDiningAgent } from './nodes/dining'
@@ -88,6 +89,7 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
   // 创建 Agent 实例
   const weatherScoutAgent = createWeatherScoutAgent(aiConfig)
   const itineraryPlannerAgent = createItineraryPlannerAgent(aiConfig)
+  const attractionEnricherAgent = createAttractionEnricherAgent(aiConfig)
   const accommodationAgent = createAccommodationAgent(aiConfig)
   const transportAgent = createTransportAgent(aiConfig)
   const diningAgent = createDiningAgent(aiConfig)
@@ -100,6 +102,7 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
   // 2. 添加节点（每个节点是一个 Agent）
   workflow.addNode('weather_scout' as any, weatherScoutAgent)
   workflow.addNode('itinerary_planner' as any, itineraryPlannerAgent)
+  workflow.addNode('attraction_enricher' as any, attractionEnricherAgent)
   workflow.addNode('accommodation_agent' as any, accommodationAgent)
   workflow.addNode('transport_agent' as any, transportAgent)
   workflow.addNode('dining_agent' as any, diningAgent)
@@ -111,10 +114,12 @@ export function createTripPlanningWorkflow(config?: WorkflowConfig) {
   workflow.addEdge(START, 'weather_scout' as any)
   // 天气 → 规划
   workflow.addEdge('weather_scout' as any, 'itinerary_planner' as any)
-  // 规划 → 资源 (并行扇出)
-  workflow.addEdge('itinerary_planner' as any, 'accommodation_agent' as any)
-  workflow.addEdge('itinerary_planner' as any, 'transport_agent' as any)
-  workflow.addEdge('itinerary_planner' as any, 'dining_agent' as any)
+  // 规划 → 景点增强
+  workflow.addEdge('itinerary_planner' as any, 'attraction_enricher' as any)
+  // 景点增强 → 资源 (并行扇出)
+  workflow.addEdge('attraction_enricher' as any, 'accommodation_agent' as any)
+  workflow.addEdge('attraction_enricher' as any, 'transport_agent' as any)
+  workflow.addEdge('attraction_enricher' as any, 'dining_agent' as any)
   // 资源 → 预算 (扇入汇合)
   workflow.addEdge('accommodation_agent' as any, 'budget_critic' as any)
   workflow.addEdge('transport_agent' as any, 'budget_critic' as any)
@@ -176,6 +181,7 @@ export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
   // 创建 Agent 实例
   const weatherScoutAgent = createWeatherScoutAgent(aiConfig)
   const itineraryPlannerAgent = createItineraryPlannerAgent(aiConfig)
+  const attractionEnricherAgent = createAttractionEnricherAgent(aiConfig)
   const accommodationAgent = createAccommodationAgent(aiConfig)
   const transportAgent = createTransportAgent(aiConfig)
   const diningAgent = createDiningAgent(aiConfig)
@@ -188,6 +194,7 @@ export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
   // 2. 添加节点（每个节点是一个 Agent）
   workflow.addNode('weather_scout' as any, weatherScoutAgent)
   workflow.addNode('itinerary_planner' as any, itineraryPlannerAgent)
+  workflow.addNode('attraction_enricher' as any, attractionEnricherAgent)
   workflow.addNode('accommodation_agent' as any, accommodationAgent)
   workflow.addNode('transport_agent' as any, transportAgent)
   workflow.addNode('dining_agent' as any, diningAgent)
@@ -199,10 +206,12 @@ export async function createTripPlanningWorkflowAsync(config?: WorkflowConfig) {
   workflow.addEdge(START, 'weather_scout' as any)
   // 天气 → 规划
   workflow.addEdge('weather_scout' as any, 'itinerary_planner' as any)
-  // 规划 → 资源 (并行扇出)
-  workflow.addEdge('itinerary_planner' as any, 'accommodation_agent' as any)
-  workflow.addEdge('itinerary_planner' as any, 'transport_agent' as any)
-  workflow.addEdge('itinerary_planner' as any, 'dining_agent' as any)
+  // 规划 → 景点增强
+  workflow.addEdge('itinerary_planner' as any, 'attraction_enricher' as any)
+  // 景点增强 → 资源 (并行扇出)
+  workflow.addEdge('attraction_enricher' as any, 'accommodation_agent' as any)
+  workflow.addEdge('attraction_enricher' as any, 'transport_agent' as any)
+  workflow.addEdge('attraction_enricher' as any, 'dining_agent' as any)
   // 资源 → 预算 (扇入汇合)
   workflow.addEdge('accommodation_agent' as any, 'budget_critic' as any)
   workflow.addEdge('transport_agent' as any, 'budget_critic' as any)
@@ -385,7 +394,7 @@ export async function executeTripPlanningWorkflow(
       workflowName: 'TripPlanningWorkflow',
       status: 'success',
       durationMs: duration,
-      agentCount: 7, // 7 个 Agent 节点
+      agentCount: 8, // 8 个 Agent 节点
       retryCount: finalState.retryCount || 0,
     })
 
@@ -487,7 +496,7 @@ export async function executeTripPlanningWorkflowWithPersistence(
       workflowName: 'TripPlanningWorkflow',
       status: 'success',
       durationMs: duration,
-      agentCount: 7,
+      agentCount: 8,
       retryCount: finalState.retryCount || 0,
     })
 
@@ -693,6 +702,11 @@ export function getWorkflowNodes(): Array<{
       id: 'itinerary_planner',
       name: '行程规划',
       description: '根据用户需求和天气策略生成行程框架',
+    },
+    {
+      id: 'attraction_enricher',
+      name: '景点详情',
+      description: '为景点添加门票、开放时间、评分等详细信息',
     },
     {
       id: 'accommodation_agent',

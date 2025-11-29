@@ -14,6 +14,13 @@ export {
   buildItineraryPlannerUserMessage,
 } from './itinerary-planner'
 
+// Attraction Enricher
+export {
+  ATTRACTION_ENRICHER_SYSTEM_PROMPT,
+  buildAttractionEnricherUserMessage,
+  parseAttractionEnricherResponse,
+} from './attraction-enricher'
+
 // Accommodation Specialist
 export {
   ACCOMMODATION_SYSTEM_PROMPT,

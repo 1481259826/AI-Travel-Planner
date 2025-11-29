@@ -103,6 +103,45 @@ export interface DraftItinerary {
 }
 
 // ============================================================================
+// 景点详情增强类型
+// ============================================================================
+
+/**
+ * 景点详细信息（增强后）
+ */
+export interface EnrichedAttraction {
+  name: string // 景点名称
+  address?: string // 地址
+  location?: Location // 位置坐标
+  type?: Activity['type'] // 活动类型
+  // 增强字段
+  ticketPrice?: number // 门票价格（元）
+  ticketInfo?: string // 门票信息描述
+  openingHours?: string // 开放时间
+  rating?: number // 评分（1-5）
+  photos?: string[] // 照片 URL 列表
+  tel?: string // 联系电话
+  website?: string // 官方网站
+  description?: string // 景点介绍
+  recommendedDuration?: string // 建议游玩时长
+  tips?: string[] // 游玩贴士
+  tags?: string[] // 标签（如：世界遗产、5A 景区等）
+  poiId?: string // 高德 POI ID
+  category?: string // POI 类别
+}
+
+/**
+ * 景点增强 Agent 输出
+ */
+export interface AttractionEnrichmentResult {
+  enrichedAttractions: EnrichedAttraction[] // 增强后的景点列表
+  totalAttractions: number // 总景点数
+  enrichedCount: number // 成功增强的景点数
+  totalTicketCost: number // 预估门票总费用
+  errors?: string[] // 增强过程中的错误信息
+}
+
+// ============================================================================
 // 资源 Agent 输出类型
 // ============================================================================
 
@@ -292,6 +331,11 @@ export const TripStateAnnotation = Annotation.Root({
   }),
 
   dining: Annotation<DiningResult | null>({
+    default: () => null,
+    reducer: (_, newVal) => newVal,
+  }),
+
+  attractionEnrichment: Annotation<AttractionEnrichmentResult | null>({
     default: () => null,
     reducer: (_, newVal) => newVal,
   }),
