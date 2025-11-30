@@ -368,7 +368,7 @@ class JsonTracer extends ConsoleTracer {
         logger.info(`[JsonTracer] Created output directory: ${this.outputDir}`)
       }
     } catch (error) {
-      logger.warn(`[Tracer] Failed to create output directory: ${this.outputDir}`, error as Error)
+      logger.warn(`[Tracer] Failed to create output directory: ${this.outputDir}`, { error: (error as Error).message })
     }
   }
 
@@ -597,7 +597,7 @@ export function getTracer(config?: Partial<TracerConfig>): Tracer {
   if (config) {
     for (const [key, value] of Object.entries(config)) {
       if (value !== undefined) {
-        (newConfig as Record<string, unknown>)[key] = value
+        (newConfig as unknown as Record<string, unknown>)[key] = value
       }
     }
   }

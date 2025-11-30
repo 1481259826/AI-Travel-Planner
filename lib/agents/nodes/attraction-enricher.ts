@@ -38,9 +38,7 @@ const DEFAULT_AI_CONFIG: AIClientConfig = {
 /**
  * 从 POI 数据提取有用信息
  */
-function extractPOIData(poi: POI): EnrichedAttraction['poiId'] extends string
-  ? Partial<EnrichedAttraction>
-  : never {
+function extractPOIData(poi: POI): Partial<EnrichedAttraction> {
   const result: Partial<EnrichedAttraction> = {
     poiId: poi.id,
     category: poi.type,
@@ -56,7 +54,7 @@ function extractPOIData(poi: POI): EnrichedAttraction['poiId'] extends string
     }
   }
 
-  return result as any
+  return result
 }
 
 /**
