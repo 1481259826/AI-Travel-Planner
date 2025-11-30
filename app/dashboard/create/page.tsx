@@ -215,16 +215,15 @@ export default function CreateTripPage() {
 
       if (USE_LANGGRAPH) {
         // 使用 LangGraph 工作流 (v2 API)
-        await langGraphProgress.startGeneration(formData, session.access_token)
-
-        // 检查结果
-        if (langGraphProgress.error) {
-          alert(langGraphProgress.error)
-          setShowProgress(false)
-        } else if (langGraphProgress.result) {
+        try {
+          const result = await langGraphProgress.startGeneration(formData, session.access_token)
           // 短暂延迟后跳转，让用户看到完成状态
           await new Promise(resolve => setTimeout(resolve, 500))
-          router.push(`/dashboard/trips/${langGraphProgress.result.trip_id}`)
+          router.push(`/dashboard/trips/${result.trip_id}`)
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : '生成行程失败'
+          alert(errorMessage)
+          setShowProgress(false)
         }
       } else {
         // 使用传统单体 API (v1)

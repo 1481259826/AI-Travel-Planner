@@ -13,6 +13,7 @@ import {
   executeTripPlanningWorkflow,
   getWorkflowNodes,
   resetTripPlanningWorkflow,
+  resetTracer,
 } from '@/lib/agents'
 import type { TripState } from '@/lib/agents'
 import { ApiKeyClient } from '@/lib/api-keys'
@@ -206,8 +207,9 @@ export async function POST(request: NextRequest) {
     // 确保 profile 存在
     await ensureUserProfile(supabase, user.id, user.email)
 
-    // 重置工作流以确保使用新配置
+    // 重置工作流和追踪器以确保使用新配置
     resetTripPlanningWorkflow()
+    resetTracer()
 
     // 工作流配置
     const workflowConfig = {

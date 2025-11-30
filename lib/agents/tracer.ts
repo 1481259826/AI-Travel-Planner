@@ -352,17 +352,23 @@ class JsonTracer extends ConsoleTracer {
 
   constructor(config: TracerConfig) {
     super(config)
-    this.outputDir = config.jsonOutputDir || './logs/traces'
+    // 使用绝对路径
+    const configDir = config.jsonOutputDir || './logs/traces'
+    this.outputDir = path.isAbsolute(configDir)
+      ? configDir
+      : path.resolve(process.cwd(), configDir)
     this.ensureOutputDir()
+    logger.info(`[JsonTracer] Initialized with output dir: ${this.outputDir}`)
   }
 
   private ensureOutputDir(): void {
     try {
       if (!fs.existsSync(this.outputDir)) {
         fs.mkdirSync(this.outputDir, { recursive: true })
+        logger.info(`[JsonTracer] Created output directory: ${this.outputDir}`)
       }
     } catch (error) {
-      logger.warn(`[Tracer] Failed to create output directory: ${this.outputDir}`)
+      logger.warn(`[Tracer] Failed to create output directory: ${this.outputDir}`, error as Error)
     }
   }
 
@@ -373,6 +379,8 @@ class JsonTracer extends ConsoleTracer {
     const trace = this.getTrace(traceId)
     if (trace) {
       this.saveTraceToFile(trace)
+    } else {
+      logger.warn(`[JsonTracer] Trace not found for id: ${traceId}`)
     }
   }
 
@@ -381,9 +389,9 @@ class JsonTracer extends ConsoleTracer {
       const filename = `trace-${trace.id}.json`
       const filepath = path.join(this.outputDir, filename)
       fs.writeFileSync(filepath, JSON.stringify(trace, null, 2))
-      logger.debug(`[Tracer] Saved trace to ${filepath}`)
+      logger.info(`[JsonTracer] Saved trace to ${filepath}`)
     } catch (error) {
-      logger.warn(`[Tracer] Failed to save trace to file: ${(error as Error).message}`)
+      logger.error(`[JsonTracer] Failed to save trace to file`, error as Error)
     }
   }
 }
@@ -581,19 +589,39 @@ export function createTracer(config?: Partial<TracerConfig>): Tracer {
  * 获取全局追踪器实例（单例）
  */
 export function getTracer(config?: Partial<TracerConfig>): Tracer {
+  // 获取默认配置
+  const defaultConfig = getDefaultTracerConfig()
+
+  // 合并配置，过滤掉 undefined 值
+  const newConfig: TracerConfig = { ...defaultConfig }
+  if (config) {
+    for (const [key, value] of Object.entries(config)) {
+      if (value !== undefined) {
+        (newConfig as Record<string, unknown>)[key] = value
+      }
+    }
+  }
+
   // 如果配置变化，重新创建
-  const newConfig = { ...getDefaultTracerConfig(), ...config }
   if (
-    config &&
     globalConfig &&
     JSON.stringify(newConfig) !== JSON.stringify(globalConfig)
   ) {
+    logger.debug('[Tracer] Config changed, recreating tracer', {
+      old: globalConfig.type,
+      new: newConfig.type,
+    })
     globalTracer = null
   }
 
   if (!globalTracer) {
     globalConfig = newConfig
     globalTracer = createTracer(newConfig)
+    logger.info(`[Tracer] Created ${newConfig.type} tracer`, {
+      enabled: newConfig.enabled,
+      logDetails: newConfig.logDetails,
+      outputDir: newConfig.jsonOutputDir,
+    })
   }
 
   return globalTracer

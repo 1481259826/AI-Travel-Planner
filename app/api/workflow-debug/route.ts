@@ -5,12 +5,18 @@
  * 端点:
  * - GET /api/workflow-debug - 获取追踪数据
  * - GET /api/workflow-debug?id=xxx - 获取特定追踪
- * - GET /api/workflow-debug/graph - 获取工作流图结构
+ * - GET /api/workflow-debug?type=graph - 获取工作流图结构
+ *
+ * 数据来源:
+ * - 内存追踪器 (console 模式)
+ * - JSON 文件 (json 模式) - 从 logs/traces/ 目录读取
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getTracer, getWorkflowNodes } from '@/lib/agents'
 import type { TraceRecord } from '@/lib/agents'
+import * as fs from 'fs'
+import * as path from 'path'
 
 /**
  * 工作流图结构类型
@@ -113,6 +119,149 @@ function calculateNodePosition(nodeId: string, _index: number): { x: number; y: 
   return positions[nodeId] || { x: 400, y: 100 + _index * 80 }
 }
 
+// ============================================================================
+// JSON 文件追踪数据读取
+// ============================================================================
+
+/**
+ * 获取追踪文件目录（绝对路径）
+ */
+function getTraceOutputDir(): string {
+  const configDir = process.env.LANGGRAPH_TRACE_OUTPUT_DIR || './logs/traces'
+  return path.isAbsolute(configDir)
+    ? configDir
+    : path.resolve(process.cwd(), configDir)
+}
+
+/**
+ * 从 JSON 文件读取所有追踪记录
+ */
+function readTracesFromFiles(): TraceRecord[] {
+  const outputDir = getTraceOutputDir()
+  const traces: TraceRecord[] = []
+
+  try {
+    // 检查目录是否存在
+    if (!fs.existsSync(outputDir)) {
+      console.log('[Workflow Debug] Trace directory does not exist:', outputDir)
+      return traces
+    }
+
+    // 读取目录中的所有 JSON 文件
+    const files = fs.readdirSync(outputDir).filter((file) => file.endsWith('.json'))
+    console.log(`[Workflow Debug] Found ${files.length} trace files in ${outputDir}`)
+
+    for (const file of files) {
+      try {
+        const filepath = path.join(outputDir, file)
+        const content = fs.readFileSync(filepath, 'utf-8')
+        const trace = JSON.parse(content) as TraceRecord
+        traces.push(trace)
+      } catch (err) {
+        console.warn(`[Workflow Debug] Failed to read trace file ${file}:`, err)
+      }
+    }
+
+    // 按开始时间排序（最新的在后面）
+    traces.sort((a, b) => a.startTime - b.startTime)
+  } catch (err) {
+    console.error('[Workflow Debug] Failed to read traces from files:', err)
+  }
+
+  return traces
+}
+
+/**
+ * 从 JSON 文件读取特定追踪记录
+ */
+function readTraceFromFile(traceId: string): TraceRecord | null {
+  const outputDir = getTraceOutputDir()
+  const filename = `trace-${traceId}.json`
+  const filepath = path.join(outputDir, filename)
+
+  try {
+    if (fs.existsSync(filepath)) {
+      const content = fs.readFileSync(filepath, 'utf-8')
+      return JSON.parse(content) as TraceRecord
+    }
+  } catch (err) {
+    console.warn(`[Workflow Debug] Failed to read trace file ${filename}:`, err)
+  }
+
+  return null
+}
+
+/**
+ * 删除所有追踪文件
+ */
+function clearTraceFiles(): number {
+  const outputDir = getTraceOutputDir()
+  let deletedCount = 0
+
+  try {
+    if (fs.existsSync(outputDir)) {
+      const files = fs.readdirSync(outputDir).filter((file) => file.endsWith('.json'))
+      for (const file of files) {
+        try {
+          fs.unlinkSync(path.join(outputDir, file))
+          deletedCount++
+        } catch (err) {
+          console.warn(`[Workflow Debug] Failed to delete trace file ${file}:`, err)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Workflow Debug] Failed to clear trace files:', err)
+  }
+
+  return deletedCount
+}
+
+/**
+ * 获取所有追踪数据（内存 + 文件）
+ */
+function getAllTraces(): TraceRecord[] {
+  // 首先从内存获取
+  const tracer = getTracer()
+  const memoryTraces = tracer.getAllTraces()
+
+  // 然后从文件获取
+  const fileTraces = readTracesFromFiles()
+
+  // 合并去重（以 ID 为准）
+  const traceMap = new Map<string, TraceRecord>()
+
+  for (const trace of fileTraces) {
+    traceMap.set(trace.id, trace)
+  }
+
+  // 内存中的数据优先（更新）
+  for (const trace of memoryTraces) {
+    traceMap.set(trace.id, trace)
+  }
+
+  // 转换为数组并按时间排序
+  const allTraces = Array.from(traceMap.values())
+  allTraces.sort((a, b) => a.startTime - b.startTime)
+
+  return allTraces
+}
+
+/**
+ * 获取特定追踪记录（内存优先，然后文件）
+ */
+function getTraceById(traceId: string): TraceRecord | null {
+  // 首先从内存查找
+  const tracer = getTracer()
+  const memoryTrace = tracer.getTrace(traceId)
+  if (memoryTrace) {
+    return memoryTrace
+  }
+
+  // 然后从文件查找
+  return readTraceFromFile(traceId)
+}
+
 /**
  * GET /api/workflow-debug
  * 获取追踪数据或工作流图结构
@@ -135,12 +284,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: nodes })
     }
 
-    // 获取追踪数据
-    const tracer = getTracer()
-
     // 获取特定追踪
     if (id) {
-      const trace = tracer.getTrace(id)
+      const trace = getTraceById(id)
       if (!trace) {
         return NextResponse.json(
           { success: false, error: 'Trace not found' },
@@ -150,11 +296,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: trace })
     }
 
-    // 获取所有追踪
-    const traces = tracer.getAllTraces()
+    // 获取所有追踪（内存 + 文件）
+    const traces = getAllTraces()
 
     // 添加统计信息
     const stats = calculateTraceStats(traces)
+
+    // 添加数据源信息
+    const tracerType = process.env.LANGGRAPH_TRACER || 'console'
 
     return NextResponse.json({
       success: true,
@@ -162,6 +311,8 @@ export async function GET(request: NextRequest) {
         traces: traces.slice(-50), // 最近 50 条
         stats,
         total: traces.length,
+        source: tracerType,
+        traceDir: getTraceOutputDir(),
       },
     })
   } catch (error) {
@@ -224,9 +375,17 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
+    // 清除内存中的追踪数据
     const tracer = getTracer()
     tracer.clearTraces()
-    return NextResponse.json({ success: true, message: 'Traces cleared' })
+
+    // 清除文件中的追踪数据
+    const deletedCount = clearTraceFiles()
+
+    return NextResponse.json({
+      success: true,
+      message: `Traces cleared. Deleted ${deletedCount} trace files.`,
+    })
   } catch (error) {
     console.error('[Workflow Debug API] Error:', error)
     return NextResponse.json(

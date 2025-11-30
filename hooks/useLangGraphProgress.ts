@@ -54,8 +54,8 @@ interface UseLangGraphProgressReturn {
   error: string | null
   /** 生成结果 */
   result: { trip_id: string; itinerary: Itinerary } | null
-  /** 开始生成 */
-  startGeneration: (formData: TripFormData, accessToken: string) => Promise<void>
+  /** 开始生成 - 返回结果或抛出错误 */
+  startGeneration: (formData: TripFormData, accessToken: string) => Promise<{ trip_id: string; itinerary: Itinerary }>
   /** 重置状态 */
   reset: () => void
 }
@@ -144,12 +144,16 @@ export function useLangGraphProgress(): UseLangGraphProgressReturn {
   }, [stages])
 
   /**
-   * 开始生成
+   * 开始生成 - 返回结果或抛出错误
    */
-  const startGeneration = useCallback(async (formData: TripFormData, accessToken: string) => {
+  const startGeneration = useCallback(async (formData: TripFormData, accessToken: string): Promise<{ trip_id: string; itinerary: Itinerary }> => {
     // 重置状态
     reset()
     setIsGenerating(true)
+
+    // 用于存储最终结果
+    let finalResult: { trip_id: string; itinerary: Itinerary } | null = null
+    let finalError: string | null = null
 
     try {
       // 使用 fetch + ReadableStream 替代 EventSource (支持 POST 请求)
@@ -197,10 +201,22 @@ export function useLangGraphProgress(): UseLangGraphProgressReturn {
           }
         }
       }
+
+      // 检查是否成功
+      if (finalError) {
+        throw new Error(finalError)
+      }
+
+      if (!finalResult) {
+        throw new Error('工作流执行完成但未返回结果')
+      }
+
+      return finalResult
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '生成行程时发生未知错误'
       setError(errorMessage)
       console.error('LangGraph 工作流执行失败:', err)
+      throw err
     } finally {
       setIsGenerating(false)
     }
@@ -240,7 +256,8 @@ export function useLangGraphProgress(): UseLangGraphProgressReturn {
 
         case 'error':
           // 错误
-          setError(event.message || '生成行程时发生错误')
+          finalError = event.message || '生成行程时发生错误'
+          setError(finalError)
           // 标记当前阶段为错误
           setStages((prev) =>
             prev.map((stage, idx) => {
@@ -263,10 +280,11 @@ export function useLangGraphProgress(): UseLangGraphProgressReturn {
             }))
           )
           if (event.data?.trip_id && event.data?.itinerary) {
-            setResult({
+            finalResult = {
               trip_id: event.data.trip_id,
               itinerary: event.data.itinerary,
-            })
+            }
+            setResult(finalResult)
           }
           break
       }
