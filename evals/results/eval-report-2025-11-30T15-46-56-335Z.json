@@ -1,0 +1,1060 @@
+{
+  "meta": {
+    "date": "2025-11-30T15:46:56.321Z",
+    "duration": 229385,
+    "version": "1.0.0",
+    "config": {
+      "generatorApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "generatorBaseUrl": "https://api.deepseek.com",
+      "generatorModel": "deepseek-chat",
+      "judgeApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "judgeBaseUrl": "https://api.deepseek.com",
+      "judgeModel": "deepseek-chat",
+      "passThreshold": 3.5,
+      "maxConcurrency": 1,
+      "timeout": 120000,
+      "retries": 2,
+      "outputDir": "./evals/results",
+      "verbose": false,
+      "saveItineraries": true
+    }
+  },
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "errors": 0,
+    "passRate": 1,
+    "averageScore": 4.53
+  },
+  "dimensionStats": {
+    "logic": {
+      "avg": 4.4,
+      "min": 4,
+      "max": 5,
+      "stdDev": 0.49
+    },
+    "completeness": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    },
+    "feasibility": {
+      "avg": 3.4,
+      "min": 3,
+      "max": 4,
+      "stdDev": 0.49
+    },
+    "budget": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    },
+    "format": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    }
+  },
+  "results": [
+    {
+      "testCase": {
+        "id": "TC019",
+        "name": "跨城市-江浙沪联游",
+        "category": "edge-cases",
+        "description": "江浙沪5日多城联游，上海杭州苏州",
+        "input": {
+          "destination": "江浙沪",
+          "origin": "北京",
+          "start_date": "2025-05-01",
+          "end_date": "2025-05-05",
+          "budget": 8000,
+          "travelers": 2,
+          "adult_count": 2,
+          "child_count": 0,
+          "preferences": [
+            "城市观光",
+            "园林",
+            "美食",
+            "购物"
+          ],
+          "additional_notes": "想去上海、杭州、苏州三个城市，每个城市都待一两天"
+        },
+        "expectations": {
+          "minDays": 5,
+          "maxDays": 5,
+          "minAttractionsPerDay": 2,
+          "maxAttractionsPerDay": 4,
+          "mustIncludeKeywords": [
+            "上海",
+            "杭州",
+            "苏州"
+          ],
+          "budgetTolerance": 0.2
+        }
+      },
+      "status": "success",
+      "totalTime": 45271,
+      "passed": true,
+      "generationTime": 34618,
+      "generatedItinerary": {
+        "days": [
+          {
+            "day": 1,
+            "date": "2025-05-01",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "从北京乘坐高铁前往上海，抵达后入住酒店"
+              },
+              {
+                "time": "下午",
+                "description": "游览外滩，欣赏黄浦江两岸风光，参观东方明珠塔"
+              },
+              {
+                "time": "晚上",
+                "description": "在南京路步行街购物和品尝当地小吃"
+              }
+            ],
+            "meals": {
+              "breakfast": "高铁上简餐",
+              "lunch": "上海本帮菜餐厅（如小南国）",
+              "dinner": "南京路小吃街自由选择"
+            }
+          },
+          {
+            "day": 2,
+            "date": "2025-05-02",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "参观豫园，体验古典园林文化"
+              },
+              {
+                "time": "下午",
+                "description": "游览城隍庙，品尝特色美食，如小笼包"
+              },
+              {
+                "time": "晚上",
+                "description": "乘坐高铁前往杭州，入住酒店"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "城隍庙小吃（如生煎包）",
+              "dinner": "杭州当地餐厅（如西湖醋鱼）"
+            }
+          },
+          {
+            "day": 3,
+            "date": "2025-05-03",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "游览西湖，包括断桥残雪、苏堤春晓等景点"
+              },
+              {
+                "time": "下午",
+                "description": "参观灵隐寺，感受佛教文化"
+              },
+              {
+                "time": "晚上",
+                "description": "在河坊街购物和品尝杭州特色美食"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "西湖边餐厅（如叫花鸡）",
+              "dinner": "河坊街自由选择小吃"
+            }
+          },
+          {
+            "day": 4,
+            "date": "2025-05-04",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "乘坐高铁前往苏州，抵达后游览拙政园"
+              },
+              {
+                "time": "下午",
+                "description": "参观狮子林，体验苏州园林艺术"
+              },
+              {
+                "time": "晚上",
+                "description": "在平江路步行街购物和品尝苏州美食"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "苏州面馆（如奥灶面）",
+              "dinner": "平江路小吃（如松鼠桂鱼）"
+            }
+          },
+          {
+            "day": 5,
+            "date": "2025-05-05",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "游览虎丘，欣赏历史遗迹"
+              },
+              {
+                "time": "下午",
+                "description": "乘坐高铁返回北京，结束行程"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "高铁上简餐",
+              "dinner": "无（行程结束）"
+            }
+          }
+        ],
+        "accommodation": [
+          {
+            "city": "上海",
+            "nights": 1,
+            "description": "经济型酒店，如如家或汉庭，位于市中心方便观光"
+          },
+          {
+            "city": "杭州",
+            "nights": 1,
+            "description": "经济型酒店，如7天连锁，靠近西湖区域"
+          },
+          {
+            "city": "苏州",
+            "nights": 1,
+            "description": "经济型酒店，如锦江之星，位于园林附近"
+          }
+        ],
+        "transportation": {
+          "to_destination": "高铁从北京到上海",
+          "within_destination": "高铁和地铁/公交在城市间移动，市内使用公共交通或出租车",
+          "return": "高铁从苏州返回北京"
+        },
+        "estimated_cost": {
+          "transportation": 3000,
+          "accommodation": 1500,
+          "meals": 2000,
+          "activities": 1000,
+          "shopping": 500,
+          "total": 8000
+        },
+        "summary": "这是一次为期5天的江浙沪多城市观光之旅，从北京出发，覆盖上海、杭州和苏州。行程包括城市观光、园林游览、美食体验和购物活动，预算控制在8000元内，适合两位成人。主要亮点包括上海外滩、杭州西湖和苏州园林，交通以高铁为主，住宿选择经济型酒店。"
+      },
+      "judgeTime": 10653,
+      "judgeResponse": {
+        "scores": {
+          "logic": 4,
+          "completeness": 5,
+          "feasibility": 3,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.35,
+        "pass": true,
+        "issues": [
+          "行程安排过于紧凑，5天内游览3个城市，每个城市仅停留1天，存在赶路疲劳风险",
+          "第2天晚上从上海到杭州的交通安排可能影响晚餐体验，时间衔接紧张",
+          "第4天上午从杭州到苏州后立即游览拙政园，可能因旅途劳累影响游览质量",
+          "缺乏景点之间的具体交通方式和时间预估"
+        ],
+        "highlights": [
+          "完美匹配8000元预算，各项费用分配合理",
+          "行程结构完整，包含所有必需的城市（上海、杭州、苏州）",
+          "餐饮安排富有地方特色，体现了江浙沪美食文化",
+          "住宿选择经济实惠，符合预算要求",
+          "景点选择符合用户偏好（城市观光、园林、美食、购物）"
+        ],
+        "summary": "这是一个预算控制出色、结构完整的行程，但城市间移动过于频繁，可能影响旅行体验。"
+      }
+    },
+    {
+      "testCase": {
+        "id": "TC009",
+        "name": "预算边界-西安刚好",
+        "category": "budget",
+        "description": "西安3日游，预算刚好够基本开销",
+        "input": {
+          "destination": "西安",
+          "origin": "郑州",
+          "start_date": "2025-04-05",
+          "end_date": "2025-04-07",
+          "budget": 1500,
+          "travelers": 2,
+          "adult_count": 2,
+          "child_count": 0,
+          "preferences": [
+            "历史文化",
+            "美食"
+          ],
+          "hotel_preferences": [
+            "经济型"
+          ],
+          "additional_notes": "预算有限，但希望能看到主要景点"
+        },
+        "expectations": {
+          "minDays": 3,
+          "maxDays": 3,
+          "minAttractionsPerDay": 2,
+          "maxAttractionsPerDay": 4,
+          "mustIncludeKeywords": [
+            "兵马俑",
+            "大雁塔"
+          ],
+          "budgetTolerance": 0.2
+        }
+      },
+      "status": "success",
+      "totalTime": 41911,
+      "passed": true,
+      "generationTime": 31069,
+      "generatedItinerary": {
+        "days": [
+          {
+            "date": "2025-04-05",
+            "activities": [
+              {
+                "time": "08:00-12:00",
+                "description": "从郑州乘坐高铁前往西安，抵达西安北站"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在市区享用午餐，品尝西安特色美食如肉夹馍"
+              },
+              {
+                "time": "13:00-17:00",
+                "description": "参观西安城墙，可选择骑行或步行游览"
+              },
+              {
+                "time": "17:00-19:00",
+                "description": "游览钟楼和鼓楼，欣赏古建筑"
+              },
+              {
+                "time": "19:00-20:00",
+                "description": "在回民街品尝晚餐，体验当地小吃如羊肉泡馍"
+              }
+            ],
+            "meals": {
+              "breakfast": "在郑州出发前简单用餐",
+              "lunch": "西安市区肉夹馍等",
+              "dinner": "回民街小吃"
+            }
+          },
+          {
+            "date": "2025-04-06",
+            "activities": [
+              {
+                "time": "08:00-12:00",
+                "description": "参观兵马俑博物馆，了解秦朝历史文化"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在兵马俑附近享用午餐，尝试陕西面食"
+              },
+              {
+                "time": "13:00-17:00",
+                "description": "游览大雁塔，欣赏唐代建筑和佛教文化"
+              },
+              {
+                "time": "17:00-19:00",
+                "description": "漫步大唐不夜城，体验唐代风情"
+              },
+              {
+                "time": "19:00-20:00",
+                "description": "在市区享用晚餐，品尝凉皮等美食"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店提供简单早餐",
+              "lunch": "兵马俑附近陕西面食",
+              "dinner": "市区凉皮等"
+            }
+          },
+          {
+            "date": "2025-04-07",
+            "activities": [
+              {
+                "time": "08:00-12:00",
+                "description": "参观陕西历史博物馆，深入了解西安历史文化"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在博物馆附近享用午餐，尝试biangbiang面"
+              },
+              {
+                "time": "13:00-15:00",
+                "description": "游览小雁塔，感受古都宁静"
+              },
+              {
+                "time": "15:00-17:00",
+                "description": "乘坐高铁返回郑州"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店提供简单早餐",
+              "lunch": "博物馆附近biangbiang面",
+              "dinner": "在郑州或途中简单用餐"
+            }
+          }
+        ],
+        "accommodation": [
+          {
+            "name": "经济型酒店（如汉庭或如家）",
+            "location": "西安市区，靠近地铁站",
+            "nights": 2,
+            "cost_per_night": 150
+          }
+        ],
+        "transportation": {
+          "to_xi_an": {
+            "mode": "高铁",
+            "from": "郑州",
+            "to": "西安",
+            "cost_per_person": 200,
+            "notes": "往返交通，总费用包括在预算内"
+          },
+          "local": {
+            "mode": "地铁和公交",
+            "cost_per_day": 30,
+            "notes": "使用公共交通游览景点"
+          }
+        },
+        "estimated_cost": {
+          "accommodation": 300,
+          "transportation": 460,
+          "meals": 400,
+          "attractions": 200,
+          "total": 1360,
+          "notes": "总费用在预算1500元内，剩余140元可用于额外小吃或纪念品"
+        },
+        "summary": "这是一次为期3天的西安历史文化之旅，从郑州出发，预算控制在1500元内。行程覆盖西安主要景点如兵马俑、城墙、大雁塔和陕西历史博物馆，强调历史文化和美食体验。住宿选择经济型酒店，交通以高铁和公共交通为主，确保费用合理且行程充实。"
+      },
+      "judgeTime": 10842,
+      "judgeResponse": {
+        "scores": {
+          "logic": 4,
+          "completeness": 5,
+          "feasibility": 3,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.35,
+        "pass": true,
+        "issues": [
+          "第二天行程存在地理跳跃问题：兵马俑位于临潼区（距市区约40公里），大雁塔在市区，下午从兵马俑到大雁塔交通时间较长（约1-1.5小时），时间安排略显紧张",
+          "第二天活动安排较满：兵马俑+大雁塔+大唐不夜城，可能较为疲劳",
+          "未明确说明景点门票费用是否已包含在预算中（兵马俑门票约120元/人，大雁塔约40元/人）"
+        ],
+        "highlights": [
+          "预算控制出色：总费用1360元在1500元预算内，且有140元余裕",
+          "信息完整：包含详细的住宿、交通、餐饮和费用明细",
+          "完美满足用户偏好：重点安排了历史文化景点和西安特色美食",
+          "必去景点全覆盖：兵马俑和大雁塔均包含在行程中",
+          "格式规范：JSON结构完整，字段齐全，数据类型正确"
+        ],
+        "summary": "这是一个高质量的行程安排，预算控制优秀且信息完整，主要问题在于第二天景点地理位置跨度较大导致时间安排略显紧张。"
+      }
+    },
+    {
+      "testCase": {
+        "id": "TC003",
+        "name": "小长假-北京",
+        "category": "basic",
+        "description": "北京3日游，家庭出行，文化深度游",
+        "input": {
+          "destination": "北京",
+          "origin": "广州",
+          "start_date": "2025-04-04",
+          "end_date": "2025-04-06",
+          "budget": 5000,
+          "travelers": 3,
+          "adult_count": 2,
+          "child_count": 1,
+          "preferences": [
+            "历史文化",
+            "名胜古迹"
+          ],
+          "additional_notes": "孩子8岁，对历史感兴趣"
+        },
+        "expectations": {
+          "minDays": 3,
+          "maxDays": 3,
+          "minAttractionsPerDay": 2,
+          "maxAttractionsPerDay": 4,
+          "mustIncludeKeywords": [
+            "故宫",
+            "长城"
+          ],
+          "budgetTolerance": 0.15
+        }
+      },
+      "status": "success",
+      "totalTime": 49822,
+      "passed": true,
+      "generationTime": 37140,
+      "generatedItinerary": {
+        "days": [
+          {
+            "date": "2025-04-04",
+            "activities": [
+              {
+                "time": "08:00-12:00",
+                "description": "从广州白云国际机场乘坐航班飞往北京首都国际机场，预计飞行时间3小时。"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "抵达北京，乘坐机场快线或出租车前往酒店办理入住。"
+              },
+              {
+                "time": "13:00-14:00",
+                "description": "在酒店附近餐厅享用午餐。"
+              },
+              {
+                "time": "14:00-17:00",
+                "description": "参观天安门广场和故宫博物院，探索明清皇宫历史，适合儿童学习古代文化。"
+              },
+              {
+                "time": "17:00-18:00",
+                "description": "自由活动，可在附近商店购买纪念品。"
+              }
+            ],
+            "meals": [
+              {
+                "type": "午餐",
+                "description": "当地餐厅，品尝北京炸酱面等传统美食。"
+              },
+              {
+                "type": "晚餐",
+                "description": "酒店餐厅或附近餐馆，提供儿童友好菜单。"
+              }
+            ]
+          },
+          {
+            "date": "2025-04-05",
+            "activities": [
+              {
+                "time": "08:00-12:00",
+                "description": "游览八达岭长城，体验世界文化遗产，适合儿童参与徒步和了解历史防御工事。"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在长城附近餐厅享用午餐。"
+              },
+              {
+                "time": "13:00-16:00",
+                "description": "参观明十三陵，探索明代帝王陵墓，结合故事讲解以吸引儿童兴趣。"
+              },
+              {
+                "time": "16:00-18:00",
+                "description": "返回市区，途中休息。"
+              }
+            ],
+            "meals": [
+              {
+                "type": "早餐",
+                "description": "酒店自助早餐。"
+              },
+              {
+                "type": "午餐",
+                "description": "长城景区餐厅，提供简单中餐。"
+              },
+              {
+                "type": "晚餐",
+                "description": "市区餐厅，尝试北京烤鸭等特色菜。"
+              }
+            ]
+          },
+          {
+            "date": "2025-04-06",
+            "activities": [
+              {
+                "time": "08:00-11:00",
+                "description": "参观颐和园，欣赏皇家园林和湖泊，适合家庭漫步并学习清代历史。"
+              },
+              {
+                "time": "11:00-12:00",
+                "description": "在颐和园附近享用午餐。"
+              },
+              {
+                "time": "12:00-14:00",
+                "description": "游览天坛公园，了解古代祭祀文化，儿童可参与互动活动。"
+              },
+              {
+                "time": "14:00-16:00",
+                "description": "返回酒店取行李，乘坐出租车前往机场。"
+              },
+              {
+                "time": "16:00-19:00",
+                "description": "从北京首都国际机场飞回广州白云国际机场，结束行程。"
+              }
+            ],
+            "meals": [
+              {
+                "type": "早餐",
+                "description": "酒店自助早餐。"
+              },
+              {
+                "type": "午餐",
+                "description": "颐和园附近餐厅，提供清淡菜肴。"
+              }
+            ]
+          }
+        ],
+        "accommodation": [
+          {
+            "name": "北京王府井附近中档酒店",
+            "type": "酒店",
+            "location": "北京市中心，靠近天安门和故宫",
+            "check_in": "2025-04-04",
+            "check_out": "2025-04-06",
+            "description": "提供家庭房，含早餐，适合儿童住宿。"
+          }
+        ],
+        "transportation": {
+          "to_beijing": {
+            "type": "飞机",
+            "description": "从广州白云国际机场到北京首都国际机场，经济舱航班。"
+          },
+          "in_beijing": {
+            "type": "混合",
+            "description": "使用出租车、地铁和旅游巴士进行市内交通，适合家庭出行。"
+          },
+          "from_beijing": {
+            "type": "飞机",
+            "description": "从北京首都国际机场返回广州白云国际机场，经济舱航班。"
+          }
+        },
+        "estimated_cost": {
+          "total": 4800,
+          "breakdown": {
+            "accommodation": 1500,
+            "transportation": 1800,
+            "meals": 900,
+            "activities": 600
+          },
+          "currency": "CNY",
+          "notes": "费用基于3人（2成人1儿童）估算，包括机票、住宿、餐饮和景点门票，总预算控制在5000元内。"
+        },
+        "summary": "这是一个3天的北京历史文化之旅，从广州出发，覆盖故宫、长城、颐和园等名胜古迹，行程适合家庭，特别考虑儿童兴趣，总预算约4800元。"
+      },
+      "judgeTime": 12682,
+      "judgeResponse": {
+        "scores": {
+          "logic": 4,
+          "completeness": 5,
+          "feasibility": 3,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.35,
+        "pass": true,
+        "issues": [
+          "第二天行程过于紧凑：八达岭长城+明十三陵在同一天完成，往返市区时间紧张，对8岁儿童可能过于疲劳",
+          "第三天下午14:00-16:00返回酒店取行李并前往机场，16:00起飞时间安排偏紧，建议预留更多缓冲时间",
+          "缺少具体景点门票预订信息，特别是故宫需要提前预约"
+        ],
+        "highlights": [
+          "完美满足用户要求：包含故宫和长城两大必去景点，符合历史文化偏好",
+          "预算控制出色：4800元在5000元预算内，各项费用分配合理",
+          "充分考虑儿童需求：行程中多次提到适合儿童的活动和讲解",
+          "信息完整：包含住宿、交通、餐饮等所有必要信息，格式规范",
+          "地理位置安排合理：第一天集中在市中心，第二天郊区景点，第三天另一区域"
+        ],
+        "summary": "这是一个高质量的北京历史文化行程，预算控制完美且信息完整，主要问题在于第二天行程过于紧凑，建议适当调整时间安排。"
+      }
+    },
+    {
+      "testCase": {
+        "id": "TC010",
+        "name": "亲子游-上海迪士尼",
+        "category": "special-groups",
+        "description": "上海迪士尼2日亲子游，2大2小",
+        "input": {
+          "destination": "上海",
+          "origin": "杭州",
+          "start_date": "2025-07-15",
+          "end_date": "2025-07-16",
+          "budget": 6000,
+          "travelers": 4,
+          "adult_count": 2,
+          "child_count": 2,
+          "preferences": [
+            "主题乐园",
+            "亲子",
+            "娱乐"
+          ],
+          "additional_notes": "两个孩子分别5岁和8岁，主要想去迪士尼"
+        },
+        "expectations": {
+          "minDays": 2,
+          "maxDays": 2,
+          "minAttractionsPerDay": 1,
+          "maxAttractionsPerDay": 3,
+          "mustIncludeKeywords": [
+            "迪士尼"
+          ],
+          "budgetTolerance": 0.15
+        }
+      },
+      "status": "success",
+      "totalTime": 40670,
+      "passed": true,
+      "generationTime": 31836,
+      "generatedItinerary": {
+        "days": [
+          {
+            "date": "2025-07-15",
+            "activities": [
+              {
+                "time": "08:00-10:00",
+                "description": "从杭州乘坐高铁前往上海虹桥站，车程约1小时，抵达后转乘地铁或出租车前往酒店办理入住。"
+              },
+              {
+                "time": "10:30-12:00",
+                "description": "前往上海迪士尼度假区，在入口处拍照留念，熟悉园区地图，并提前规划游玩路线。"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在迪士尼园区内的主题餐厅享用午餐，推荐选择儿童友好餐点。"
+              },
+              {
+                "time": "13:00-18:00",
+                "description": "游玩迪士尼乐园，重点体验适合5岁和8岁儿童的项目，如小熊维尼历险记、小飞象、七个小矮人矿山车，并观看花车巡游。"
+              },
+              {
+                "time": "18:00-19:00",
+                "description": "在园区内享用晚餐，可选择自助餐或快餐。"
+              },
+              {
+                "time": "19:00-21:00",
+                "description": "观看迪士尼夜间烟花表演，结束后返回酒店休息。"
+              }
+            ],
+            "meals": [
+              {
+                "type": "早餐",
+                "description": "在杭州酒店或家中享用"
+              },
+              {
+                "type": "午餐",
+                "description": "迪士尼园区主题餐厅"
+              },
+              {
+                "type": "晚餐",
+                "description": "迪士尼园区餐厅"
+              }
+            ]
+          },
+          {
+            "date": "2025-07-16",
+            "activities": [
+              {
+                "time": "08:00-09:00",
+                "description": "在酒店享用早餐，然后退房并寄存行李。"
+              },
+              {
+                "time": "09:00-12:00",
+                "description": "返回迪士尼乐园，继续游玩剩余项目，如巴斯光年星际营救、加勒比海盗，并购买纪念品。"
+              },
+              {
+                "time": "12:00-13:00",
+                "description": "在迪士尼园区内享用午餐。"
+              },
+              {
+                "time": "13:00-15:00",
+                "description": "前往上海其他亲子景点，如上海科技馆或东方明珠塔（根据时间灵活选择），体验互动展览。"
+              },
+              {
+                "time": "15:00-16:00",
+                "description": "返回酒店取行李，然后乘坐高铁返回杭州。"
+              },
+              {
+                "time": "16:00-17:00",
+                "description": "抵达杭州，结束行程。"
+              }
+            ],
+            "meals": [
+              {
+                "type": "早餐",
+                "description": "酒店自助早餐"
+              },
+              {
+                "type": "午餐",
+                "description": "迪士尼园区餐厅"
+              },
+              {
+                "type": "晚餐",
+                "description": "在杭州家中或餐厅享用"
+              }
+            ]
+          }
+        ],
+        "accommodation": [
+          {
+            "name": "上海迪士尼乐园酒店或玩具总动员酒店",
+            "nights": 1,
+            "description": "选择迪士尼主题酒店，方便入园，提供儿童友好设施。"
+          }
+        ],
+        "transportation": {
+          "to_destination": {
+            "description": "从杭州到上海的高铁，二等座，4人往返。"
+          },
+          "local": {
+            "description": "上海本地使用地铁、出租车或迪士尼接驳车。"
+          }
+        },
+        "estimated_cost": {
+          "total": 6000,
+          "breakdown": {
+            "accommodation": 1500,
+            "transportation": 1200,
+            "meals": 1000,
+            "tickets": 2000,
+            "other": 300
+          },
+          "currency": "CNY",
+          "notes": "费用基于4人（2成人2儿童）估算，包括迪士尼门票、交通、住宿和餐饮。预算内可覆盖基本开销。"
+        },
+        "summary": "这是一次为期2天的上海亲子旅行，从杭州出发，重点游玩上海迪士尼乐园，适合5岁和8岁儿童。行程包括迪士尼主题项目、花车巡游和烟花表演，并可能参观其他亲子景点。预算6000元覆盖交通、住宿、门票和餐饮，确保娱乐性和舒适性。"
+      },
+      "judgeTime": 8834,
+      "judgeResponse": {
+        "scores": {
+          "logic": 5,
+          "completeness": 5,
+          "feasibility": 4,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.8,
+        "pass": true,
+        "issues": [
+          "第二天13:00-15:00安排其他景点过于紧凑，从迪士尼到市区景点往返时间紧张",
+          "第二天15:00就要返回杭州，实际游玩时间较短，可能无法充分体验其他景点"
+        ],
+        "highlights": [
+          "行程逻辑性极佳，完全围绕迪士尼展开，避免不必要的奔波",
+          "信息非常完整，包含所有必要要素和详细安排",
+          "预算完美匹配用户要求，费用分配合理透明",
+          "充分考虑了5岁和8岁儿童的亲子需求，推荐适合项目",
+          "住宿选择迪士尼主题酒店，极大提升便利性和体验感"
+        ],
+        "summary": "这是一个高质量的亲子迪士尼行程，逻辑清晰、预算精准，完美满足用户核心需求，仅在第二天时间安排上略有紧凑。"
+      }
+    },
+    {
+      "testCase": {
+        "id": "TC004",
+        "name": "长途游-云南",
+        "category": "basic",
+        "description": "云南5日游，朋友结伴，自然风光",
+        "input": {
+          "destination": "云南",
+          "origin": "成都",
+          "start_date": "2025-05-01",
+          "end_date": "2025-05-05",
+          "budget": 8000,
+          "travelers": 4,
+          "adult_count": 4,
+          "child_count": 0,
+          "preferences": [
+            "自然风光",
+            "民族风情",
+            "摄影"
+          ],
+          "additional_notes": "希望去大理和丽江"
+        },
+        "expectations": {
+          "minDays": 5,
+          "maxDays": 5,
+          "minAttractionsPerDay": 2,
+          "maxAttractionsPerDay": 4,
+          "mustIncludeKeywords": [
+            "大理",
+            "丽江"
+          ],
+          "budgetTolerance": 0.2
+        }
+      },
+      "status": "success",
+      "totalTime": 47683,
+      "passed": true,
+      "generationTime": 39705,
+      "generatedItinerary": {
+        "days": [
+          {
+            "day": 1,
+            "date": "2025-05-01",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "从成都乘高铁前往大理，预计车程约5小时，欣赏沿途风光。"
+              },
+              {
+                "time": "下午",
+                "description": "抵达大理后，入住酒店，稍作休息。然后游览大理古城，感受白族建筑和民族风情，适合摄影。"
+              },
+              {
+                "time": "晚上",
+                "description": "在古城内自由活动，品尝当地小吃，欣赏夜景。"
+              }
+            ],
+            "meals": {
+              "breakfast": "在成都酒店或高铁上简单用餐",
+              "lunch": "高铁上或大理当地餐厅（推荐尝试云南米线）",
+              "dinner": "大理古城内餐厅（推荐白族三道茶）"
+            }
+          },
+          {
+            "day": 2,
+            "date": "2025-05-02",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "游览洱海，可选择骑行或乘船，欣赏自然风光和湖光山色，适合摄影。"
+              },
+              {
+                "time": "下午",
+                "description": "参观崇圣寺三塔，了解历史文化，然后前往喜洲古镇体验民族风情。"
+              },
+              {
+                "time": "晚上",
+                "description": "返回大理市区，自由活动或休息。"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "洱海附近餐厅（推荐野生菌火锅）",
+              "dinner": "大理市区餐厅"
+            }
+          },
+          {
+            "day": 3,
+            "date": "2025-05-03",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "从大理乘高铁前往丽江，预计车程约2小时，抵达后入住酒店。"
+              },
+              {
+                "time": "下午",
+                "description": "游览丽江古城，探索纳西族文化，参观四方街和木府，适合摄影。"
+              },
+              {
+                "time": "晚上",
+                "description": "在古城内体验夜生活，欣赏民族表演或酒吧文化。"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "丽江古城餐厅（推荐腊排骨火锅）",
+              "dinner": "古城内餐厅"
+            }
+          },
+          {
+            "day": 4,
+            "date": "2025-05-04",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "前往玉龙雪山，乘坐缆车欣赏雪山自然风光，参观蓝月谷，适合摄影。"
+              },
+              {
+                "time": "下午",
+                "description": "游览束河古镇，体验更宁静的民族风情，探索当地手工艺品。"
+              },
+              {
+                "time": "晚上",
+                "description": "返回丽江市区，自由活动或休息。"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "玉龙雪山景区餐厅",
+              "dinner": "丽江市区餐厅"
+            }
+          },
+          {
+            "day": 5,
+            "date": "2025-05-05",
+            "activities": [
+              {
+                "time": "上午",
+                "description": "在丽江古城进行最后的自由活动，购买纪念品或摄影。"
+              },
+              {
+                "time": "下午",
+                "description": "从丽江乘高铁返回成都，预计车程约6小时，结束行程。"
+              }
+            ],
+            "meals": {
+              "breakfast": "酒店早餐",
+              "lunch": "丽江古城餐厅",
+              "dinner": "高铁上或成都当地餐厅"
+            }
+          }
+        ],
+        "accommodation": [
+          {
+            "location": "大理",
+            "nights": 2,
+            "description": "经济型酒店，位于大理古城附近，方便游览，提供基本设施。"
+          },
+          {
+            "location": "丽江",
+            "nights": 2,
+            "description": "舒适型客栈，位于丽江古城内，体验民族风情，适合摄影。"
+          }
+        ],
+        "transportation": {
+          "to_destination": "从成都乘高铁到大理，二等座，预计费用约¥300/人",
+          "internal": "大理到丽江乘高铁，二等座，预计费用约¥100/人；丽江返回成都乘高铁，二等座，预计费用约¥350/人",
+          "local": "在目的地使用公共交通和出租车，预计费用约¥200/人"
+        },
+        "estimated_cost": {
+          "total": "¥8000",
+          "breakdown": {
+            "transportation": "约¥3800（4人高铁和当地交通）",
+            "accommodation": "约¥2000（4人4晚住宿）",
+            "meals": "约¥1200（4人5天餐饮）",
+            "activities": "约¥1000（4人景点门票和体验）"
+          },
+          "notes": "费用基于4人分摊估算，实际可能因季节和选择略有浮动。"
+        },
+        "summary": "本次5天云南之旅从成都出发，重点游览大理和丽江，涵盖自然风光如洱海和玉龙雪山、民族风情如大理古城和丽江古城，适合摄影爱好者。行程安排紧凑，预算控制在¥8000以内，包括高铁交通、住宿、餐饮和活动。"
+      },
+      "judgeTime": 7978,
+      "judgeResponse": {
+        "scores": {
+          "logic": 5,
+          "completeness": 5,
+          "feasibility": 4,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.8,
+        "pass": true,
+        "issues": [
+          "第4天玉龙雪山和束河古镇行程可能较赶，玉龙雪山需要较多时间",
+          "部分活动时间安排不够具体，可能影响执行精度"
+        ],
+        "highlights": [
+          "地理逻辑完美，大理→丽江顺序合理，无往返奔波",
+          "信息非常完整，包含详细住宿、交通、餐饮和费用分解",
+          "预算控制出色，完美匹配用户8000元预算要求",
+          "格式规范，JSON结构完整且清晰",
+          "充分满足用户对自然风光、民族风情和摄影的偏好"
+        ],
+        "summary": "这是一个高质量的行程安排，逻辑清晰、信息完整、预算合理，完全满足用户需求。"
+      }
+    }
+  ],
+  "failedCases": [],
+  "errorCases": []
+}

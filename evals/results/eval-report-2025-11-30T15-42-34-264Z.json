@@ -1,0 +1,220 @@
+{
+  "meta": {
+    "date": "2025-11-30T15:42:34.248Z",
+    "duration": 36588,
+    "version": "1.0.0",
+    "config": {
+      "generatorApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "generatorBaseUrl": "https://api.deepseek.com",
+      "generatorModel": "deepseek-chat",
+      "judgeApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "judgeBaseUrl": "https://api.deepseek.com",
+      "judgeModel": "deepseek-chat",
+      "passThreshold": 3.5,
+      "maxConcurrency": 1,
+      "timeout": 120000,
+      "retries": 2,
+      "outputDir": "./evals/results",
+      "verbose": true,
+      "saveItineraries": true
+    }
+  },
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "errors": 0,
+    "passRate": 1,
+    "averageScore": 4.35
+  },
+  "dimensionStats": {
+    "logic": {
+      "avg": 4,
+      "min": 4,
+      "max": 4,
+      "stdDev": 0
+    },
+    "completeness": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    },
+    "feasibility": {
+      "avg": 3,
+      "min": 3,
+      "max": 3,
+      "stdDev": 0
+    },
+    "budget": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    },
+    "format": {
+      "avg": 5,
+      "min": 5,
+      "max": 5,
+      "stdDev": 0
+    }
+  },
+  "results": [
+    {
+      "testCase": {
+        "id": "TC001",
+        "name": "单日游-杭州",
+        "category": "basic",
+        "description": "杭州一日游，预算适中，2人出行",
+        "input": {
+          "destination": "杭州",
+          "origin": "上海",
+          "start_date": "2025-03-15",
+          "end_date": "2025-03-15",
+          "start_time": "08:00",
+          "end_time": "20:00",
+          "budget": 500,
+          "travelers": 2,
+          "adult_count": 2,
+          "child_count": 0,
+          "preferences": [
+            "自然风光",
+            "历史文化"
+          ]
+        },
+        "expectations": {
+          "minDays": 1,
+          "maxDays": 1,
+          "minAttractionsPerDay": 3,
+          "maxAttractionsPerDay": 6,
+          "mustIncludeKeywords": [
+            "西湖"
+          ],
+          "budgetTolerance": 0.15
+        }
+      },
+      "status": "success",
+      "totalTime": 36588,
+      "passed": true,
+      "generationTime": 26913,
+      "generatedItinerary": {
+        "days": [
+          {
+            "date": "2025-03-15",
+            "activities": [
+              {
+                "time": "08:00-09:30",
+                "name": "从上海乘坐高铁抵达杭州东站",
+                "description": "乘坐G字头高铁从上海虹桥站前往杭州东站，车程约1小时",
+                "location": "杭州东站"
+              },
+              {
+                "time": "09:30-12:00",
+                "name": "游览西湖景区",
+                "description": "从杭州东站乘坐地铁1号线至龙翔桥站，步行至西湖。游览断桥残雪、白堤、平湖秋月等经典景点，欣赏西湖春色",
+                "location": "西湖风景区"
+              },
+              {
+                "time": "12:00-13:00",
+                "name": "午餐休息",
+                "description": "在西湖周边的餐厅享用杭帮菜"
+              },
+              {
+                "time": "13:00-15:30",
+                "name": "游览灵隐寺",
+                "description": "乘坐公交或打车前往灵隐寺，参观千年古刹，感受佛教文化，欣赏飞来峰石刻",
+                "location": "灵隐寺"
+              },
+              {
+                "time": "15:30-17:30",
+                "name": "漫步苏堤春晓",
+                "description": "返回西湖区域，漫步苏堤，欣赏桃红柳绿的春日景色",
+                "location": "苏堤"
+              },
+              {
+                "time": "17:30-19:00",
+                "name": "河坊街文化体验",
+                "description": "前往河坊街，体验杭州传统街区文化，购买特色纪念品",
+                "location": "河坊街"
+              },
+              {
+                "time": "19:00-20:00",
+                "name": "返回杭州东站准备返程",
+                "description": "乘坐地铁返回杭州东站，准备乘坐高铁返回上海"
+              }
+            ],
+            "meals": [
+              {
+                "type": "午餐",
+                "time": "12:00-13:00",
+                "suggestion": "西湖醋鱼、东坡肉、龙井虾仁等杭帮菜",
+                "budget": "¥120"
+              },
+              {
+                "type": "晚餐",
+                "time": "18:00-19:00",
+                "suggestion": "河坊街小吃或简餐",
+                "budget": "¥80"
+              }
+            ]
+          }
+        ],
+        "accommodation": [
+          {
+            "name": "无住宿安排",
+            "type": "一日游",
+            "description": "当天往返，无需住宿"
+          }
+        ],
+        "transportation": {
+          "to_hangzhou": {
+            "mode": "高铁",
+            "departure": "上海虹桥站",
+            "arrival": "杭州东站",
+            "duration": "约1小时",
+            "cost": "¥146（两人往返）"
+          },
+          "in_hangzhou": {
+            "mode": "地铁+公交+打车",
+            "description": "杭州市内主要使用地铁和公交，部分景点间可打车",
+            "cost": "¥60"
+          }
+        },
+        "estimated_cost": {
+          "transportation": "¥206",
+          "meals": "¥200",
+          "attractions": "¥75（灵隐寺门票45元/人×2）",
+          "shopping": "¥19",
+          "total": "¥500"
+        },
+        "summary": "杭州一日游行程安排：早上从上海乘坐高铁抵达杭州，全天游览西湖风景区（断桥、白堤、苏堤）、灵隐寺等经典景点，体验杭州的自然风光和历史文化，晚上返回上海。行程紧凑但充实，总预算控制在500元以内。"
+      },
+      "judgeTime": 9675,
+      "judgeResponse": {
+        "scores": {
+          "logic": 4,
+          "completeness": 5,
+          "feasibility": 3,
+          "budget": 5,
+          "format": 5
+        },
+        "weighted_score": 4.35,
+        "pass": true,
+        "issues": [
+          "时间安排过于紧凑，从灵隐寺返回苏堤再前往河坊街存在时间压力",
+          "灵隐寺游览时间2.5小时可能偏短，包含交通时间在内较为紧张",
+          "河坊街文化体验时间1.5小时略显仓促，特别是包含晚餐时间"
+        ],
+        "highlights": [
+          "预算控制完美，总费用¥500完全符合用户预算要求",
+          "行程结构完整，包含交通、景点、餐饮、费用等所有必要信息",
+          "景点选择符合用户偏好，自然风光（西湖、苏堤）与历史文化（灵隐寺、河坊街）兼顾",
+          "交通安排合理，明确标注了高铁、地铁、公交等多种方式及费用"
+        ],
+        "summary": "这是一个预算控制出色、结构完整的杭州一日游行程，但时间安排略显紧凑，部分景点游玩时间可能不足。"
+      }
+    }
+  ],
+  "failedCases": [],
+  "errorCases": []
+}
