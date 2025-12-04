@@ -53,6 +53,22 @@ export interface FeatureFlags {
 }
 
 /**
+ * MCP 服务配置
+ */
+export interface MCPConfig {
+  /** MCP 模式: official-http (推荐) | official-sse | direct */
+  mode: 'official-http' | 'official-sse' | 'direct'
+  /** 官方 SSE 服务 URL */
+  sseUrl: string
+  /** 官方 Streamable HTTP 服务 URL */
+  httpUrl: string
+  /** 是否启用降级到直接 API */
+  enableFallback: boolean
+  /** 是否启用缓存 */
+  cacheEnabled: boolean
+}
+
+/**
  * 应用配置
  */
 export interface AppConfig {
@@ -80,6 +96,8 @@ export interface AppConfig {
   encryptionKey: string
   /** Feature Flags */
   features: FeatureFlags
+  /** MCP 服务配置 */
+  mcp: MCPConfig
 }
 
 /**
@@ -219,6 +237,19 @@ function createConfig(): AppConfig {
       useLangGraph: (process.env.NEXT_PUBLIC_USE_LANGGRAPH || 'false').toLowerCase() === 'true',
       // 是否启用 PWA 开发模式
       enablePwaDev: getEnv('ENABLE_PWA_DEV', 'false').toLowerCase() === 'true',
+    },
+
+    mcp: {
+      // MCP 服务模式: official-http (推荐) | official-sse | direct
+      mode: (getEnv('AMAP_MCP_MODE', 'official-http') as MCPConfig['mode']),
+      // 官方 SSE 服务 URL
+      sseUrl: getEnv('AMAP_MCP_SSE_URL', 'https://mcp.amap.com/sse'),
+      // 官方 Streamable HTTP 服务 URL
+      httpUrl: getEnv('AMAP_MCP_HTTP_URL', 'https://mcp.amap.com/mcp'),
+      // 是否启用降级到直接 API
+      enableFallback: getEnv('AMAP_MCP_ENABLE_FALLBACK', 'true').toLowerCase() === 'true',
+      // 是否启用缓存
+      cacheEnabled: getEnv('AMAP_MCP_CACHE_ENABLED', 'true').toLowerCase() === 'true',
     },
   }
 

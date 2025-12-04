@@ -31,6 +31,7 @@
     "@langchain/core": "^1.1.0",
     "@langchain/langgraph": "^1.0.2",
     "@langchain/langgraph-checkpoint-postgres": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.24.2",
     "@supabase/supabase-js": "^2.48.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

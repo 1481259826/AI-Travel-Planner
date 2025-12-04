@@ -19,6 +19,8 @@ export const CACHE_TTL = {
   POI_SEARCH: 6 * 60 * 60 * 1000,
   /** 周边搜索：6 小时 */
   NEARBY_SEARCH: 6 * 60 * 60 * 1000,
+  /** POI 详情：24 小时 */
+  POI_DETAIL: 24 * 60 * 60 * 1000,
   /** 路线规划：2 小时 */
   ROUTE: 2 * 60 * 60 * 1000,
   /** 地理编码：24 小时 */

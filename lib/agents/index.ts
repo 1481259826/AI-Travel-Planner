@@ -122,6 +122,60 @@ export type {
 } from './mcp-client'
 
 // ============================================================================
+// MCP 官方客户端（SSE/HTTP）
+// ============================================================================
+export {
+  AmapMCPClient,
+  createAmapMCPClient,
+  getAmapMCPClient,
+  resetAmapMCPClient,
+  AMAP_MCP_TOOLS,
+} from './mcp-sse-client'
+export type {
+  AmapMCPClientConfig,
+  MCPConnectionMode,
+  ConnectionState,
+  ToolCallResult,
+  AmapMCPToolName,
+} from './mcp-sse-client'
+
+// ============================================================================
+// MCP 工具映射层
+// ============================================================================
+export { AmapMCPTools, createAmapMCPTools } from './mcp-tools'
+export type { IMCPTools, IExtendedMCPTools } from './mcp-tools'
+
+// ============================================================================
+// MCP 数据转换器
+// ============================================================================
+export {
+  transformWeatherResponse,
+  transformPOISearchResponse,
+  transformRouteResponse,
+  transformTransitResponse,
+  transformGeocodeResponse,
+  transformRegeoResponse,
+  transformDistanceResponse,
+} from './mcp-transformers'
+
+// ============================================================================
+// MCP 工厂
+// ============================================================================
+export {
+  createMCPTools,
+  createMCPToolsSync,
+  getMCPTools,
+  getMCPToolsSync,
+  getCurrentMCPMode,
+  isMCPExtended,
+  getExtendedMCPTools,
+  resetMCPTools,
+  checkMCPHealth,
+  initializeMCPClient,
+} from './mcp-factory'
+export type { MCPMode, MCPFactoryOptions, MCPFactoryResult } from './mcp-factory'
+
+// ============================================================================
 // 缓存
 // ============================================================================
 export {
