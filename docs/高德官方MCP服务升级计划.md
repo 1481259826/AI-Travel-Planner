@@ -402,9 +402,38 @@ https://mcp.amap.com/sse?key=您的API_KEY
 | Phase 2: 实现工具方法映射 | ✅ 已完成 | 2025-12-04 |
 | Phase 3: 添加降级策略和缓存 | ✅ 已完成 | 2025-12-04 |
 | Phase 4: 集成到工作流 | ✅ 已完成 | 2025-12-04 |
-| Phase 5: 添加新功能支持 | ⬜ 待开始 | |
+| Phase 5: 添加新功能支持 | ✅ 已完成 | 2025-12-04 |
 | Phase 6: 配置和环境变量更新 | ✅ 已完成 | 2025-12-04 |
 | Phase 7: 测试和验证 | ⬜ 待开始 | |
+
+### Phase 5 完成详情
+
+**已实现功能**：
+
+1. **高德 APP 集成 API** (`app/api/amap-app/route.ts`)
+   - 生成专属地图 (custom-map)
+   - 导航唤端 (navigation)
+   - 打车唤端 (taxi)
+
+2. **高德 APP 集成 Hook** (`hooks/useAmapApp.ts`)
+   - `navigateTo()` - 导航到目的地
+   - `callTaxi()` - 一键打车
+   - `syncToAmap()` - 同步行程到高德地图
+   - 自动处理认证和错误
+
+3. **同步到高德地图按钮** (`components/SyncToAmapButton.tsx`)
+   - 位于行程详情页头部操作区
+   - 显示景点数量预览
+   - 支持移动端唤起高德 APP
+
+4. **景点卡片导航和打车按钮** (`components/AttractionCard.tsx`)
+   - 每个景点卡片底部添加「导航」「打车」按钮
+   - 点击直接唤起高德地图 APP
+
+5. **骑行路线规划支持**
+   - `lib/agents/mcp-client.ts` 添加 `getBicyclingRoute()`
+   - `lib/agents/nodes/transport.ts` 优化交通方式选择逻辑
+   - 1-5km 距离自动推荐骑行
 
 ---
 

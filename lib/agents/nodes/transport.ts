@@ -199,8 +199,8 @@ async function calculateSegment(
     // 首先尝试获取步行距离
     const walkingRoute = await mcpClient.getWalkingRoute(origin, destination)
 
-    if (walkingRoute && walkingRoute.distance < 1500) {
-      // 小于 1.5km，推荐步行
+    if (walkingRoute && walkingRoute.distance < 1000) {
+      // 小于 1km，推荐步行
       return {
         from,
         to,
@@ -208,6 +208,25 @@ async function calculateSegment(
         duration: Math.ceil(walkingRoute.duration / 60), // 秒转分钟
         distance: walkingRoute.distance,
         cost: 0,
+      }
+    }
+
+    // 1-5km 范围尝试骑行
+    if (walkingRoute && walkingRoute.distance >= 1000 && walkingRoute.distance < 5000) {
+      const cyclingRoute = await mcpClient.getBicyclingRoute(origin, destination)
+
+      if (cyclingRoute) {
+        // 骑行成本：共享单车约 1.5 元起步
+        const cyclingCost = Math.min(Math.ceil(cyclingRoute.duration / 60 / 15) * 1.5, 5)
+
+        return {
+          from,
+          to,
+          mode: 'cycling',
+          duration: Math.ceil(cyclingRoute.duration / 60),
+          distance: cyclingRoute.distance,
+          cost: cyclingCost,
+        }
       }
     }
 
@@ -251,7 +270,7 @@ async function calculateSegment(
       to.lng
     )
 
-    if (directDistance < 1500) {
+    if (directDistance < 1000) {
       return {
         from,
         to,
@@ -259,6 +278,16 @@ async function calculateSegment(
         duration: Math.ceil(directDistance / 80), // 约 80m/min 步行速度
         distance: directDistance,
         cost: 0,
+      }
+    } else if (directDistance < 5000) {
+      // 1-5km 推荐骑行
+      return {
+        from,
+        to,
+        mode: 'cycling',
+        duration: Math.ceil(directDistance / 250), // 约 250m/min 骑行速度
+        distance: directDistance,
+        cost: 1.5,
       }
     } else {
       return {

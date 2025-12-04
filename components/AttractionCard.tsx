@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { Activity } from '@/types'
-import { MapPin, Clock, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
+import { MapPin, Clock, DollarSign, ChevronDown, ChevronUp, Navigation, Car } from 'lucide-react'
 import PhotoCarousel from '@/components/shared/PhotoCarousel'
 import RatingDisplay from '@/components/shared/RatingDisplay'
 import { getActivityTypeStyle } from '@/lib/ui-helpers'
+import { useAmapApp } from '@/hooks/useAmapApp'
 
 interface AttractionCardProps {
   activity: Activity
@@ -13,13 +14,55 @@ interface AttractionCardProps {
   isEnriching?: boolean  // 是否正在加载
   isEditMode?: boolean  // 是否处于编辑模式
   onDelete?: () => void  // 删除回调函数
+  currentLocation?: { lng: number; lat: number } | null  // 当前位置，用于打车功能
 }
 
-export default function AttractionCard({ activity, onEnrich, isEnriching = false, isEditMode = false, onDelete }: AttractionCardProps) {
+export default function AttractionCard({ activity, onEnrich, isEnriching = false, isEditMode = false, onDelete, currentLocation }: AttractionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
+  const { navigateTo, callTaxi, loading: amapLoading } = useAmapApp({
+    onError: (error) => {
+      alert(error)
+    }
+  })
+
   const activityStyle = getActivityTypeStyle(activity.type)
+
+  // 获取目的地坐标字符串
+  const getDestinationCoord = () => {
+    if (activity.location?.lng && activity.location?.lat) {
+      return `${activity.location.lng},${activity.location.lat}`
+    }
+    return null
+  }
+
+  // 处理导航点击
+  const handleNavigate = async () => {
+    const dest = getDestinationCoord()
+    if (!dest) {
+      alert('无法获取目的地坐标')
+      return
+    }
+    await navigateTo(dest)
+  }
+
+  // 处理打车点击
+  const handleCallTaxi = async () => {
+    const dest = getDestinationCoord()
+    if (!dest) {
+      alert('无法获取目的地坐标')
+      return
+    }
+
+    // 如果有当前位置，使用当前位置作为起点
+    // 否则让高德 APP 自动获取用户位置
+    const origin = currentLocation
+      ? `${currentLocation.lng},${currentLocation.lat}`
+      : dest // 高德会自动使用用户当前位置
+
+    await callTaxi(origin, dest)
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -150,6 +193,28 @@ export default function AttractionCard({ activity, onEnrich, isEnriching = false
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <DollarSign className="w-4 h-4 flex-shrink-0" />
               <span>门票 ¥{activity.ticket_price}</span>
+            </div>
+          )}
+
+          {/* 高德 APP 快捷操作 */}
+          {activity.location?.lng && activity.location?.lat && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={handleNavigate}
+                disabled={amapLoading}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                <Navigation className="w-4 h-4" />
+                导航
+              </button>
+              <button
+                onClick={handleCallTaxi}
+                disabled={amapLoading}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                <Car className="w-4 h-4" />
+                打车
+              </button>
             </div>
           )}
 

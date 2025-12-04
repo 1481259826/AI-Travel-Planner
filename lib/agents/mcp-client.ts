@@ -514,6 +514,61 @@ export class MCPClient {
   }
 
   /**
+   * 获取骑行路线规划
+   * @param origin 起点坐标 "lng,lat"
+   * @param destination 终点坐标 "lng,lat"
+   */
+  async getBicyclingRoute(
+    origin: string,
+    destination: string
+  ): Promise<RouteResult | null> {
+    const fetchRoute = async (): Promise<RouteResult | null> => {
+      try {
+        const url = new URL('https://restapi.amap.com/v4/direction/bicycling')
+        url.searchParams.set('origin', origin)
+        url.searchParams.set('destination', destination)
+        url.searchParams.set('key', this.apiKey)
+
+        const data = await fetchWithoutProxy(url.toString())
+
+        if (
+          data.errcode !== 0 ||
+          !data.data ||
+          !data.data.paths ||
+          data.data.paths.length === 0
+        ) {
+          console.error('[MCP Client] Bicycling route failed:', data.errmsg || data.info)
+          return null
+        }
+
+        const path = data.data.paths[0]
+
+        return {
+          origin,
+          destination,
+          distance: parseInt(path.distance || '0'),
+          duration: parseInt(path.duration || '0'),
+          steps: path.steps?.map((step: any) => ({
+            instruction: step.instruction,
+            road: step.road || '',
+            distance: parseInt(step.distance || '0'),
+            duration: parseInt(step.duration || '0'),
+          })),
+        }
+      } catch (error) {
+        console.error('[MCP Client] Error getting bicycling route:', error)
+        return null
+      }
+    }
+
+    // 使用缓存包装
+    if (this.enableCache) {
+      return withCache('ROUTE', { type: 'bicycling', origin, destination }, fetchRoute)
+    }
+    return fetchRoute()
+  }
+
+  /**
    * 获取公交/地铁换乘路线
    * @param origin 起点坐标 "lng,lat"
    * @param destination 终点坐标 "lng,lat"

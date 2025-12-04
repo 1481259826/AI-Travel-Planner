@@ -14,6 +14,7 @@ import ExpenseList from '@/components/ExpenseList'
 import BudgetChart from '@/components/BudgetChart'
 import ShareButton from '@/components/ShareButton'
 import { ExportPdfButton } from '@/components/ExportPdfButton'
+import SyncToAmapButton from '@/components/SyncToAmapButton'
 import AttractionCard from '@/components/AttractionCard'
 import ItineraryNav from '@/components/ItineraryNav'
 import EditModeControls from '@/components/EditModeControls'
@@ -537,6 +538,7 @@ export default function TripDetailPage() {
                 </div>
               )}
               <EditModeControls trip={trip} onSaveSuccess={handleSaveSuccess} />
+              <SyncToAmapButton trip={trip} />
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <ExportPdfButton trip={trip} />
               <button
