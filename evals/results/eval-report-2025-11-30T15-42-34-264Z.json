@@ -4,10 +4,10 @@
     "duration": 36588,
     "version": "1.0.0",
     "config": {
-      "generatorApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "generatorApiKey": "[REDACTED]",
       "generatorBaseUrl": "https://api.deepseek.com",
       "generatorModel": "deepseek-chat",
-      "judgeApiKey": "sk-e29bf40fc49a44fba6d2f51cd97b6833",
+      "judgeApiKey": "[REDACTED]",
       "judgeBaseUrl": "https://api.deepseek.com",
       "judgeModel": "deepseek-chat",
       "passThreshold": 3.5,
