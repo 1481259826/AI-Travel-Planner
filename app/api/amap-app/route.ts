@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createMCPClient } from '@/lib/agents/mcp-factory'
+import { createMCPTools, type IExtendedMCPTools } from '@/lib/agents/mcp-factory'
 import { supabase } from '@/lib/supabase'
 import { appConfig } from '@/lib/config'
 import { ApiKeyClient } from '@/lib/api-keys'
@@ -70,8 +70,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 创建 MCP 客户端
-    const mcpClient = await createMCPClient({ apiKey })
+    // 创建 MCP 客户端（需要扩展接口支持 APP 联动功能）
+    const { tools, extended } = await createMCPTools({ apiKey })
+
+    // 检查是否支持扩展功能
+    if (!extended) {
+      return NextResponse.json(
+        { success: false, error: '当前 MCP 模式不支持高德 APP 联动功能，请确保已配置官方 MCP 服务' },
+        { status: 400 }
+      )
+    }
+
+    const mcpClient = tools as IExtendedMCPTools
 
     let result: string | null = null
 
