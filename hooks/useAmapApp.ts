@@ -67,9 +67,12 @@ export function useAmapApp(options?: UseAmapAppOptions) {
 
   /**
    * 生成专属地图（同步到高德地图 APP）
+   * @param name 行程名称
+   * @param waypoints 途经点列表
+   * @param city 城市名称（用于限定 POI 搜索范围）
    */
-  const generateCustomMap = useCallback(async (name: string, waypoints: Waypoint[]) => {
-    return callApi('custom-map', { name, waypoints })
+  const generateCustomMap = useCallback(async (name: string, waypoints: Waypoint[], city?: string) => {
+    return callApi('custom-map', { name, waypoints, city })
   }, [callApi])
 
   /**
@@ -93,7 +96,9 @@ export function useAmapApp(options?: UseAmapAppOptions) {
    * 打开链接（在新窗口或唤起 APP）
    */
   const openLink = useCallback((url: string) => {
-    // 在移动端会唤起高德地图 APP，在桌面端会打开网页版
+    // 现在返回的已经是 HTTPS 链接，可以直接打开
+    // 在移动端会自动尝试唤起高德地图 APP（通过 callnative=1 参数）
+    // 在桌面端会打开网页版地图
     window.open(url, '_blank')
   }, [])
 
@@ -121,9 +126,12 @@ export function useAmapApp(options?: UseAmapAppOptions) {
 
   /**
    * 同步行程到高德地图（获取链接并打开）
+   * @param name 行程名称
+   * @param waypoints 途经点列表
+   * @param city 城市名称（用于限定 POI 搜索范围）
    */
-  const syncToAmap = useCallback(async (name: string, waypoints: Waypoint[]) => {
-    const url = await generateCustomMap(name, waypoints)
+  const syncToAmap = useCallback(async (name: string, waypoints: Waypoint[], city?: string) => {
+    const url = await generateCustomMap(name, waypoints, city)
     if (url) {
       openLink(url)
     }

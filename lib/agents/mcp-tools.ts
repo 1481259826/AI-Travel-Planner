@@ -119,7 +119,8 @@ export interface IExtendedMCPTools extends IMCPTools {
   // 高德 APP 联动（新功能）
   generateCustomMap(
     name: string,
-    waypoints: Array<{ name: string; location: string }>
+    waypoints: Array<{ name: string; location: string }>,
+    city?: string
   ): Promise<string | null>
 
   getNavigationLink(destination: string): Promise<string | null>
@@ -234,6 +235,7 @@ export class AmapMCPTools implements IExtendedMCPTools {
       const result = await this.client.callTool(AMAP_MCP_TOOLS.SEARCH_TEXT, {
         keywords: params.keywords,
         ...(params.city && { city: params.city }),
+        ...(params.cityLimit && { citylimit: true }),
       })
 
       if (!result.success) {
@@ -570,15 +572,70 @@ export class AmapMCPTools implements IExtendedMCPTools {
 
   async generateCustomMap(
     name: string,
-    waypoints: Array<{ name: string; location: string }>
+    waypoints: Array<{ name: string; location: string; poiId?: string }>,
+    city?: string
   ): Promise<string | null> {
     if (!(await this.ensureConnected())) {
       return null
     }
 
+    // 从行程名称中提取城市（如 "杭州之旅" -> "杭州"）
+    const cityName = city || name.replace(/之旅|旅行|游|行程$/g, '')
+
+    // 构造行程详情，按高德要求的格式
+    // 参数格式: { orgName, lineList: [{ title, pointInfoList: [{ name, lon, lat, poiId }] }] }
+    const pointInfoList: Array<{ name: string; lon: number; lat: number; poiId: string }> = []
+
+    for (const wp of waypoints) {
+      const [lon, lat] = wp.location.split(',').map(Number)
+      let poiId = wp.poiId
+
+      // 如果没有 poiId，尝试通过 POI 搜索获取
+      if (!poiId) {
+        try {
+          const searchResult = await this.searchPOI({
+            keywords: wp.name,
+            city: cityName, // 限定城市范围
+            cityLimit: true, // 强制限定在该城市
+            pageSize: 1,
+          })
+          if (searchResult?.pois?.[0]?.id) {
+            poiId = searchResult.pois[0].id
+            console.log(`[AmapMCPTools] Found poiId for "${wp.name}": ${poiId}`)
+          }
+        } catch (e) {
+          console.warn('[AmapMCPTools] Failed to get poiId for:', wp.name, e)
+        }
+      }
+
+      // 如果还是没有 poiId，使用坐标生成一个虚拟 ID（高德可能不接受）
+      if (!poiId) {
+        console.warn('[AmapMCPTools] No poiId found for:', wp.name, '- this point may be skipped')
+        // 跳过没有 poiId 的点
+        continue
+      }
+
+      pointInfoList.push({
+        name: wp.name,
+        lon,
+        lat,
+        poiId,
+      })
+    }
+
+    if (pointInfoList.length === 0) {
+      console.error('[AmapMCPTools] No valid waypoints with poiId')
+      return null
+    }
+
     const result = await this.client.callTool(AMAP_MCP_TOOLS.BINDMAP, {
-      name,
-      details: { waypoints },
+      orgName: name,
+      lineList: [
+        {
+          title: name,
+          pointInfoList,
+        },
+      ],
     })
 
     if (!result.success) {
@@ -586,7 +643,24 @@ export class AmapMCPTools implements IExtendedMCPTools {
       return null
     }
 
-    return result.data?.url || result.data
+    console.log('[AmapMCPTools] generateCustomMap raw data:', result.data, typeof result.data)
+
+    // 高德返回的是 amapuri:// 协议链接，只能在移动端唤起 APP
+    // 为了支持桌面浏览器，我们同时生成一个网页版的多点标记链接
+    const amapuriUrl = typeof result.data === 'string'
+      ? result.data
+      : (result.data?.url || result.data?.uri || result.data?.link || String(result.data))
+
+    // 生成网页版链接（使用高德 URI API 的多点标记功能）
+    // 格式: https://uri.amap.com/marker?markers=lng1,lat1,name1|lng2,lat2,name2&callnative=1
+    const markers = pointInfoList.map(p => `${p.lon},${p.lat},${encodeURIComponent(p.name)}`).join('|')
+    const webUrl = `https://uri.amap.com/marker?markers=${markers}&src=ai-travel-planner&callnative=1`
+
+    console.log('[AmapMCPTools] Generated web URL:', webUrl)
+    console.log('[AmapMCPTools] Original amapuri URL:', amapuriUrl)
+
+    // 返回网页版链接（在移动端会自动尝试唤起 APP）
+    return webUrl
   }
 
   async getNavigationLink(destination: string): Promise<string | null> {

@@ -49,7 +49,8 @@ export default function SyncToAmapButton({ trip }: SyncToAmapButtonProps) {
     }
 
     const mapName = `${trip.destination}之旅`
-    await syncToAmap(mapName, waypoints)
+    // 传递目的地城市，用于限定 POI 搜索范围
+    await syncToAmap(mapName, waypoints, trip.destination)
     setShowModal(false)
   }
 

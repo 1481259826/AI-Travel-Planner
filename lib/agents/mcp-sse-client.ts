@@ -89,7 +89,7 @@ const DEFAULT_MAX_RECONNECT_ATTEMPTS = 3
 export const AMAP_MCP_TOOLS = {
   // 地理编码
   GEO: 'maps_geo',
-  REGEO: 'maps_regeo',
+  REGEO: 'maps_regeocode',
 
   // IP 定位
   IP_LOCATION: 'maps_ip_location',
@@ -98,23 +98,23 @@ export const AMAP_MCP_TOOLS = {
   WEATHER: 'maps_weather',
 
   // 路径规划
-  BICYCLING: 'maps_bicycling',
-  WALKING: 'maps_walking',
-  DRIVING: 'maps_driving',
-  TRANSIT: 'maps_transit_integrated',
+  BICYCLING: 'maps_direction_bicycling',
+  WALKING: 'maps_direction_walking',
+  DRIVING: 'maps_direction_driving',
+  TRANSIT: 'maps_direction_transit_integrated',
 
   // 距离测量
   DISTANCE: 'maps_distance',
 
   // POI 搜索
-  SEARCH_TEXT: 'maps_search_text',
-  SEARCH_AROUND: 'maps_search_around',
+  SEARCH_TEXT: 'maps_text_search',
+  SEARCH_AROUND: 'maps_around_search',
   SEARCH_DETAIL: 'maps_search_detail',
 
   // 高德 APP 联动功能
-  BINDMAP: 'amap_maps_bindmap', // 生成专属地图
-  NAVI: 'amap_maps_navi', // 导航唤端
-  TAXI: 'amap_maps_taxi', // 打车唤端
+  BINDMAP: 'maps_schema_personal_map', // 生成专属地图
+  NAVI: 'maps_schema_navi', // 导航唤端
+  TAXI: 'maps_schema_take_taxi', // 打车唤端
 } as const
 
 export type AmapMCPToolName =
@@ -380,6 +380,8 @@ export class AmapMCPClient {
         arguments: args,
       })
 
+      console.log('[AmapMCPClient] Raw result:', JSON.stringify(result, null, 2))
+
       // 解析结果
       if (result.isError) {
         return {
@@ -417,9 +419,20 @@ export class AmapMCPClient {
         success: true,
         data,
       }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
+    } catch (error: any) {
+      // 尝试获取更详细的错误信息
+      let errMsg: string
+      if (error instanceof Error) {
+        errMsg = error.message
+        // 检查是否有原始响应数据
+        if ('cause' in error) {
+          console.error('[AmapMCPClient] Error cause:', error.cause)
+        }
+      } else {
+        errMsg = JSON.stringify(error)
+      }
       console.error('[AmapMCPClient] Tool call failed:', errMsg)
+      console.error('[AmapMCPClient] Full error:', error)
 
       return {
         success: false,

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createMCPTools, type IExtendedMCPTools } from '@/lib/agents/mcp-factory'
+import { createAmapMCPClient } from '@/lib/agents/mcp-sse-client'
 import { supabase } from '@/lib/supabase'
 import { appConfig } from '@/lib/config'
 import { ApiKeyClient } from '@/lib/api-keys'
@@ -33,29 +34,17 @@ async function getAuthUser(request: NextRequest) {
 }
 
 /**
- * POST /api/amap-app
+ * GET /api/amap-app
  *
- * 请求体：
- * - action: 'custom-map' | 'navigation' | 'taxi'
- * - 根据 action 的不同，需要不同的参数
+ * 获取高德 MCP 服务可用的工具列表（调试用）
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request)
     if (!user) {
       return NextResponse.json(
         { success: false, error: '未授权' },
         { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { action } = body
-
-    if (!action) {
-      return NextResponse.json(
-        { success: false, error: '缺少 action 参数' },
-        { status: 400 }
       )
     }
 
@@ -70,8 +59,78 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 创建 MCP 客户端并列出工具
+    const client = createAmapMCPClient({
+      apiKey,
+      mode: 'streamable-http',
+    })
+
+    await client.connect()
+    const tools = await client.listTools()
+    await client.disconnect()
+
+    return NextResponse.json({
+      success: true,
+      data: { tools }
+    })
+  } catch (error) {
+    console.error('[API] amap-app GET error:', error)
+    const errorMessage = error instanceof Error ? error.message : '服务器错误'
+    return NextResponse.json(
+      { success: false, error: errorMessage },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * POST /api/amap-app
+ *
+ * 请求体：
+ * - action: 'custom-map' | 'navigation' | 'taxi'
+ * - 根据 action 的不同，需要不同的参数
+ */
+export async function POST(request: NextRequest) {
+  try {
+    console.log('[API] amap-app: 收到请求')
+
+    const user = await getAuthUser(request)
+    if (!user) {
+      console.log('[API] amap-app: 用户未授权')
+      return NextResponse.json(
+        { success: false, error: '未授权' },
+        { status: 401 }
+      )
+    }
+    console.log('[API] amap-app: 用户已认证', user.id)
+
+    const body = await request.json()
+    const { action } = body
+    console.log('[API] amap-app: action =', action)
+
+    if (!action) {
+      return NextResponse.json(
+        { success: false, error: '缺少 action 参数' },
+        { status: 400 }
+      )
+    }
+
+    // 获取高德 API Key
+    const mapConfig = await ApiKeyClient.getUserConfig(user.id, 'map', supabase)
+    const apiKey = mapConfig?.apiKey || appConfig.map.webServiceKey
+    console.log('[API] amap-app: API Key 获取', apiKey ? '成功' : '失败')
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, error: '未配置高德地图 API Key' },
+        { status: 400 }
+      )
+    }
+
     // 创建 MCP 客户端（需要扩展接口支持 APP 联动功能）
-    const { tools, extended } = await createMCPTools({ apiKey })
+    console.log('[API] amap-app: 开始创建 MCP 客户端...')
+    const { tools, extended, mode, fallback } = await createMCPTools({ apiKey })
+    console.log('[API] amap-app: MCP 客户端创建完成, mode =', mode, ', extended =', extended, ', fallback =', fallback)
 
     // 检查是否支持扩展功能
     if (!extended) {
@@ -88,7 +147,8 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'custom-map': {
         // 生成专属地图
-        const { name, waypoints } = body
+        const { name, waypoints, city } = body
+        console.log('[API] amap-app: custom-map, name =', name, ', city =', city, ', waypoints count =', waypoints?.length)
         if (!name || !waypoints || !Array.isArray(waypoints)) {
           return NextResponse.json(
             { success: false, error: '缺少 name 或 waypoints 参数' },
@@ -96,7 +156,9 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        result = await mcpClient.generateCustomMap(name, waypoints)
+        console.log('[API] amap-app: 调用 generateCustomMap...')
+        result = await mcpClient.generateCustomMap(name, waypoints, city)
+        console.log('[API] amap-app: generateCustomMap 结果 =', result)
         break
       }
 
@@ -148,8 +210,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('[API] amap-app error:', error)
+    const errorMessage = error instanceof Error ? error.message : '服务器错误'
     return NextResponse.json(
-      { success: false, error: '服务器错误' },
+      { success: false, error: errorMessage },
       { status: 500 }
     )
   }
