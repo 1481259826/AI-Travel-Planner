@@ -44,34 +44,39 @@ COMMENT ON COLUMN public.workflow_interrupts.expires_at IS '中断过期时间�
 ALTER TABLE public.workflow_interrupts ENABLE ROW LEVEL SECURITY;
 
 -- RLS 策略: 用户只能查看自己的中断
+DROP POLICY IF EXISTS "Users can view their own interrupts" ON public.workflow_interrupts;
 CREATE POLICY "Users can view their own interrupts"
   ON public.workflow_interrupts FOR SELECT
   USING (auth.uid() = user_id);
 
 -- RLS 策略: 用户只能插入自己的中断
+DROP POLICY IF EXISTS "Users can insert their own interrupts" ON public.workflow_interrupts;
 CREATE POLICY "Users can insert their own interrupts"
   ON public.workflow_interrupts FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- RLS 策略: 用户只能更新自己的中断
+DROP POLICY IF EXISTS "Users can update their own interrupts" ON public.workflow_interrupts;
 CREATE POLICY "Users can update their own interrupts"
   ON public.workflow_interrupts FOR UPDATE
   USING (auth.uid() = user_id);
 
 -- RLS 策略: 用户只能删除自己的中断
+DROP POLICY IF EXISTS "Users can delete their own interrupts" ON public.workflow_interrupts;
 CREATE POLICY "Users can delete their own interrupts"
   ON public.workflow_interrupts FOR DELETE
   USING (auth.uid() = user_id);
 
 -- 索引: 按 thread_id 查询
-CREATE INDEX idx_workflow_interrupts_thread
+CREATE INDEX IF NOT EXISTS idx_workflow_interrupts_thread
   ON public.workflow_interrupts(thread_id);
 
 -- 索引: 按用户和状态查询待处理中断
-CREATE INDEX idx_workflow_interrupts_user_status
+CREATE INDEX IF NOT EXISTS idx_workflow_interrupts_user_status
   ON public.workflow_interrupts(user_id, status);
 
 -- 索引: 按过期时间查询（用于清理过期中断）
+DROP INDEX IF EXISTS idx_workflow_interrupts_expires;
 CREATE INDEX idx_workflow_interrupts_expires
   ON public.workflow_interrupts(expires_at)
   WHERE status = 'pending';
@@ -86,6 +91,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 自动更新 updated_at
+DROP TRIGGER IF EXISTS update_workflow_interrupts_updated_at ON public.workflow_interrupts;
 CREATE TRIGGER update_workflow_interrupts_updated_at
   BEFORE UPDATE ON public.workflow_interrupts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
