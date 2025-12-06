@@ -14,6 +14,7 @@
 - **🔐 用户认证** - Supabase 认证集成，支持邮箱/密码注册登录
 - **📊 行程管理** - 创建、保存和查看多个旅行计划
 - **🗺️ 地图集成** - 高德地图显示景点位置、路线规划（[查看文档](docs/MAP_INTEGRATION.md)）
+- **📲 高德 APP 联动** - 一键同步行程到高德地图 APP，生成专属导航地图
 - **💵 费用追踪** - 语音录入开销、实时预算对比、费用分类管理
 - **📈 数据可视化** - 预算使用图表、费用分布分析、每日开销趋势（[查看文档](docs/BUDGET_VISUALIZATION.md)）
 - **🔗 行程分享** - 生成分享链接、二维码、支持社交媒体分享（[查看文档](docs/SHARE_FEATURE.md)）
@@ -70,6 +71,11 @@ MODELSCOPE_BASE_URL=https://api-inference.modelscope.cn/v1/
 NEXT_PUBLIC_MAP_API_KEY=your_amap_api_key
 AMAP_WEB_SERVICE_KEY=your_amap_web_service_key  # Web服务API Key（后端使用）
 
+# 高德官方 MCP 服务配置（可选 - 推荐使用）
+AMAP_MCP_MODE=streamable-http                   # 连接模式：sse | streamable-http（推荐）
+AMAP_MCP_SSE_URL=https://mcp.amap.com/sse       # SSE 服务地址（使用默认值即可）
+AMAP_MCP_HTTP_URL=https://mcp.amap.com/mcp      # Streamable HTTP 地址（使用默认值即可）
+
 # 数据加密密钥（必需 - 用于 API Key 加密存储）
 ENCRYPTION_KEY=your_32_char_or_longer_encryption_key_here
 
@@ -108,7 +114,14 @@ VOICE_API_KEY=your_voice_api_key
 **高德地图 (必需):**
 1. 访问 [lbs.amap.com](https://lbs.amap.com)
 2. 创建应用并获取 Web 端（JS API）Key 和 Web 服务 API Key
-3. 详细说明查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md)
+3. Web 服务 Key 需要开通以下服务权限：
+   - 地理编码/逆地理编码
+   - 搜索服务 POI
+   - 路径规划
+   - 天气查询
+4. 详细说明查看 [docs/MAP_INTEGRATION.md](docs/MAP_INTEGRATION.md)
+
+> 💡 **高德官方 MCP 服务**：项目已集成高德官方 MCP 服务，自动使用 Web 服务 Key 连接。支持 12+ 官方工具，包括生成专属地图、导航唤端等高级功能。详见 [docs/高德官方MCP服务升级计划.md](docs/高德官方MCP服务升级计划.md)
 
 **加密密钥 (必需):**
 使用 Node.js 生成安全的随机密钥：
@@ -211,6 +224,21 @@ npm run test:e2e          # Playwright E2E 测试
 
 详细说明请查看 [docs/SHARE_FEATURE.md](docs/SHARE_FEATURE.md)
 
+### 同步到高德地图
+
+1. **打开行程详情** - 进入想要同步的行程页面
+2. **点击同步按钮** - 点击顶部的"同步到高德"按钮
+3. **确认同步** - 查看待同步的景点列表，确认同步
+4. **使用方式**：
+   - **手机扫码** - 打开高德地图 APP 扫描二维码
+   - **复制链接** - 在手机浏览器打开链接，自动跳转高德 APP
+5. **在高德中使用**：
+   - 查看所有景点标记的专属地图
+   - 一键导航到任意景点
+   - 规划最优游览路线
+
+> 💡 **提示**：需要配置高德 Web 服务 API Key 才能使用此功能
+
 ### AI 模型选择
 
 本项目支持多个 AI 模型，可根据需求选择：
@@ -241,9 +269,9 @@ npm run test:e2e          # Playwright E2E 测试
 ### AI 集成
 - **大语言模型**: DeepSeek + ModelScope (Qwen)
 - **多智能体编排**: LangGraph (状态图编排 + 条件分支 + 循环重试)
+- **MCP 协议**: 高德官方 MCP 服务（SSE/Streamable HTTP）
 - **语音识别**: Web Speech API
 - **图片服务**: 高德地图 POI 照片
-- **MCP 协议**: Model Context Protocol 工具调用
 
 ### 测试
 - **单元测试**: Vitest + Testing Library
@@ -312,12 +340,12 @@ NEXT_PUBLIC_USE_LANGGRAPH=true
 
 | Agent | 职责 | MCP 工具 |
 |-------|------|----------|
-| Weather Scout | 获取天气预报，输出策略标签 | `getWeatherForecast` |
-| Itinerary Planner | 生成行程骨架（景点顺序） | `searchPOI`, `geocode` |
-| Attraction Enricher | 增强景点详情（门票、开放时间等） | `searchPOI` |
-| Accommodation | 推荐酒店住宿 | `searchNearby` |
-| Transport | 计算交通路线和费用 | `getDrivingRoute`, `getTransitRoute` |
-| Dining | 推荐餐厅 | `searchPOI` |
+| Weather Scout | 获取天气预报，输出策略标签 | `maps_weather` |
+| Itinerary Planner | 生成行程骨架（景点顺序） | `maps_search_text`, `maps_geo` |
+| Attraction Enricher | 增强景点详情（门票、开放时间等） | `maps_search_text`, `maps_search_detail` |
+| Accommodation | 推荐酒店住宿 | `maps_search_around` |
+| Transport | 计算交通路线和费用 | `maps_driving`, `maps_transit_integrated` |
+| Dining | 推荐餐厅 | `maps_search_text` |
 | Budget Critic | 预算审计，超支触发重试 | 无（纯计算） |
 | Finalize | 整合数据，输出最终行程 | 无 |
 
@@ -326,6 +354,25 @@ NEXT_PUBLIC_USE_LANGGRAPH=true
 - **追踪**: 支持 Console、JSON、LangSmith 三种追踪后端
 - **指标**: Prometheus 格式指标端点 (`/api/metrics`)
 - **调试页面**: 开发环境可访问 `/dashboard/debug` 查看工作流执行状态
+
+### MCP 服务
+
+项目已集成高德官方 MCP 服务，支持 12+ 官方工具：
+
+| 工具名称 | 功能描述 |
+|---------|---------|
+| `maps_geo` | 地理编码（地址转坐标） |
+| `maps_regeo` | 逆地理编码（坐标转地址） |
+| `maps_weather` | 天气查询 |
+| `maps_search_text` | 关键词搜索 POI |
+| `maps_search_around` | 周边搜索 POI |
+| `maps_search_detail` | POI 详情搜索 |
+| `maps_driving` | 驾车路径规划 |
+| `maps_walking` | 步行路径规划 |
+| `maps_bicycling` | 骑行路径规划 |
+| `maps_transit_integrated` | 公交路径规划 |
+| `maps_distance` | 距离测量 |
+| `amap_maps_bindmap` | 生成专属地图（高德 APP 联动） |
 
 详细架构设计请查看 [docs/多智能体架构升级计划.md](docs/多智能体架构升级计划.md)
 
@@ -344,6 +391,7 @@ ai-travel-planner/
 │   │   ├── metrics/              # Prometheus 指标端点
 │   │   ├── enrich-attraction/    # 景点信息增强 API
 │   │   ├── enrich-hotel/         # 酒店信息增强 API
+│   │   ├── amap-app/             # 高德 APP 联动 API（生成专属地图）
 │   │   ├── expenses/             # 费用管理 API
 │   │   ├── weather/              # 天气预报 API
 │   │   ├── voice/                # 语音相关 API
@@ -387,6 +435,7 @@ ai-travel-planner/
 │   ├── AttractionCard.tsx        # 景点卡片组件
 │   ├── HotelCard.tsx             # 酒店卡片组件
 │   ├── ShareButton.tsx           # 分享按钮组件
+│   ├── SyncToAmapButton.tsx      # 同步到高德 APP 组件
 │   ├── ExpenseForm.tsx           # 费用表单
 │   ├── ExpenseList.tsx           # 费用列表
 │   ├── BudgetChart.tsx           # 预算图表
@@ -396,11 +445,12 @@ ai-travel-planner/
 │   ├── SyncStatus.tsx            # 同步状态组件
 │   ├── InstallPrompt.tsx         # PWA 安装提示
 │   └── CacheManager.tsx          # 缓存管理器
-├── hooks/                        # React Hooks（12 个）
+├── hooks/                        # React Hooks（13 个）
 │   ├── useAuth.ts                # 认证 Hook
 │   ├── useAuthFetch.ts           # 带认证的请求 Hook
 │   ├── useAMapLoader.ts          # 高德地图加载 Hook
 │   ├── useAmapInstance.ts        # 高德地图实例 Hook
+│   ├── useAmapApp.ts             # 高德 APP 联动 Hook
 │   ├── useMapMarkers.ts          # 地图标记管理 Hook
 │   ├── useMapRoutes.ts           # 地图路线管理 Hook
 │   ├── usePhotoCarousel.ts       # 照片轮播逻辑 Hook
@@ -414,10 +464,15 @@ ai-travel-planner/
 │   ├── agents/                   # LangGraph 多智能体模块
 │   │   ├── state.ts              # TripState Annotation 定义
 │   │   ├── workflow.ts           # StateGraph 工作流定义
-│   │   ├── mcp-client.ts         # MCP 客户端封装
+│   │   ├── mcp-client.ts         # MCP 客户端封装（本地/官方）
+│   │   ├── mcp-sse-client.ts     # 高德官方 MCP SSE 客户端
+│   │   ├── mcp-factory.ts        # MCP 客户端工厂（自动选择）
+│   │   ├── mcp-tools.ts          # MCP 工具封装
+│   │   ├── mcp-transformers.ts   # 数据格式转换器
 │   │   ├── checkpointer.ts       # 检查点存储（内存/PostgreSQL）
 │   │   ├── tracer.ts             # 工作流追踪器
 │   │   ├── metrics.ts            # 执行指标收集
+│   │   ├── cache.ts              # 缓存管理
 │   │   ├── nodes/                # Agent 节点函数
 │   │   │   ├── weather-scout.ts  # 天气感知 Agent
 │   │   │   ├── itinerary-planner.ts # 核心规划 Agent
