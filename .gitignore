@@ -66,3 +66,6 @@ logs/
 *.temp
 *.bak
 *.backup
+
+# Personal docs
+docs/面试准备指南/
