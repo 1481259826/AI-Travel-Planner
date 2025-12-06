@@ -3,7 +3,7 @@
 > 文档版本: v1.2
 > 创建日期: 2025-12-05
 > 更新日期: 2025-12-06
-> 状态: 🚧 Phase 2 已完成
+> 状态: 🚧 Phase 3 已完成
 
 ---
 
@@ -1087,13 +1087,25 @@ NEXT_PUBLIC_USE_HITL=true
 
 | # | 任务 | 描述 | 状态 |
 |---|------|------|------|
-| 3.1 | 数据库迁移 | 创建 `chat_sessions`, `chat_messages` 表 | ⬜ 待开始 |
-| 3.2 | 类型定义 | 创建 `lib/chat/types.ts` | ⬜ 待开始 |
-| 3.3 | Tools 定义 | 创建 `lib/chat/tools.ts` | ⬜ 待开始 |
-| 3.4 | Agent 核心 | 实现 `TravelChatAgent` 类 | ⬜ 待开始 |
-| 3.5 | Tool 执行器 | 实现各工具的执行逻辑 | ⬜ 待开始 |
-| 3.6 | Chat API | 实现 `/api/chat` SSE 端点 | ⬜ 待开始 |
-| 3.7 | 会话 API | 实现会话管理 API | ⬜ 待开始 |
+| 3.1 | 数据库迁移 | 创建 `chat_sessions`, `chat_messages` 表 | ✅ 已完成 |
+| 3.2 | 类型定义 | 创建 `lib/chat/types.ts` | ✅ 已完成 |
+| 3.3 | Tools 定义 | 创建 `lib/chat/tools.ts` | ✅ 已完成 |
+| 3.4 | Agent 核心 | 实现 `TravelChatAgent` 类 | ✅ 已完成 |
+| 3.5 | Tool 执行器 | 实现各工具的执行逻辑 | ✅ 已完成 |
+| 3.6 | Chat API | 实现 `/api/chat` SSE 端点 | ✅ 已完成 |
+| 3.7 | 会话 API | 实现会话管理 API | ✅ 已完成 |
+
+**实现文件**：
+- `database/migrations/20251206_add_chat_tables.sql` - 数据库迁移脚本
+- `lib/chat/types.ts` - 对话类型定义
+- `lib/chat/tools.ts` - 工具定义（9 个工具）
+- `lib/chat/executor.ts` - 工具执行器
+- `lib/chat/agent.ts` - TravelChatAgent 核心类
+- `lib/chat/index.ts` - 统一导出
+- `app/api/chat/route.ts` - 对话 API（支持 SSE 流式）
+- `app/api/chat/sessions/route.ts` - 会话列表 API
+- `app/api/chat/sessions/[id]/route.ts` - 单个会话 API
+- `app/api/chat/sessions/[id]/messages/route.ts` - 消息历史 API
 
 ### Phase 4: 对话 Agent 前端
 
@@ -1363,7 +1375,9 @@ app/dashboard/trips/[id]/page.tsx  # 添加对话入口
 |------|------|----------|
 | 2025-12-05 | v1.0 | 初始计划文档 |
 | 2025-12-06 | v1.1 | Phase 1 完成：数据库迁移、状态扩展、HITL 工作流、API 端点、SSE 事件扩展 |
+| 2025-12-06 | v1.2 | Phase 2 完成：HITL 前端组件（InterruptModal、ItineraryReviewPanel、BudgetDecisionPanel）|
+| 2025-12-06 | v1.3 | Phase 3 完成：对话 Agent 后端（类型定义、Tools、Agent 核心类、执行器、API 端点）|
 
 ---
 
-> 📌 **下一步**: 开始 Phase 2 - Human-in-the-Loop 前端实现
+> 📌 **下一步**: 开始 Phase 4 - 对话 Agent 前端实现

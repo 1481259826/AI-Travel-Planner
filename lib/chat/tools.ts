@@ -1,0 +1,377 @@
+/**
+ * 对话 Agent Tools 定义
+ * 定义所有可用的工具及其参数
+ */
+
+import type { ChatTool } from './types'
+
+/**
+ * 所有对话工具列表
+ */
+export const CHAT_TOOLS: ChatTool[] = [
+  // 景点搜索
+  {
+    type: 'function',
+    function: {
+      name: 'search_attractions',
+      description: '搜索指定城市的景点、旅游地点。可以根据关键词和类型进行筛选。',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+            description: '城市名称，如"杭州"、"北京"、"上海"',
+          },
+          keywords: {
+            type: 'string',
+            description: '搜索关键词，如"西湖"、"古镇"、"博物馆"',
+          },
+          type: {
+            type: 'string',
+            enum: ['景点', '美食', '购物', '娱乐', '文化'],
+            description: '景点类型',
+          },
+          limit: {
+            type: 'number',
+            description: '返回结果数量限制，默认为 10',
+          },
+        },
+        required: ['city'],
+      },
+    },
+  },
+
+  // 酒店搜索
+  {
+    type: 'function',
+    function: {
+      name: 'search_hotels',
+      description: '搜索指定城市的酒店住宿。可以根据价格区间和类型筛选。',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+            description: '城市名称',
+          },
+          price_range: {
+            type: 'string',
+            enum: ['budget', 'mid', 'luxury'],
+            description: '价格区间：budget（经济型，<300元）、mid（中档，300-800元）、luxury（豪华，>800元）',
+          },
+          type: {
+            type: 'string',
+            enum: ['hotel', 'hostel', 'apartment', 'resort'],
+            description: '住宿类型：酒店、青旅、公寓、度假村',
+          },
+          limit: {
+            type: 'number',
+            description: '返回结果数量限制',
+          },
+        },
+        required: ['city'],
+      },
+    },
+  },
+
+  // 餐厅搜索
+  {
+    type: 'function',
+    function: {
+      name: 'search_restaurants',
+      description: '搜索指定城市的餐厅。可以根据菜系和价格区间筛选。',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+            description: '城市名称',
+          },
+          cuisine: {
+            type: 'string',
+            description: '菜系，如"杭帮菜"、"川菜"、"日料"、"西餐"',
+          },
+          price_range: {
+            type: 'string',
+            enum: ['budget', 'mid', 'high'],
+            description: '价格区间：budget（人均<50元）、mid（50-150元）、high（>150元）',
+          },
+          limit: {
+            type: 'number',
+            description: '返回结果数量限制',
+          },
+        },
+        required: ['city'],
+      },
+    },
+  },
+
+  // 天气查询
+  {
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: '获取指定城市的天气预报信息。',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+            description: '城市名称',
+          },
+          date: {
+            type: 'string',
+            description: '查询日期，格式 YYYY-MM-DD。不提供则查询未来几天的天气。',
+          },
+        },
+        required: ['city'],
+      },
+    },
+  },
+
+  // 行程修改
+  {
+    type: 'function',
+    function: {
+      name: 'modify_itinerary',
+      description: '修改已有的行程安排，如添加/删除景点、调整时间顺序等。',
+      parameters: {
+        type: 'object',
+        properties: {
+          trip_id: {
+            type: 'string',
+            description: '行程 ID',
+          },
+          operation: {
+            type: 'string',
+            enum: [
+              'add_attraction',    // 添加景点
+              'remove_attraction', // 删除景点
+              'reorder',           // 调整顺序
+              'change_time',       // 修改时间
+              'add_day',           // 增加一天
+              'remove_day',        // 删除一天
+              'change_hotel',      // 更换酒店
+              'change_restaurant', // 更换餐厅
+            ],
+            description: '操作类型',
+          },
+          params: {
+            type: 'object',
+            description: '操作参数，根据 operation 不同而变化',
+            properties: {
+              day_index: {
+                type: 'number',
+                description: '天数索引（从 0 开始）',
+              },
+              activity_index: {
+                type: 'number',
+                description: '活动索引（从 0 开始）',
+              },
+              attraction_name: {
+                type: 'string',
+                description: '景点名称（添加景点时使用）',
+              },
+              new_time: {
+                type: 'string',
+                description: '新时间（修改时间时使用），如 "09:00"',
+              },
+              from_day: {
+                type: 'number',
+                description: '源天数索引（调整顺序时使用）',
+              },
+              from_index: {
+                type: 'number',
+                description: '源活动索引（调整顺序时使用）',
+              },
+              to_day: {
+                type: 'number',
+                description: '目标天数索引（调整顺序时使用）',
+              },
+              to_index: {
+                type: 'number',
+                description: '目标活动索引（调整顺序时使用）',
+              },
+            },
+          },
+        },
+        required: ['trip_id', 'operation', 'params'],
+      },
+    },
+  },
+
+  // 获取行程详情
+  {
+    type: 'function',
+    function: {
+      name: 'get_trip_details',
+      description: '获取行程的详细信息，包括每天的行程安排、住宿、交通等。',
+      parameters: {
+        type: 'object',
+        properties: {
+          trip_id: {
+            type: 'string',
+            description: '行程 ID',
+          },
+        },
+        required: ['trip_id'],
+      },
+    },
+  },
+
+  // 创建行程
+  {
+    type: 'function',
+    function: {
+      name: 'create_trip',
+      description: '创建新的旅行行程。收集用户的目的地、日期、预算等信息后创建行程。',
+      parameters: {
+        type: 'object',
+        properties: {
+          destination: {
+            type: 'string',
+            description: '目的地城市',
+          },
+          start_date: {
+            type: 'string',
+            description: '开始日期，格式 YYYY-MM-DD',
+          },
+          end_date: {
+            type: 'string',
+            description: '结束日期，格式 YYYY-MM-DD',
+          },
+          budget: {
+            type: 'number',
+            description: '预算（元）',
+          },
+          travelers: {
+            type: 'number',
+            description: '出行人数',
+          },
+          preferences: {
+            type: 'array',
+            items: { type: 'string', description: '偏好项' },
+            description: '旅行偏好，如["美食","文化古迹","自然风光"]',
+          },
+        },
+        required: ['destination', 'start_date', 'end_date', 'budget', 'travelers'],
+      },
+    },
+  },
+
+  // 计算路线
+  {
+    type: 'function',
+    function: {
+      name: 'calculate_route',
+      description: '计算两地之间的路线，支持驾车、公交、步行等多种交通方式。',
+      parameters: {
+        type: 'object',
+        properties: {
+          origin: {
+            type: 'string',
+            description: '出发地，可以是地名或地址',
+          },
+          destination: {
+            type: 'string',
+            description: '目的地，可以是地名或地址',
+          },
+          mode: {
+            type: 'string',
+            enum: ['driving', 'transit', 'walking'],
+            description: '交通方式：driving（驾车）、transit（公交）、walking（步行）',
+          },
+        },
+        required: ['origin', 'destination'],
+      },
+    },
+  },
+
+  // 获取推荐
+  {
+    type: 'function',
+    function: {
+      name: 'get_recommendations',
+      description: '获取旅行推荐，包括热门景点、特色餐厅、优质酒店等。',
+      parameters: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+            description: '城市名称',
+          },
+          category: {
+            type: 'string',
+            enum: ['attractions', 'restaurants', 'hotels', 'activities'],
+            description: '推荐类别：景点、餐厅、酒店、活动',
+          },
+          preferences: {
+            type: 'array',
+            items: { type: 'string', description: '偏好项' },
+            description: '用户偏好，如["亲子","文化"]',
+          },
+          limit: {
+            type: 'number',
+            description: '返回结果数量限制',
+          },
+        },
+        required: ['city', 'category'],
+      },
+    },
+  },
+]
+
+/**
+ * 工具名称到描述的映射
+ */
+export const TOOL_DESCRIPTIONS: Record<string, string> = {
+  search_attractions: '搜索景点',
+  search_hotels: '搜索酒店',
+  search_restaurants: '搜索餐厅',
+  get_weather: '查询天气',
+  modify_itinerary: '修改行程',
+  get_trip_details: '获取行程详情',
+  create_trip: '创建行程',
+  calculate_route: '计算路线',
+  get_recommendations: '获取推荐',
+}
+
+/**
+ * 工具名称到图标的映射
+ */
+export const TOOL_ICONS: Record<string, string> = {
+  search_attractions: '🏛️',
+  search_hotels: '🏨',
+  search_restaurants: '🍽️',
+  get_weather: '🌤️',
+  modify_itinerary: '✏️',
+  get_trip_details: '📋',
+  create_trip: '✈️',
+  calculate_route: '🗺️',
+  get_recommendations: '⭐',
+}
+
+/**
+ * 获取工具的友好描述
+ */
+export function getToolDescription(toolName: string): string {
+  return TOOL_DESCRIPTIONS[toolName] || toolName
+}
+
+/**
+ * 获取工具的图标
+ */
+export function getToolIcon(toolName: string): string {
+  return TOOL_ICONS[toolName] || '🔧'
+}
+
+/**
+ * 获取 OpenAI 格式的工具定义
+ * 用于 API 调用
+ */
+export function getOpenAITools() {
+  return CHAT_TOOLS.map((tool) => ({
+    type: tool.type,
+    function: tool.function,
+  }))
+}
