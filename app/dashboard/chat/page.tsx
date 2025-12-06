@@ -1,12 +1,13 @@
 /**
  * 对话页面
  * /dashboard/chat
+ * 支持 ?tripId=xxx 参数关联行程
  */
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Plane,
@@ -14,17 +15,27 @@ import {
   ArrowLeft,
   Settings,
   MessageCircle,
+  MapPin,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChatSidebar, ChatInput, MessageList } from '@/components/chat'
 import { useChatAgent, useChatSessions } from '@/hooks/useChatAgent'
-import { auth } from '@/lib/supabase'
+import { auth, supabase } from '@/lib/supabase'
+import type { Trip } from '@/types'
 
 export default function ChatPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tripIdFromUrl = searchParams.get('tripId')
+
   const [user, setUser] = useState<any>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // 关联的行程信息
+  const [linkedTrip, setLinkedTrip] = useState<Trip | null>(null)
+  const [loadingTrip, setLoadingTrip] = useState(false)
 
   // 会话列表
   const {
@@ -34,7 +45,7 @@ export default function ChatPage() {
     deleteSession,
   } = useChatSessions()
 
-  // 对话状态
+  // 对话状态 - 传入关联的行程 ID
   const {
     messages,
     isLoading,
@@ -46,12 +57,55 @@ export default function ChatPage() {
     sendMessage,
     switchSession,
     createNewSession,
-  } = useChatAgent()
+  } = useChatAgent({ tripId: tripIdFromUrl || undefined })
 
   // 认证检查
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // 加载关联的行程信息
+  useEffect(() => {
+    if (tripIdFromUrl && user) {
+      loadLinkedTrip(tripIdFromUrl)
+    } else {
+      setLinkedTrip(null)
+    }
+  }, [tripIdFromUrl, user])
+
+  /**
+   * 加载关联的行程
+   */
+  const loadLinkedTrip = async (tripId: string) => {
+    setLoadingTrip(true)
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('id, destination, start_date, end_date, budget, travelers')
+        .eq('id', tripId)
+        .single()
+
+      if (error) {
+        console.error('加载行程失败:', error)
+        return
+      }
+
+      setLinkedTrip(data as Trip)
+    } catch (err) {
+      console.error('加载行程失败:', err)
+    } finally {
+      setLoadingTrip(false)
+    }
+  }
+
+  /**
+   * 取消关联行程
+   */
+  const clearLinkedTrip = () => {
+    setLinkedTrip(null)
+    // 从 URL 中移除 tripId 参数
+    router.replace('/dashboard/chat')
+  }
 
   const checkAuth = async () => {
     try {
@@ -178,6 +232,38 @@ export default function ChatPage() {
             </Link>
           </div>
         </div>
+
+        {/* 行程关联提示条 */}
+        {linkedTrip && (
+          <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-100 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-blue-700 dark:text-blue-300">
+                  正在为
+                  <Link
+                    href={`/dashboard/trips/${linkedTrip.id}`}
+                    className="font-medium hover:underline mx-1"
+                  >
+                    {linkedTrip.destination}之旅
+                  </Link>
+                  提供帮助
+                </span>
+                <span className="text-blue-500 dark:text-blue-400 text-xs">
+                  ({linkedTrip.start_date} 至 {linkedTrip.end_date})
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearLinkedTrip}
+                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 h-6 px-2"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* 主体内容 */}

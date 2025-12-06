@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +29,7 @@ import { offlineExpenses, offlineData } from '@/lib/offline'
 import { cacheExpensesFromServer } from '@/lib/sync'
 import { useItineraryStore } from '@/lib/stores/itinerary-store'
 import { AmapWeatherForecast } from '@/lib/amap-weather'
+import { appConfig } from '@/lib/config/app.config'
 
 export default function TripDetailPage() {
   const router = useRouter()
@@ -538,6 +539,17 @@ export default function TripDetailPage() {
                 </div>
               )}
               <EditModeControls trip={trip} onSaveSuccess={handleSaveSuccess} />
+              {/* 对话助手入口 - 关联当前行程，根据 Feature Flag 控制显示 */}
+              {appConfig.features.useChatAgent && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/chat?tripId=${tripId}`)}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  对话助手
+                </Button>
+              )}
               <SyncToAmapButton trip={trip} />
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <ExportPdfButton trip={trip} />

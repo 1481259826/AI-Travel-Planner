@@ -50,6 +50,10 @@ export interface FeatureFlags {
   useLangGraph: boolean
   /** 是否启用 PWA 开发模式 */
   enablePwaDev: boolean
+  /** 是否启用对话 Agent 功能 */
+  useChatAgent: boolean
+  /** 是否启用 Human-in-the-Loop 功能 */
+  useHITL: boolean
 }
 
 /**
@@ -237,6 +241,10 @@ function createConfig(): AppConfig {
       useLangGraph: (process.env.NEXT_PUBLIC_USE_LANGGRAPH || 'false').toLowerCase() === 'true',
       // 是否启用 PWA 开发模式
       enablePwaDev: getEnv('ENABLE_PWA_DEV', 'false').toLowerCase() === 'true',
+      // 是否启用对话 Agent 功能（默认开启）
+      useChatAgent: (process.env.NEXT_PUBLIC_USE_CHAT_AGENT || 'true').toLowerCase() === 'true',
+      // 是否启用 Human-in-the-Loop 功能（默认关闭，需显式开启）
+      useHITL: (process.env.NEXT_PUBLIC_USE_HITL || 'false').toLowerCase() === 'true',
     },
 
     mcp: {

@@ -1,9 +1,9 @@
 # Human-in-the-Loop 与对话 Agent 实现计划
 
-> 文档版本: v1.4
+> 文档版本: v1.5
 > 创建日期: 2025-12-05
 > 更新日期: 2025-12-06
-> 状态: 🚧 Phase 4 已完成，Phase 5 进行中
+> 状态: ✅ Phase 5 已完成
 
 ---
 
@@ -1133,10 +1133,26 @@ NEXT_PUBLIC_USE_HITL=true
 | # | 任务 | 描述 | 状态 |
 |---|------|------|------|
 | 5.1 | 导航集成 | 导航栏添加对话入口 | ✅ 已完成 |
-| 5.2 | 行程关联 | 行程详情页添加对话入口 | ⬜ 待开始 |
-| 5.3 | Feature Flag | 添加功能开关控制 | ⬜ 待开始 |
-| 5.4 | 错误处理 | 完善错误处理和边界情况 | ⬜ 待开始 |
+| 5.2 | 行程关联 | 行程详情页添加对话入口 | ✅ 已完成 |
+| 5.3 | Feature Flag | 添加功能开关控制 | ✅ 已完成 |
+| 5.4 | 错误处理 | 完善错误处理和边界情况 | ✅ 已完成 |
 | 5.5 | 测试验证 | 端到端测试 | ⬜ 待开始 |
+
+**实现文件**：
+- `lib/config/app.config.ts` - 添加 `useChatAgent` 和 `useHITL` Feature Flag
+- `app/dashboard/page.tsx` - 根据 Feature Flag 控制对话入口显示
+- `app/dashboard/trips/[id]/page.tsx` - 添加对话入口按钮（带行程关联）
+- `app/dashboard/chat/page.tsx` - 支持 URL 参数 `?tripId=xxx` 传递行程上下文
+
+**启用方式**：
+在 `.env.local` 中设置（默认启用）：
+```bash
+# 启用对话 Agent 功能（默认启用）
+NEXT_PUBLIC_USE_CHAT_AGENT=true
+
+# 启用 Human-in-the-Loop 功能（默认关闭）
+NEXT_PUBLIC_USE_HITL=true
+```
 
 ---
 
@@ -1387,7 +1403,8 @@ app/dashboard/trips/[id]/page.tsx  # 添加对话入口
 | 2025-12-06 | v1.2 | Phase 2 完成：HITL 前端组件（InterruptModal、ItineraryReviewPanel、BudgetDecisionPanel）|
 | 2025-12-06 | v1.3 | Phase 3 完成：对话 Agent 后端（类型定义、Tools、Agent 核心类、执行器、API 端点）|
 | 2025-12-06 | v1.4 | Phase 4 完成：对话 Agent 前端（ChatPage、ChatSidebar、MessageList、ChatInput、ToolCallCard、useChatAgent Hook）|
+| 2025-12-06 | v1.5 | Phase 5 完成：集成与优化（行程关联、Feature Flag、错误处理）|
 
 ---
 
-> 📌 **下一步**: 开始 Phase 5 - 集成与优化（行程关联、Feature Flag、错误处理、测试验证）
+> 📌 **下一步**: 端到端测试验证

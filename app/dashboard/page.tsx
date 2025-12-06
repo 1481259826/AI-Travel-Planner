@@ -15,6 +15,7 @@ import { offlineData } from '@/lib/offline'
 import CacheManager from '@/components/CacheManager'
 import ApiKeySetupModal from '@/components/ApiKeySetupModal'
 import { useApiKeyCheck } from '@/hooks/useApiKeyCheck'
+import { appConfig } from '@/lib/config/app.config'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -203,13 +204,15 @@ export default function DashboardPage() {
                 设置
               </Button>
             </Link>
-            {/* 对话助手入口 */}
-            <Link href="/dashboard/chat">
-              <Button variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                对话助手
-              </Button>
-            </Link>
+            {/* 对话助手入口 - 根据 Feature Flag 控制显示 */}
+            {appConfig.features.useChatAgent && (
+              <Link href="/dashboard/chat">
+                <Button variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  对话助手
+                </Button>
+              </Link>
+            )}
             {/* 调试入口 - 仅开发环境显示 */}
             {process.env.NODE_ENV === 'development' && (
               <Link href="/dashboard/debug">
