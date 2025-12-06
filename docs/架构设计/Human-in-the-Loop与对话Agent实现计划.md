@@ -1,9 +1,9 @@
 # Human-in-the-Loop 与对话 Agent 实现计划
 
-> 文档版本: v1.1
+> 文档版本: v1.2
 > 创建日期: 2025-12-05
 > 更新日期: 2025-12-06
-> 状态: 🚧 Phase 1 已完成
+> 状态: 🚧 Phase 2 已完成
 
 ---
 
@@ -1063,11 +1063,25 @@ interface UseLangGraphProgressReturn {
 
 | # | 任务 | 描述 | 状态 |
 |---|------|------|------|
-| 2.1 | 中断模态框 | 创建 `InterruptModal` 组件 | ⬜ 待开始 |
-| 2.2 | 行程审核 | 实现 `ItineraryReviewPanel` | ⬜ 待开始 |
-| 2.3 | 预算决策 | 实现 `BudgetDecisionPanel` | ⬜ 待开始 |
-| 2.4 | Hook 修改 | 扩展 `useLangGraphProgress` | ⬜ 待开始 |
-| 2.5 | 页面集成 | 集成到创建行程页面 | ⬜ 待开始 |
+| 2.1 | 中断模态框 | 创建 `InterruptModal` 组件 | ✅ 已完成 |
+| 2.2 | 行程审核 | 实现 `ItineraryReviewPanel` | ✅ 已完成 |
+| 2.3 | 预算决策 | 实现 `BudgetDecisionPanel` | ✅ 已完成 |
+| 2.4 | Hook 修改 | 创建 `useHITLWorkflow` Hook | ✅ 已完成 |
+| 2.5 | 页面集成 | 集成到创建行程页面 | ✅ 已完成 |
+
+**实现文件**：
+- `components/hitl/InterruptModal.tsx` - 中断模态框主容器
+- `components/hitl/ItineraryReviewPanel.tsx` - 行程审核面板（支持调整景点顺序和删除）
+- `components/hitl/BudgetDecisionPanel.tsx` - 预算决策面板（显示费用明细和调整方案）
+- `components/hitl/index.ts` - 统一导出
+- `hooks/useHITLWorkflow.ts` - HITL 工作流 Hook（管理中断和恢复）
+- `app/dashboard/create/page.tsx` - 集成 HITL 组件
+
+**启用方式**：
+在 `.env.local` 中设置：
+```bash
+NEXT_PUBLIC_USE_HITL=true
+```
 
 ### Phase 3: 对话 Agent 后端
 

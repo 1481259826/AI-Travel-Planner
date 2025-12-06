@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plane, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,14 +10,19 @@ import VoiceInput from '@/components/VoiceInput'
 import SmartVoiceFillForm from '@/components/SmartVoiceFillForm'
 import ModelSelector from '@/components/ModelSelector'
 import ProgressModal, { GenerationStage } from '@/components/ProgressModal'
+import { InterruptModal } from '@/components/hitl'
 import { supabase } from '@/lib/supabase'
 import { TripFormData, AIModel } from '@/types'
 import { getDefaultModel } from '@/lib/config'
 import { ApiKeyChecker } from '@/lib/api-keys'
 import { useLangGraphProgress } from '@/hooks/useLangGraphProgress'
+import { useHITLWorkflow } from '@/hooks/useHITLWorkflow'
+import type { HITLUserDecision } from '@/lib/agents/state-hitl'
 
 // 检测是否启用 LangGraph
 const USE_LANGGRAPH = process.env.NEXT_PUBLIC_USE_LANGGRAPH === 'true'
+// 检测是否启用 HITL（Human-in-the-Loop）
+const USE_HITL = process.env.NEXT_PUBLIC_USE_HITL === 'true'
 
 // 定义传统模式的生成阶段
 const LEGACY_GENERATION_STAGES: Omit<GenerationStage, 'progress' | 'status'>[] = [
@@ -61,9 +66,13 @@ export default function CreateTripPage() {
     }))
   )
   const [overallProgress, setOverallProgress] = useState(0)
+  const [accessToken, setAccessToken] = useState<string>('')
 
-  // LangGraph 进度 Hook（仅在启用时使用）
+  // LangGraph 进度 Hook（用于非 HITL 模式）
   const langGraphProgress = useLangGraphProgress()
+
+  // HITL 工作流 Hook
+  const hitlWorkflow = useHITLWorkflow()
 
   const [formData, setFormData] = useState<TripFormData>({
     origin: '',
@@ -173,6 +182,31 @@ export default function CreateTripPage() {
     }))
   }
 
+  // 处理 HITL 中断决策
+  const handleHITLDecision = useCallback(async (decision: HITLUserDecision) => {
+    if (!accessToken) return
+
+    try {
+      const result = await hitlWorkflow.resumeWorkflow(decision, accessToken)
+      if (result) {
+        // 完成，跳转到行程详情
+        await new Promise(resolve => setTimeout(resolve, 500))
+        router.push(`/dashboard/trips/${result.trip_id}`)
+      }
+      // 如果 result 为 null，说明再次中断，InterruptModal 会继续显示
+    } catch (err) {
+      console.error('HITL 恢复失败:', err)
+      // 错误会在 hitlWorkflow.error 中显示
+    }
+  }, [accessToken, hitlWorkflow, router])
+
+  // 处理 HITL 取消
+  const handleHITLCancel = useCallback(() => {
+    hitlWorkflow.reset()
+    setShowProgress(false)
+    setLoading(false)
+  }, [hitlWorkflow])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -187,8 +221,10 @@ export default function CreateTripPage() {
       status: 'pending' as const,
     })))
 
-    // 如果使用 LangGraph，也重置其状态
-    if (USE_LANGGRAPH) {
+    // 重置相关工作流状态
+    if (USE_HITL) {
+      hitlWorkflow.reset()
+    } else if (USE_LANGGRAPH) {
       langGraphProgress.reset()
     }
 
@@ -203,6 +239,9 @@ export default function CreateTripPage() {
         return
       }
 
+      // 保存 access token 用于 HITL 恢复
+      setAccessToken(session.access_token)
+
       // 检查 DeepSeek Key 是否配置（必需）
       const deepseekCheck = await ApiKeyChecker.checkDeepSeekRequired(session.user.id, session.access_token)
       if (!deepseekCheck.available) {
@@ -213,8 +252,23 @@ export default function CreateTripPage() {
         return
       }
 
-      if (USE_LANGGRAPH) {
-        // 使用 LangGraph 工作流 (v2 API)
+      if (USE_HITL) {
+        // 使用 HITL 工作流 (支持人工干预)
+        try {
+          const result = await hitlWorkflow.startGeneration(formData, session.access_token)
+          if (result) {
+            // 完成，跳转到行程详情
+            await new Promise(resolve => setTimeout(resolve, 500))
+            router.push(`/dashboard/trips/${result.trip_id}`)
+          }
+          // 如果 result 为 null，说明工作流中断，InterruptModal 会显示
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : '生成行程失败'
+          alert(errorMessage)
+          setShowProgress(false)
+        }
+      } else if (USE_LANGGRAPH) {
+        // 使用 LangGraph 工作流 (v2 API，无 HITL)
         try {
           const result = await langGraphProgress.startGeneration(formData, session.access_token)
           // 短暂延迟后跳转，让用户看到完成状态
@@ -608,13 +662,51 @@ export default function CreateTripPage() {
         </div>
       </main>
 
-      {/* Progress Modal */}
+      {/* Progress Modal - 根据模式选择显示 */}
       <ProgressModal
-        isOpen={showProgress || langGraphProgress.isGenerating}
-        stages={USE_LANGGRAPH ? langGraphProgress.stages : stages}
-        currentStage={USE_LANGGRAPH ? langGraphProgress.currentStage : currentStage}
-        overallProgress={USE_LANGGRAPH ? langGraphProgress.progress : overallProgress}
+        isOpen={
+          USE_HITL
+            ? (hitlWorkflow.isGenerating && !hitlWorkflow.isInterrupted)
+            : USE_LANGGRAPH
+              ? langGraphProgress.isGenerating
+              : showProgress
+        }
+        stages={
+          USE_HITL
+            ? hitlWorkflow.stages
+            : USE_LANGGRAPH
+              ? langGraphProgress.stages
+              : stages
+        }
+        currentStage={
+          USE_HITL
+            ? hitlWorkflow.currentStage
+            : USE_LANGGRAPH
+              ? langGraphProgress.currentStage
+              : currentStage
+        }
+        overallProgress={
+          USE_HITL
+            ? hitlWorkflow.progress
+            : USE_LANGGRAPH
+              ? langGraphProgress.progress
+              : overallProgress
+        }
       />
+
+      {/* HITL Interrupt Modal - 仅在中断时显示 */}
+      {USE_HITL && hitlWorkflow.isInterrupted && hitlWorkflow.interruptData && (
+        <InterruptModal
+          isOpen={true}
+          threadId={hitlWorkflow.interruptData.threadId}
+          interruptType={hitlWorkflow.interruptData.interruptType}
+          message={hitlWorkflow.interruptData.message}
+          options={hitlWorkflow.interruptData.options}
+          isSubmitting={hitlWorkflow.isResuming}
+          onDecision={handleHITLDecision}
+          onCancel={handleHITLCancel}
+        />
+      )}
     </div>
   )
 }
