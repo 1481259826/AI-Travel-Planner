@@ -12,6 +12,11 @@
 export * from './state'
 
 // ============================================================================
+// HITL 状态扩展
+// ============================================================================
+export * from './state-hitl'
+
+// ============================================================================
 // 工作流
 // ============================================================================
 export {
@@ -27,6 +32,21 @@ export {
   getWorkflowNodes,
 } from './workflow'
 export type { AIClientConfig, WorkflowConfig } from './workflow'
+
+// ============================================================================
+// HITL 工作流
+// ============================================================================
+export {
+  createHITLWorkflow,
+  getHITLWorkflow,
+  resetHITLWorkflow,
+  startHITLWorkflow,
+  resumeHITLWorkflow,
+  getHITLWorkflowState,
+  streamHITLWorkflow,
+  getHITLWorkflowNodes,
+} from './workflow-hitl'
+export type { HITLWorkflowConfig } from './workflow-hitl'
 
 // ============================================================================
 // Checkpointer
