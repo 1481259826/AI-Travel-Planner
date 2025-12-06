@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud, Settings, Bug } from 'lucide-react'
+import { Plane, Plus, MapPin, Calendar, DollarSign, LogOut, Trash2, Database, Cloud, Settings, Bug, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { auth, db } from '@/lib/supabase'
@@ -201,6 +201,13 @@ export default function DashboardPage() {
               <Button variant="outline">
                 <Settings className="w-4 h-4 mr-2" />
                 设置
+              </Button>
+            </Link>
+            {/* 对话助手入口 */}
+            <Link href="/dashboard/chat">
+              <Button variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                对话助手
               </Button>
             </Link>
             {/* 调试入口 - 仅开发环境显示 */}

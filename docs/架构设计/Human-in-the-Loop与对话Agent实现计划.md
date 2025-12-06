@@ -1,9 +1,9 @@
 # Human-in-the-Loop 与对话 Agent 实现计划
 
-> 文档版本: v1.2
+> 文档版本: v1.4
 > 创建日期: 2025-12-05
 > 更新日期: 2025-12-06
-> 状态: 🚧 Phase 3 已完成
+> 状态: 🚧 Phase 4 已完成，Phase 5 进行中
 
 ---
 
@@ -1111,19 +1111,28 @@ NEXT_PUBLIC_USE_HITL=true
 
 | # | 任务 | 描述 | 状态 |
 |---|------|------|------|
-| 4.1 | 页面路由 | 创建 `/dashboard/chat` 路由 | ⬜ 待开始 |
-| 4.2 | 主页面 | 实现 `ChatPage` 组件 | ⬜ 待开始 |
-| 4.3 | 会话列表 | 实现 `ChatSidebar` 组件 | ⬜ 待开始 |
-| 4.4 | 消息展示 | 实现 `MessageList` 组件 | ⬜ 待开始 |
-| 4.5 | 输入组件 | 实现 `ChatInput` 组件 | ⬜ 待开始 |
-| 4.6 | 工具卡片 | 实现 `ToolCallCard` 组件 | ⬜ 待开始 |
-| 4.7 | Hook 开发 | 实现 `useChatAgent` Hook | ⬜ 待开始 |
+| 4.1 | 页面路由 | 创建 `/dashboard/chat` 路由 | ✅ 已完成 |
+| 4.2 | 主页面 | 实现 `ChatPage` 组件 | ✅ 已完成 |
+| 4.3 | 会话列表 | 实现 `ChatSidebar` 组件 | ✅ 已完成 |
+| 4.4 | 消息展示 | 实现 `MessageList` 组件 | ✅ 已完成 |
+| 4.5 | 输入组件 | 实现 `ChatInput` 组件 | ✅ 已完成 |
+| 4.6 | 工具卡片 | 实现 `ToolCallCard` 组件 | ✅ 已完成 |
+| 4.7 | Hook 开发 | 实现 `useChatAgent` Hook | ✅ 已完成 |
+
+**实现文件**：
+- `app/dashboard/chat/page.tsx` - 对话主页面
+- `components/chat/ChatInput.tsx` - 输入框组件（支持多行、快捷键）
+- `components/chat/ChatSidebar.tsx` - 会话列表侧边栏
+- `components/chat/MessageList.tsx` - 消息列表展示（支持 Markdown 渲染）
+- `components/chat/ToolCallCard.tsx` - 工具调用卡片展示
+- `components/chat/index.ts` - 统一导出
+- `hooks/useChatAgent.ts` - 对话 Hook（管理消息、SSE 流、会话）
 
 ### Phase 5: 集成与优化
 
 | # | 任务 | 描述 | 状态 |
 |---|------|------|------|
-| 5.1 | 导航集成 | 导航栏添加对话入口 | ⬜ 待开始 |
+| 5.1 | 导航集成 | 导航栏添加对话入口 | ✅ 已完成 |
 | 5.2 | 行程关联 | 行程详情页添加对话入口 | ⬜ 待开始 |
 | 5.3 | Feature Flag | 添加功能开关控制 | ⬜ 待开始 |
 | 5.4 | 错误处理 | 完善错误处理和边界情况 | ⬜ 待开始 |
@@ -1377,7 +1386,8 @@ app/dashboard/trips/[id]/page.tsx  # 添加对话入口
 | 2025-12-06 | v1.1 | Phase 1 完成：数据库迁移、状态扩展、HITL 工作流、API 端点、SSE 事件扩展 |
 | 2025-12-06 | v1.2 | Phase 2 完成：HITL 前端组件（InterruptModal、ItineraryReviewPanel、BudgetDecisionPanel）|
 | 2025-12-06 | v1.3 | Phase 3 完成：对话 Agent 后端（类型定义、Tools、Agent 核心类、执行器、API 端点）|
+| 2025-12-06 | v1.4 | Phase 4 完成：对话 Agent 前端（ChatPage、ChatSidebar、MessageList、ChatInput、ToolCallCard、useChatAgent Hook）|
 
 ---
 
-> 📌 **下一步**: 开始 Phase 4 - 对话 Agent 前端实现
+> 📌 **下一步**: 开始 Phase 5 - 集成与优化（行程关联、Feature Flag、错误处理、测试验证）

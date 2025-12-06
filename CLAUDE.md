@@ -86,6 +86,7 @@ app/
 │   ├── create/                   # 创建行程表单
 │   ├── settings/                 # 用户设置页面
 │   ├── debug/                    # 工作流调试页面（开发环境）
+│   ├── chat/                     # 对话助手页面
 │   └── trips/[id]/               # 行程详情 + 打印页面
 └── share/[token]/                # 公开分享页面
 
@@ -96,6 +97,16 @@ components/                       # React 组件（已优化，Phase 3 重构）
 ├── map/                          # 地图相关组件
 │   ├── TripMapToolbar.tsx        # 行程地图工具栏
 │   └── MapLegend.tsx             # 地图图例
+├── chat/                         # 对话助手组件
+│   ├── ChatInput.tsx             # 输入框组件
+│   ├── ChatSidebar.tsx           # 会话列表侧边栏
+│   ├── MessageList.tsx           # 消息列表展示
+│   ├── ToolCallCard.tsx          # 工具调用卡片
+│   └── index.ts                  # 统一导出
+├── hitl/                         # Human-in-the-Loop 组件
+│   ├── InterruptModal.tsx        # 中断模态框
+│   ├── ItineraryReviewPanel.tsx  # 行程审核面板
+│   └── BudgetDecisionPanel.tsx   # 预算决策面板
 ├── settings/                     # 设置页面组件
 │   ├── ApiKeyManager.tsx         # API Key 管理主组件
 │   └── api-keys/                 # API Key 子组件
@@ -115,6 +126,8 @@ hooks/                            # React Hooks
 ├── useAMapLoader.ts              # 高德地图加载 Hook
 ├── usePhotoCarousel.ts           # 照片轮播 Hook
 ├── useLangGraphProgress.ts       # LangGraph 进度监听 Hook
+├── useHITLWorkflow.ts            # HITL 工作流 Hook
+├── useChatAgent.ts               # 对话 Agent Hook
 └── useAuthFetch.ts               # 认证请求 Hook
 
 lib/
