@@ -1,6 +1,7 @@
 /**
  * useChatAgent Hook
  * 管理对话状态和 SSE 流式通信
+ * 支持对话式行程生成
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -10,6 +11,10 @@ import type {
   ChatStreamEvent,
   ChatSessionListItem,
   ToolCall,
+  TripFormData,
+  TripFormValidation,
+  TripGenerationState,
+  GenerationStage,
 } from '@/lib/chat'
 
 // ============================================================================
@@ -50,6 +55,54 @@ export interface UseChatAgentReturn {
   switchSession: (sessionId: string) => Promise<void>
   /** 创建新会话 */
   createNewSession: () => void
+
+  // 行程生成相关
+  /** 行程生成状态 */
+  tripGenerationState: TripGenerationState
+  /** 打开表单编辑模态框 */
+  openFormModal: () => void
+  /** 关闭表单编辑模态框 */
+  closeFormModal: () => void
+  /** 更新待确认的表单数据 */
+  updatePendingForm: (formData: Partial<TripFormData>) => void
+  /** 开始行程生成 */
+  startTripGeneration: (formData: TripFormData) => Promise<void>
+  /** 取消行程生成 */
+  cancelTripGeneration: () => void
+  /** 重置行程生成状态 */
+  resetTripGeneration: () => void
+}
+
+// ============================================================================
+// 默认工作流节点
+// ============================================================================
+
+const DEFAULT_GENERATION_STAGES: GenerationStage[] = [
+  { id: 'weather_scout', name: '天气分析', status: 'pending' },
+  { id: 'itinerary_planner', name: '行程规划', status: 'pending' },
+  { id: 'accommodation', name: '住宿推荐', status: 'pending' },
+  { id: 'transport', name: '交通规划', status: 'pending' },
+  { id: 'dining', name: '餐饮推荐', status: 'pending' },
+  { id: 'budget_critic', name: '预算审计', status: 'pending' },
+  { id: 'finalize', name: '生成行程', status: 'pending' },
+]
+
+// ============================================================================
+// 初始行程生成状态
+// ============================================================================
+
+const initialTripGenerationState: TripGenerationState = {
+  pendingForm: null,
+  formValidation: null,
+  isModalOpen: false,
+  generation: {
+    isGenerating: false,
+    progress: 0,
+    stages: [],
+    currentStage: 0,
+    error: null,
+    result: null,
+  },
 }
 
 // ============================================================================
@@ -68,8 +121,17 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
   const [currentToolCall, setCurrentToolCall] = useState<ToolCall | null>(null)
   const [streamingContent, setStreamingContent] = useState('')
 
+  // 行程生成状态
+  const [tripGenerationState, setTripGenerationState] = useState<TripGenerationState>(
+    initialTripGenerationState
+  )
+
+  // 待自动触发生成的表单数据
+  const [autoGenerateForm, setAutoGenerateForm] = useState<TripFormData | null>(null)
+
   // 中止控制器
   const abortControllerRef = useRef<AbortController | null>(null)
+  const generationAbortRef = useRef<AbortController | null>(null)
 
   // 初始化时加载历史消息
   useEffect(() => {
@@ -250,6 +312,35 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
 
               case 'tool_result':
                 setCurrentToolCall(null)
+                // 检查是否是 prepare_trip_form 的结果
+                if (event.toolResult && typeof event.toolResult === 'object') {
+                  const result = event.toolResult as any
+                  // 检查是否有 formData 和 validation（来自 prepare_trip_form）
+                  if (result.formData && result.validation) {
+                    // 更新行程生成状态
+                    setTripGenerationState((prev) => ({
+                      ...prev,
+                      pendingForm: {
+                        destination: result.formData.destination,
+                        startDate: result.formData.startDate,
+                        endDate: result.formData.endDate,
+                        budget: result.formData.budget,
+                        travelers: result.formData.travelers,
+                        origin: result.formData.origin,
+                        preferences: result.formData.preferences,
+                        accommodation_preference: result.formData.accommodation_preference,
+                        transport_preference: result.formData.transport_preference,
+                        special_requirements: result.formData.special_requirements,
+                      },
+                      formValidation: result.validation,
+                    }))
+                  }
+                  // 检查是否是 confirm_and_generate_trip 的结果
+                  if (result.action === 'trigger_generation' && result.formData) {
+                    // 设置待生成表单数据，由 effect 触发实际生成
+                    setAutoGenerateForm(result.formData as TripFormData)
+                  }
+                }
                 break
 
               case 'error':
@@ -301,13 +392,327 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setSessionId(null)
     setIsGenerating(false)
     setIsLoading(false)
+    setTripGenerationState(initialTripGenerationState)
   }, [])
+
+  // ==========================================================================
+  // 行程生成相关方法
+  // ==========================================================================
+
+  /**
+   * 打开表单编辑模态框
+   */
+  const openFormModal = useCallback(() => {
+    setTripGenerationState((prev) => ({
+      ...prev,
+      isModalOpen: true,
+    }))
+  }, [])
+
+  /**
+   * 关闭表单编辑模态框
+   */
+  const closeFormModal = useCallback(() => {
+    setTripGenerationState((prev) => ({
+      ...prev,
+      isModalOpen: false,
+    }))
+  }, [])
+
+  /**
+   * 更新待确认的表单数据
+   */
+  const updatePendingForm = useCallback((formData: Partial<TripFormData>) => {
+    // 验证表单数据
+    const validation = validateTripForm(formData)
+
+    setTripGenerationState((prev) => ({
+      ...prev,
+      pendingForm: formData,
+      formValidation: validation,
+    }))
+  }, [])
+
+  /**
+   * 验证表单数据（本地验证）
+   */
+  const validateTripForm = (formData: Partial<TripFormData>): TripFormValidation => {
+    const requiredFields = ['destination', 'startDate', 'endDate', 'budget', 'travelers'] as const
+    const optionalFields = ['origin', 'preferences', 'accommodation_preference', 'transport_preference', 'special_requirements'] as const
+
+    const fieldLabels: Record<string, string> = {
+      destination: '目的地',
+      startDate: '开始日期',
+      endDate: '结束日期',
+      budget: '预算',
+      travelers: '出行人数',
+      origin: '出发地',
+      preferences: '旅行偏好',
+      accommodation_preference: '住宿偏好',
+      transport_preference: '交通偏好',
+      special_requirements: '特殊要求',
+    }
+
+    const missingRequired: string[] = []
+    const missingOptional: string[] = []
+
+    for (const field of requiredFields) {
+      const value = formData[field]
+      if (value === undefined || value === null || value === '') {
+        missingRequired.push(fieldLabels[field])
+      }
+    }
+
+    for (const field of optionalFields) {
+      const value = formData[field]
+      if (value === undefined || value === null || value === '' ||
+          (Array.isArray(value) && value.length === 0)) {
+        missingOptional.push(fieldLabels[field])
+      }
+    }
+
+    return {
+      isValid: missingRequired.length === 0,
+      missingRequired,
+      missingOptional,
+    }
+  }
+
+  /**
+   * 开始行程生成
+   */
+  const startTripGeneration = useCallback(async (formData: TripFormData) => {
+    // 初始化生成状态
+    setTripGenerationState((prev) => ({
+      ...prev,
+      isModalOpen: false,
+      generation: {
+        isGenerating: true,
+        progress: 0,
+        stages: DEFAULT_GENERATION_STAGES.map((s) => ({ ...s, status: 'pending' as const })),
+        currentStage: 0,
+        error: null,
+        result: null,
+      },
+    }))
+
+    try {
+      const { data: { session } } = await auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('请先登录')
+      }
+
+      // 创建中止控制器
+      generationAbortRef.current = new AbortController()
+
+      // 发送生成请求
+      const response = await fetch('/api/chat/generate-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          form_data: formData,
+          session_id: sessionId,
+        }),
+        signal: generationAbortRef.current.signal,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '行程生成请求失败')
+      }
+
+      // 处理 SSE 流
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('无法读取响应流')
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+
+          try {
+            const event = JSON.parse(line.slice(6))
+
+            switch (event.type) {
+              case 'start':
+                // 更新会话 ID（如果有）
+                if (event.data?.sessionId) {
+                  setSessionId(event.data.sessionId)
+                }
+                break
+
+              case 'node_complete':
+                // 更新节点状态
+                setTripGenerationState((prev) => {
+                  const newStages = prev.generation.stages.map((stage) => {
+                    if (stage.id === event.node) {
+                      return { ...stage, status: 'completed' as const, progress: 100 }
+                    }
+                    return stage
+                  })
+
+                  // 设置下一个节点为 running
+                  const completedIndex = newStages.findIndex((s) => s.id === event.node)
+                  if (completedIndex >= 0 && completedIndex < newStages.length - 1) {
+                    newStages[completedIndex + 1] = {
+                      ...newStages[completedIndex + 1],
+                      status: 'running' as const,
+                    }
+                  }
+
+                  return {
+                    ...prev,
+                    generation: {
+                      ...prev.generation,
+                      progress: event.progress || prev.generation.progress,
+                      stages: newStages,
+                      currentStage: completedIndex + 1,
+                    },
+                  }
+                })
+                break
+
+              case 'progress':
+                setTripGenerationState((prev) => ({
+                  ...prev,
+                  generation: {
+                    ...prev.generation,
+                    progress: event.progress || prev.generation.progress,
+                  },
+                }))
+                break
+
+              case 'error':
+                throw new Error(event.message || '生成过程中发生错误')
+
+              case 'complete':
+                // 生成完成
+                setTripGenerationState((prev) => ({
+                  ...prev,
+                  pendingForm: null,
+                  formValidation: null,
+                  generation: {
+                    ...prev.generation,
+                    isGenerating: false,
+                    progress: 100,
+                    stages: prev.generation.stages.map((s) => ({
+                      ...s,
+                      status: 'completed' as const,
+                      progress: 100,
+                    })),
+                    result: {
+                      tripId: event.data?.trip_id,
+                      destination: event.data?.destination,
+                    },
+                  },
+                }))
+
+                // 添加完成消息到对话
+                const completionMessage: ChatMessage = {
+                  id: `completion-${Date.now()}`,
+                  role: 'assistant',
+                  content: `🎉 行程生成完成！您的 ${event.data?.destination || ''} ${event.data?.total_days || ''}日游行程已准备就绪。`,
+                  timestamp: Date.now(),
+                  metadata: {
+                    tripContext: {
+                      tripId: event.data?.trip_id,
+                      destination: event.data?.destination,
+                    },
+                  },
+                }
+                setMessages((prev) => [...prev, completionMessage])
+                break
+            }
+          } catch (parseError) {
+            console.error('解析生成事件失败:', parseError)
+          }
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // 用户中止
+        setTripGenerationState((prev) => ({
+          ...prev,
+          generation: {
+            ...prev.generation,
+            isGenerating: false,
+            error: '生成已取消',
+          },
+        }))
+        return
+      }
+
+      const errorMessage = err instanceof Error ? err.message : '行程生成失败'
+      setTripGenerationState((prev) => ({
+        ...prev,
+        generation: {
+          ...prev.generation,
+          isGenerating: false,
+          error: errorMessage,
+          stages: prev.generation.stages.map((s, i) => {
+            if (s.status === 'running') {
+              return { ...s, status: 'error' as const }
+            }
+            return s
+          }),
+        },
+      }))
+    } finally {
+      generationAbortRef.current = null
+    }
+  }, [sessionId])
+
+  /**
+   * 取消行程生成
+   */
+  const cancelTripGeneration = useCallback(() => {
+    if (generationAbortRef.current) {
+      generationAbortRef.current.abort()
+    }
+  }, [])
+
+  /**
+   * 重置行程生成状态
+   */
+  const resetTripGeneration = useCallback(() => {
+    if (generationAbortRef.current) {
+      generationAbortRef.current.abort()
+    }
+    setTripGenerationState(initialTripGenerationState)
+    setAutoGenerateForm(null)
+  }, [])
+
+  // 自动触发行程生成（当 confirm_and_generate_trip 工具被调用后）
+  useEffect(() => {
+    if (autoGenerateForm) {
+      startTripGeneration(autoGenerateForm)
+      setAutoGenerateForm(null)
+    }
+  }, [autoGenerateForm, startTripGeneration])
 
   // 组件卸载时中止请求
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
+      }
+      if (generationAbortRef.current) {
+        generationAbortRef.current.abort()
       }
     }
   }, [])
@@ -325,6 +730,14 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     loadHistory,
     switchSession,
     createNewSession,
+    // 行程生成相关
+    tripGenerationState,
+    openFormModal,
+    closeFormModal,
+    updatePendingForm,
+    startTripGeneration,
+    cancelTripGeneration,
+    resetTripGeneration,
   }
 }
 

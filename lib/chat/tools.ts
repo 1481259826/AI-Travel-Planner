@@ -219,12 +219,121 @@ export const CHAT_TOOLS: ChatTool[] = [
     },
   },
 
-  // 创建行程
+  // 准备行程表单（对话式创建行程 - 第一步）
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_trip_form',
+      description: `准备旅行规划表单。从对话中提取用户的旅行信息，生成表单预览供用户确认。
+
+当用户表达想要创建/规划/安排行程的意图时调用此工具。
+工具会：
+1. 提取用户提供的信息（目的地、日期、预算等）
+2. 验证必填字段是否完整
+3. 生成表单预览卡片
+
+如果有必填信息缺失，应在对话中询问用户补充后再次调用此工具。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          destination: {
+            type: 'string',
+            description: '目的地城市，如"杭州"、"北京"',
+          },
+          start_date: {
+            type: 'string',
+            description: '开始日期，格式 YYYY-MM-DD',
+          },
+          end_date: {
+            type: 'string',
+            description: '结束日期，格式 YYYY-MM-DD',
+          },
+          budget: {
+            type: 'number',
+            description: '预算金额（元）',
+          },
+          travelers: {
+            type: 'number',
+            description: '出行人数，默认为 1',
+          },
+          origin: {
+            type: 'string',
+            description: '出发地城市（可选）',
+          },
+          preferences: {
+            type: 'array',
+            items: { type: 'string', description: '偏好项' },
+            description: '旅行偏好，如["美食","文化古迹","自然风光","购物","亲子"]',
+          },
+          accommodation_preference: {
+            type: 'string',
+            enum: ['budget', 'mid', 'luxury'],
+            description: '住宿偏好：budget(经济型)、mid(舒适型)、luxury(豪华型)',
+          },
+          transport_preference: {
+            type: 'string',
+            enum: ['public', 'driving', 'mixed'],
+            description: '交通偏好：public(公共交通)、driving(自驾)、mixed(混合)',
+          },
+          special_requirements: {
+            type: 'string',
+            description: '特殊要求或备注',
+          },
+        },
+        required: [], // 不强制要求任何字段，让 AI 灵活提取
+      },
+    },
+  },
+
+  // 确认并生成行程（对话式创建行程 - 第二步）
+  {
+    type: 'function',
+    function: {
+      name: 'confirm_and_generate_trip',
+      description: `确认表单数据并开始生成行程。
+
+仅在以下情况调用此工具：
+1. 用户已确认表单信息无误
+2. 用户点击了"确认生成"按钮
+3. 所有必填字段都已填写
+
+此工具会触发 LangGraph 工作流，开始多智能体协作生成详细行程。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          form_data: {
+            type: 'object',
+            description: '完整的表单数据',
+            properties: {
+              destination: { type: 'string', description: '目的地' },
+              start_date: { type: 'string', description: '开始日期' },
+              end_date: { type: 'string', description: '结束日期' },
+              budget: { type: 'number', description: '预算' },
+              travelers: { type: 'number', description: '人数' },
+              origin: { type: 'string', description: '出发地' },
+              preferences: { type: 'array', items: { type: 'string', description: '偏好项' }, description: '偏好' },
+              accommodation_preference: { type: 'string', description: '住宿偏好' },
+              transport_preference: { type: 'string', description: '交通偏好' },
+              special_requirements: { type: 'string', description: '特殊要求' },
+            },
+            required: ['destination', 'start_date', 'end_date', 'budget', 'travelers'],
+          },
+          session_id: {
+            type: 'string',
+            description: '当前对话会话 ID',
+          },
+        },
+        required: ['form_data'],
+      },
+    },
+  },
+
+  // 创建行程（旧版兼容，已弃用）
   {
     type: 'function',
     function: {
       name: 'create_trip',
-      description: '创建新的旅行行程。收集用户的目的地、日期、预算等信息后创建行程。',
+      description: '[已弃用] 请使用 prepare_trip_form 和 confirm_and_generate_trip 代替。',
       parameters: {
         type: 'object',
         properties: {
@@ -332,6 +441,8 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
   modify_itinerary: '修改行程',
   get_trip_details: '获取行程详情',
   create_trip: '创建行程',
+  prepare_trip_form: '准备行程表单',
+  confirm_and_generate_trip: '生成行程',
   calculate_route: '计算路线',
   get_recommendations: '获取推荐',
 }
@@ -347,6 +458,8 @@ export const TOOL_ICONS: Record<string, string> = {
   modify_itinerary: '✏️',
   get_trip_details: '📋',
   create_trip: '✈️',
+  prepare_trip_form: '📝',
+  confirm_and_generate_trip: '🚀',
   calculate_route: '🗺️',
   get_recommendations: '⭐',
 }

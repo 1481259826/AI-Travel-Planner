@@ -47,6 +47,20 @@ export type {
   // 配置类型
   ChatAgentConfig,
   ToolExecutionContext,
+
+  // 对话式行程生成类型
+  TripFormData,
+  TripFormValidation,
+  TripFormState,
+  TripGenerationEventType,
+  TripGenerationEvent,
+  GenerationStage,
+  TripGenerationState,
+  ChatMessageCardType,
+  TripFormPreviewData,
+  TripGenerationProgressData,
+  TripCompletionData,
+  ChatCardData,
 } from './types'
 
 // 工具定义

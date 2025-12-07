@@ -354,6 +354,159 @@ export interface CreateTripParams {
   preferences?: string[]
 }
 
+// ============================================================
+// 对话式行程生成相关类型
+// ============================================================
+
+/**
+ * 行程表单数据
+ */
+export interface TripFormData {
+  destination: string
+  startDate: string
+  endDate: string
+  budget: number
+  travelers: number
+  origin?: string
+  preferences?: string[]
+  accommodation_preference?: 'budget' | 'mid' | 'luxury'
+  transport_preference?: 'public' | 'driving' | 'mixed'
+  special_requirements?: string
+}
+
+/**
+ * 表单验证结果
+ */
+export interface TripFormValidation {
+  isValid: boolean
+  missingRequired: string[]
+  missingOptional: string[]
+}
+
+/**
+ * 行程表单状态（工具返回）
+ */
+export interface TripFormState {
+  formData: Partial<TripFormData>
+  validation: TripFormValidation
+}
+
+/**
+ * 行程生成 SSE 事件类型
+ */
+export type TripGenerationEventType =
+  | 'start'           // 开始生成
+  | 'node_complete'   // 节点完成
+  | 'progress'        // 进度更新
+  | 'error'           // 错误
+  | 'complete'        // 生成完成
+
+/**
+ * 行程生成 SSE 事件
+ */
+export interface TripGenerationEvent {
+  type: TripGenerationEventType
+  timestamp: number
+
+  // start 事件
+  sessionId?: string
+
+  // node_complete 事件
+  node?: string
+  nodeName?: string
+
+  // progress 事件
+  progress?: number
+  currentStage?: number
+  totalStages?: number
+
+  // error 事件
+  error?: string
+
+  // complete 事件
+  tripId?: string
+  destination?: string
+  duration?: number
+}
+
+/**
+ * 生成阶段信息
+ */
+export interface GenerationStage {
+  id: string
+  name: string
+  status: 'pending' | 'running' | 'completed' | 'error'
+  progress?: number
+  message?: string
+}
+
+/**
+ * 行程生成状态（前端使用）
+ */
+export interface TripGenerationState {
+  /** 待确认的表单数据 */
+  pendingForm: Partial<TripFormData> | null
+  /** 表单验证状态 */
+  formValidation: TripFormValidation | null
+  /** 模态框状态 */
+  isModalOpen: boolean
+  /** 生成进度 */
+  generation: {
+    isGenerating: boolean
+    progress: number
+    stages: GenerationStage[]
+    currentStage: number
+    error: string | null
+    result: { tripId: string; destination?: string } | null
+  }
+}
+
+/**
+ * 扩展消息类型 - 用于特殊卡片渲染
+ */
+export type ChatMessageCardType =
+  | 'trip_form_preview'         // 表单预览卡片
+  | 'trip_generation_progress'  // 生成进度卡片
+  | 'trip_completion'           // 生成完成卡片
+
+/**
+ * 表单预览卡片数据
+ */
+export interface TripFormPreviewData {
+  cardType: 'trip_form_preview'
+  formData: Partial<TripFormData>
+  validation: TripFormValidation
+}
+
+/**
+ * 生成进度卡片数据
+ */
+export interface TripGenerationProgressData {
+  cardType: 'trip_generation_progress'
+  sessionId: string
+  stages: GenerationStage[]
+}
+
+/**
+ * 生成完成卡片数据
+ */
+export interface TripCompletionData {
+  cardType: 'trip_completion'
+  tripId: string
+  destination: string
+  startDate: string
+  endDate: string
+  totalDays: number
+}
+
+/**
+ * 特殊卡片数据联合类型
+ */
+export type ChatCardData =
+  | TripFormPreviewData
+  | TripGenerationProgressData
+  | TripCompletionData
+
 /**
  * 计算路线参数
  */

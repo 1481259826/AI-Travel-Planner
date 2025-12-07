@@ -19,8 +19,9 @@ import {
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChatSidebar, ChatInput, MessageList } from '@/components/chat'
+import { ChatSidebar, ChatInput, MessageList, TripFormModal } from '@/components/chat'
 import { useChatAgent, useChatSessions } from '@/hooks/useChatAgent'
+import type { TripFormData } from '@/lib/chat'
 import { auth, supabase } from '@/lib/supabase'
 import type { Trip } from '@/types'
 
@@ -61,6 +62,14 @@ function ChatPageContent() {
     sendMessage,
     switchSession,
     createNewSession,
+    // 行程生成相关
+    tripGenerationState,
+    openFormModal,
+    closeFormModal,
+    updatePendingForm,
+    startTripGeneration,
+    cancelTripGeneration,
+    resetTripGeneration,
   } = useChatAgent({ tripId: tripIdFromUrl || undefined })
 
   // 认证检查
@@ -300,12 +309,39 @@ function ChatPageContent() {
             isGenerating={isGenerating}
             currentToolCall={currentToolCall}
             isLoading={isLoading}
+            // 行程生成相关
+            pendingForm={tripGenerationState.pendingForm}
+            formValidation={tripGenerationState.formValidation}
+            isTripGenerating={tripGenerationState.generation.isGenerating}
+            generationProgress={tripGenerationState.generation.progress}
+            generationStages={tripGenerationState.generation.stages}
+            currentGenerationStage={tripGenerationState.generation.currentStage}
+            generationError={tripGenerationState.generation.error}
+            generationResult={tripGenerationState.generation.result}
+            onFormEdit={openFormModal}
+            onFormConfirm={() => {
+              if (tripGenerationState.pendingForm && tripGenerationState.formValidation?.isValid) {
+                startTripGeneration(tripGenerationState.pendingForm as TripFormData)
+              }
+            }}
+            onFormCancel={resetTripGeneration}
+            onCancelGeneration={cancelTripGeneration}
           />
 
           {/* 输入框 */}
           <ChatInput
             isGenerating={isGenerating}
             onSend={handleSendMessage}
+          />
+
+          {/* 表单编辑模态框 */}
+          <TripFormModal
+            isOpen={tripGenerationState.isModalOpen}
+            formData={tripGenerationState.pendingForm || {}}
+            onClose={closeFormModal}
+            onSubmit={(formData) => {
+              startTripGeneration(formData as TripFormData)
+            }}
           />
         </main>
       </div>

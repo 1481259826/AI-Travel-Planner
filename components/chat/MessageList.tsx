@@ -1,6 +1,7 @@
 /**
  * MessageList 组件
  * 消息列表展示，包括用户消息和 AI 回复
+ * 支持对话式行程生成的表单预览和进度卡片
  */
 
 'use client'
@@ -11,7 +12,16 @@ import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ToolCallCard } from './ToolCallCard'
-import type { ChatMessage, ToolCall } from '@/lib/chat'
+import TripFormCard from './TripFormCard'
+import TripGenerationProgress from './TripGenerationProgress'
+import TripCompletionCard from './TripCompletionCard'
+import type {
+  ChatMessage,
+  ToolCall,
+  TripFormData,
+  TripFormValidation,
+  GenerationStage,
+} from '@/lib/chat'
 
 // ============================================================================
 // 类型定义
@@ -28,6 +38,31 @@ interface MessageListProps {
   currentToolCall?: ToolCall | null
   /** 是否正在加载 */
   isLoading?: boolean
+  // 行程生成相关
+  /** 待确认的表单数据 */
+  pendingForm?: Partial<TripFormData> | null
+  /** 表单验证状态 */
+  formValidation?: TripFormValidation | null
+  /** 是否正在生成行程 */
+  isTripGenerating?: boolean
+  /** 生成进度 */
+  generationProgress?: number
+  /** 生成阶段 */
+  generationStages?: GenerationStage[]
+  /** 当前生成阶段 */
+  currentGenerationStage?: number
+  /** 生成错误 */
+  generationError?: string | null
+  /** 生成结果 */
+  generationResult?: { tripId: string; destination?: string } | null
+  /** 表单编辑回调 */
+  onFormEdit?: () => void
+  /** 表单确认回调 */
+  onFormConfirm?: () => void
+  /** 表单取消回调 */
+  onFormCancel?: () => void
+  /** 取消生成回调 */
+  onCancelGeneration?: () => void
 }
 
 // ============================================================================
@@ -215,15 +250,41 @@ export function MessageList({
   isGenerating = false,
   currentToolCall = null,
   isLoading = false,
+  // 行程生成相关
+  pendingForm = null,
+  formValidation = null,
+  isTripGenerating = false,
+  generationProgress = 0,
+  generationStages = [],
+  currentGenerationStage = 0,
+  generationError = null,
+  generationResult = null,
+  onFormEdit,
+  onFormConfirm,
+  onFormCancel,
+  onCancelGeneration,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null)
+
+  // 计算天数（用于进度卡片）
+  const calculateDays = (startDate?: string, endDate?: string): number => {
+    if (!startDate || !endDate) return 0
+    try {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      const diffTime = Math.abs(end.getTime() - start.getTime())
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    } catch {
+      return 0
+    }
+  }
 
   // 自动滚动到底部
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight
     }
-  }, [messages, streamingContent])
+  }, [messages, streamingContent, pendingForm, isTripGenerating, generationResult])
 
   // 加载状态
   if (isLoading) {
@@ -238,7 +299,7 @@ export function MessageList({
   }
 
   // 空状态
-  if (messages.length === 0 && !isGenerating) {
+  if (messages.length === 0 && !isGenerating && !pendingForm && !isTripGenerating) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -290,6 +351,57 @@ export function MessageList({
             content={streamingContent}
             toolCall={currentToolCall}
           />
+        )}
+
+        {/* 表单预览卡片 */}
+        {pendingForm && formValidation && !isTripGenerating && !generationResult && (
+          <div className="flex gap-3 py-4 justify-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <TripFormCard
+              formData={pendingForm}
+              validation={formValidation}
+              onEdit={onFormEdit || (() => {})}
+              onConfirm={onFormConfirm || (() => {})}
+              onCancel={onFormCancel || (() => {})}
+              isGenerating={isTripGenerating}
+            />
+          </div>
+        )}
+
+        {/* 生成进度卡片 */}
+        {isTripGenerating && generationStages.length > 0 && (
+          <div className="flex gap-3 py-4 justify-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <TripGenerationProgress
+              destination={pendingForm?.destination || ''}
+              days={calculateDays(pendingForm?.startDate, pendingForm?.endDate)}
+              stages={generationStages}
+              currentStage={currentGenerationStage}
+              progress={generationProgress}
+              error={generationError}
+              onCancel={onCancelGeneration}
+            />
+          </div>
+        )}
+
+        {/* 生成完成卡片 */}
+        {generationResult && !isTripGenerating && (
+          <div className="flex gap-3 py-4 justify-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <TripCompletionCard
+              tripId={generationResult.tripId}
+              destination={generationResult.destination || pendingForm?.destination || ''}
+              startDate={pendingForm?.startDate || ''}
+              endDate={pendingForm?.endDate || ''}
+              totalDays={calculateDays(pendingForm?.startDate, pendingForm?.endDate)}
+            />
+          </div>
         )}
       </div>
     </div>

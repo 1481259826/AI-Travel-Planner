@@ -21,6 +21,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  FileEdit,
+  Rocket,
 } from 'lucide-react'
 import type { ToolCall } from '@/lib/chat'
 
@@ -91,6 +93,17 @@ const TOOL_INFO: Record<
     icon: Sparkles,
     label: '获取推荐',
     color: 'text-rose-500 bg-rose-50 dark:bg-rose-900/30',
+  },
+  // 新增：对话式行程生成工具
+  prepare_trip_form: {
+    icon: FileEdit,
+    label: '准备行程表单',
+    color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/30',
+  },
+  confirm_and_generate_trip: {
+    icon: Rocket,
+    label: '生成行程',
+    color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30',
   },
 }
 

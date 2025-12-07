@@ -17,7 +17,49 @@ import type {
   CreateTripParams,
   CalculateRouteParams,
   GetRecommendationsParams,
+  TripFormData,
+  TripFormValidation,
+  TripFormState,
 } from './types'
+
+// ============================================================================
+// 类型定义
+// ============================================================================
+
+/**
+ * prepare_trip_form 工具参数
+ */
+interface PrepareTripFormParams {
+  destination?: string
+  start_date?: string
+  end_date?: string
+  budget?: number
+  travelers?: number
+  origin?: string
+  preferences?: string[]
+  accommodation_preference?: 'budget' | 'mid' | 'luxury'
+  transport_preference?: 'public' | 'driving' | 'mixed'
+  special_requirements?: string
+}
+
+/**
+ * confirm_and_generate_trip 工具参数
+ */
+interface ConfirmAndGenerateTripParams {
+  form_data: {
+    destination: string
+    start_date: string
+    end_date: string
+    budget: number
+    travelers: number
+    origin?: string
+    preferences?: string[]
+    accommodation_preference?: string
+    transport_preference?: string
+    special_requirements?: string
+  }
+  session_id?: string
+}
 
 // ============================================================================
 // 工具执行器类
@@ -76,6 +118,12 @@ export class ToolExecutor {
           break
         case 'create_trip':
           result = await this.createTrip(args)
+          break
+        case 'prepare_trip_form':
+          result = await this.prepareTripForm(args)
+          break
+        case 'confirm_and_generate_trip':
+          result = await this.confirmAndGenerateTrip(args)
           break
         case 'calculate_route':
           result = await this.calculateRoute(args)
@@ -527,6 +575,133 @@ export class ToolExecutor {
         travelers: params.travelers,
         preferences: params.preferences,
       },
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 准备行程表单（对话式创建行程 - 第一步）
+  // --------------------------------------------------------------------------
+
+  private async prepareTripForm(params: PrepareTripFormParams): Promise<TripFormState> {
+    // 构建表单数据
+    const formData: Partial<TripFormData> = {}
+
+    if (params.destination) formData.destination = params.destination
+    if (params.start_date) formData.startDate = params.start_date
+    if (params.end_date) formData.endDate = params.end_date
+    if (params.budget) formData.budget = params.budget
+    if (params.travelers) formData.travelers = params.travelers
+    if (params.origin) formData.origin = params.origin
+    if (params.preferences) formData.preferences = params.preferences
+    if (params.accommodation_preference) formData.accommodation_preference = params.accommodation_preference
+    if (params.transport_preference) formData.transport_preference = params.transport_preference
+    if (params.special_requirements) formData.special_requirements = params.special_requirements
+
+    // 验证必填字段
+    const validation = this.validateTripForm(formData)
+
+    return {
+      formData,
+      validation,
+    }
+  }
+
+  /**
+   * 验证行程表单数据
+   */
+  private validateTripForm(formData: Partial<TripFormData>): TripFormValidation {
+    const requiredFields = ['destination', 'startDate', 'endDate', 'budget', 'travelers'] as const
+    const optionalFields = ['origin', 'preferences', 'accommodation_preference', 'transport_preference', 'special_requirements'] as const
+
+    const fieldLabels: Record<string, string> = {
+      destination: '目的地',
+      startDate: '开始日期',
+      endDate: '结束日期',
+      budget: '预算',
+      travelers: '出行人数',
+      origin: '出发地',
+      preferences: '旅行偏好',
+      accommodation_preference: '住宿偏好',
+      transport_preference: '交通偏好',
+      special_requirements: '特殊要求',
+    }
+
+    const missingRequired: string[] = []
+    const missingOptional: string[] = []
+
+    // 检查必填字段
+    for (const field of requiredFields) {
+      const value = formData[field]
+      if (value === undefined || value === null || value === '') {
+        missingRequired.push(fieldLabels[field])
+      }
+    }
+
+    // 检查可选字段
+    for (const field of optionalFields) {
+      const value = formData[field]
+      if (value === undefined || value === null || value === '' ||
+          (Array.isArray(value) && value.length === 0)) {
+        missingOptional.push(fieldLabels[field])
+      }
+    }
+
+    // 额外验证：日期格式和逻辑
+    if (formData.startDate && formData.endDate) {
+      const startDate = new Date(formData.startDate)
+      const endDate = new Date(formData.endDate)
+      if (endDate < startDate) {
+        missingRequired.push('日期错误：结束日期不能早于开始日期')
+      }
+    }
+
+    return {
+      isValid: missingRequired.length === 0,
+      missingRequired,
+      missingOptional,
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 确认并生成行程（对话式创建行程 - 第二步）
+  // --------------------------------------------------------------------------
+
+  private async confirmAndGenerateTrip(params: ConfirmAndGenerateTripParams) {
+    const { form_data, session_id } = params
+
+    // 再次验证表单数据
+    const formData: Partial<TripFormData> = {
+      destination: form_data.destination,
+      startDate: form_data.start_date,
+      endDate: form_data.end_date,
+      budget: form_data.budget,
+      travelers: form_data.travelers,
+      origin: form_data.origin,
+      preferences: form_data.preferences,
+      accommodation_preference: form_data.accommodation_preference as TripFormData['accommodation_preference'],
+      transport_preference: form_data.transport_preference as TripFormData['transport_preference'],
+      special_requirements: form_data.special_requirements,
+    }
+
+    const validation = this.validateTripForm(formData)
+
+    if (!validation.isValid) {
+      return {
+        success: false,
+        action: 'validation_failed',
+        message: `表单验证失败，缺少以下必填信息：${validation.missingRequired.join('、')}`,
+        validation,
+      }
+    }
+
+    // 返回特殊标记，指示前端触发生成流程
+    // 前端接收到这个结果后，应该调用 /api/chat/generate-trip 端点
+    return {
+      success: true,
+      action: 'trigger_generation',
+      message: '表单验证通过，正在启动行程生成...',
+      formData,
+      sessionId: session_id,
     }
   }
 
