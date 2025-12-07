@@ -1,9 +1,9 @@
 # Human-in-the-Loop 与对话 Agent 实现计划
 
-> 文档版本: v1.5
+> 文档版本: v1.6
 > 创建日期: 2025-12-05
-> 更新日期: 2025-12-06
-> 状态: ✅ Phase 5 已完成
+> 更新日期: 2025-12-07
+> 状态: ✅ 全部完成
 
 ---
 
@@ -1136,7 +1136,7 @@ NEXT_PUBLIC_USE_HITL=true
 | 5.2 | 行程关联 | 行程详情页添加对话入口 | ✅ 已完成 |
 | 5.3 | Feature Flag | 添加功能开关控制 | ✅ 已完成 |
 | 5.4 | 错误处理 | 完善错误处理和边界情况 | ✅ 已完成 |
-| 5.5 | 测试验证 | 端到端测试 | ⬜ 待开始 |
+| 5.5 | 测试验证 | 端到端测试 | ✅ 已完成 |
 
 **实现文件**：
 - `lib/config/app.config.ts` - 添加 `useChatAgent` 和 `useHITL` Feature Flag
@@ -1404,7 +1404,42 @@ app/dashboard/trips/[id]/page.tsx  # 添加对话入口
 | 2025-12-06 | v1.3 | Phase 3 完成：对话 Agent 后端（类型定义、Tools、Agent 核心类、执行器、API 端点）|
 | 2025-12-06 | v1.4 | Phase 4 完成：对话 Agent 前端（ChatPage、ChatSidebar、MessageList、ChatInput、ToolCallCard、useChatAgent Hook）|
 | 2025-12-06 | v1.5 | Phase 5 完成：集成与优化（行程关联、Feature Flag、错误处理）|
+| 2025-12-07 | v1.6 | Phase 5.5 完成：端到端测试验证全部通过 |
 
 ---
 
-> 📌 **下一步**: 端到端测试验证
+> 📌 **状态**: 全部功能已完成并测试验证通过
+
+---
+
+## 测试验证报告
+
+### 测试日期：2025-12-07
+
+### 对话 Agent 功能测试结果
+
+| 测试项 | 状态 | 说明 |
+|--------|------|------|
+| 页面加载 | ✅ 通过 | `/dashboard/chat` 页面正常加载 |
+| 会话列表 | ✅ 通过 | 历史对话正确显示，支持切换 |
+| 消息展示 | ✅ 通过 | 用户/AI 消息正确渲染，支持 Markdown |
+| 工具调用展示 | ✅ 通过 | 工具调用卡片正常显示（获取天气、搜索景点等）|
+| 消息发送 | ✅ 通过 | 输入框、发送按钮正常工作 |
+| SSE 流式响应 | ✅ 通过 | AI 回复实时流式输出 |
+| 停止生成 | ✅ 通过 | 生成过程中可点击停止 |
+
+### HITL 工作流测试结果
+
+| 测试项 | 状态 | 说明 |
+|--------|------|------|
+| API 端点 | ✅ 通过 | `/api/v2/workflow/start` GET 返回节点列表 |
+| 节点配置 | ✅ 通过 | 8 个节点，itinerary_planner 和 budget_critic 支持 HITL |
+| 组件集成 | ✅ 通过 | InterruptModal 已集成到创建页面 |
+| Feature Flag | ✅ 通过 | `NEXT_PUBLIC_USE_HITL` 控制功能开关 |
+
+### 测试环境
+
+- 开发服务器：http://localhost:3008
+- LangGraph：已启用 (`NEXT_PUBLIC_USE_LANGGRAPH=true`)
+- HITL：默认关闭（需设置 `NEXT_PUBLIC_USE_HITL=true` 启用）
+- 对话 Agent：已启用（默认开启）
