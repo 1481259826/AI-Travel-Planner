@@ -16,6 +16,7 @@ import type {
   ItineraryReviewDecision,
   BudgetDecisionOptions,
   BudgetDecision,
+  FinalConfirmOptions,
   HITLUserDecision,
 } from '@/lib/agents/state-hitl'
 
@@ -33,7 +34,7 @@ export interface InterruptModalProps {
   /** 中断消息 */
   message: string
   /** 中断选项数据 */
-  options: ItineraryReviewOptions | BudgetDecisionOptions
+  options: ItineraryReviewOptions | BudgetDecisionOptions | FinalConfirmOptions
   /** 是否正在提交 */
   isSubmitting?: boolean
   /** 用户提交决策的回调 */

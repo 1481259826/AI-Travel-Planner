@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -24,7 +24,11 @@ import { useChatAgent, useChatSessions } from '@/hooks/useChatAgent'
 import { auth, supabase } from '@/lib/supabase'
 import type { Trip } from '@/types'
 
-export default function ChatPage() {
+/**
+ * 聊天页面内部组件
+ * 使用 useSearchParams 需要包装在 Suspense 中
+ */
+function ChatPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tripIdFromUrl = searchParams.get('tripId')
@@ -35,7 +39,7 @@ export default function ChatPage() {
 
   // 关联的行程信息
   const [linkedTrip, setLinkedTrip] = useState<Trip | null>(null)
-  const [loadingTrip, setLoadingTrip] = useState(false)
+  const [_loadingTrip, setLoadingTrip] = useState(false)
 
   // 会话列表
   const {
@@ -306,5 +310,31 @@ export default function ChatPage() {
         </main>
       </div>
     </div>
+  )
+}
+
+/**
+ * 加载状态组件
+ */
+function ChatPageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center">
+        <Plane className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-bounce mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-400">加载中...</p>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 对话页面
+ * 包装 Suspense 以支持 useSearchParams
+ */
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<ChatPageLoading />}>
+      <ChatPageContent />
+    </Suspense>
   )
 }

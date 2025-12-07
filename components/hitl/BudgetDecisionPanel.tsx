@@ -199,6 +199,9 @@ export function BudgetDecisionPanel({
 }: BudgetDecisionPanelProps) {
   const { budgetResult, adjustmentOptions, overageAmount, overagePercentage } = options
 
+  // 计算原始预算（totalCost - overageAmount）
+  const originalBudget = budgetResult.totalCost - overageAmount
+
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
 
   // 确认调整方案
@@ -256,7 +259,7 @@ export function BudgetDecisionPanel({
             <span className="text-sm">预算</span>
           </div>
           <div className="text-xl font-bold text-gray-900 dark:text-white">
-            ¥{budgetResult.budget.toLocaleString()}
+            ¥{originalBudget.toLocaleString()}
           </div>
         </div>
 

@@ -171,7 +171,7 @@ function createItineraryPlannerWithHITL(
  * 在预算超支时触发中断，让用户选择调整方案
  */
 function createBudgetCriticWithHITL(
-  baseAgent: (state: TripState) => Partial<TripState>,
+  baseAgent: (state: TripState) => Promise<Partial<TripState>>,
   config?: {
     enableDecision?: boolean
     overageThreshold?: number
@@ -180,7 +180,7 @@ function createBudgetCriticWithHITL(
   const enableDecision = config?.enableDecision !== false
   const overageThreshold = config?.overageThreshold ?? 0.1 // 默认 10%
 
-  return (state: HITLTripState): Partial<HITLTripState> => {
+  return async (state: HITLTripState): Promise<Partial<HITLTripState>> => {
     // 检查是否是恢复执行
     if (state.hitl?.userDecision && state.hitl.interruptType === 'budget_decision') {
       const decision = state.hitl.userDecision as BudgetDecision
@@ -232,7 +232,7 @@ function createBudgetCriticWithHITL(
     }
 
     // 执行基础预算审计逻辑
-    const result = baseAgent(state as TripState)
+    const result = await baseAgent(state as TripState)
 
     // 如果在预算内或不启用决策中断，直接返回
     if (!enableDecision || result.budgetResult?.isWithinBudget) {

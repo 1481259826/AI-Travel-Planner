@@ -23,9 +23,8 @@ import type {
   ItineraryReviewOptions,
   ItineraryReviewDecision,
   AttractionModification,
-  AttractionSlot,
 } from '@/lib/agents/state-hitl'
-import type { DraftItinerary, DayPlanDraft } from '@/lib/agents/state'
+import type { DraftItinerary, DraftDay, AttractionSlot } from '@/lib/agents/state'
 
 // ============================================================================
 // 类型定义
@@ -43,7 +42,7 @@ interface ItineraryReviewPanelProps {
 }
 
 interface DayCardProps {
-  day: DayPlanDraft
+  day: DraftDay
   dayIndex: number
   isExpanded: boolean
   onToggle: () => void
@@ -180,7 +179,6 @@ function DayCard({
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {attractionsCount} 个景点
-              {day.theme && ` · ${day.theme}`}
             </p>
           </div>
         </div>
