@@ -16,6 +16,7 @@ import {
 } from '@/lib/agents'
 import type { TripState } from '@/lib/agents'
 import { ApiKeyClient } from '@/lib/api-keys'
+import { TripHistoryService, type TripResultSummary } from '@/lib/trip-history'
 import { appConfig } from '@/lib/config'
 import type { TripFormData, Itinerary } from '@/types'
 import { ValidationError, ConfigurationError } from '@/lib/errors'
@@ -267,9 +268,9 @@ export async function POST(request: NextRequest) {
     const isStreamRequest = acceptHeader.includes('text/event-stream')
 
     if (isStreamRequest) {
-      return handleStreamingResponse(formData, workflowConfig, user, supabase, session_id)
+      return handleStreamingResponse(formData, form_data, workflowConfig, user, supabase, session_id)
     } else {
-      return handleNormalResponse(formData, workflowConfig, user, supabase, session_id)
+      return handleNormalResponse(formData, form_data, workflowConfig, user, supabase, session_id)
     }
   } catch (error) {
     return handleApiError(error, 'POST /api/chat/generate-trip')
@@ -281,6 +282,7 @@ export async function POST(request: NextRequest) {
  */
 async function handleStreamingResponse(
   formData: TripFormData,
+  chatFormData: ChatTripFormData,
   workflowConfig: any,
   user: any,
   supabase: any,
@@ -288,6 +290,21 @@ async function handleStreamingResponse(
 ) {
   const encoder = new TextEncoder()
   const nodes = getWorkflowNodes()
+  const startTime = Date.now()
+
+  // 创建历史记录
+  let historyId: string | null = null
+  try {
+    historyId = await TripHistoryService.create(supabase, {
+      userId: user.id,
+      sessionId: sessionId,
+      formData: chatFormData,
+      workflowVersion: 'v2',
+    })
+    logger.info('创建历史记录', { historyId })
+  } catch (historyError) {
+    logger.warn('创建历史记录失败，继续生成行程', { error: (historyError as Error).message })
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -299,6 +316,7 @@ async function handleStreamingResponse(
           data: {
             nodes: nodes.map((n) => ({ id: n.id, name: n.name })),
             sessionId,
+            historyId,
           },
           timestamp: Date.now(),
         })
@@ -351,10 +369,41 @@ async function handleStreamingResponse(
           await linkTripToSession(supabase, sessionId, trip.id)
         }
 
+        // 计算结果摘要
+        const itinerary = finalState.finalItinerary
+        const totalDays = itinerary.days?.length || 0
+        const attractionCount = itinerary.days?.reduce(
+          (acc, day) => acc + (day.activities?.length || 0),
+          0
+        ) || 0
+        const hotelCount = itinerary.accommodation?.length || 0
+
+        // 更新历史记录为成功
+        if (historyId) {
+          const resultSummary: TripResultSummary = {
+            destination: formData.destination,
+            totalDays,
+            totalBudget: formData.budget,
+            attractionCount,
+            hotelCount,
+            highlights: itinerary.days?.slice(0, 3).map(
+              day => day.activities?.[0]?.name || `第${day.day}天`
+            ).filter(Boolean) || [],
+          }
+
+          await TripHistoryService.update(supabase, historyId, {
+            status: 'completed',
+            tripId: trip.id,
+            resultSummary,
+            generationDurationMs: Date.now() - startTime,
+          })
+          logger.info('历史记录更新为成功', { historyId, tripId: trip.id })
+        }
+
         logger.info('对话内行程生成成功', {
           tripId: trip.id,
           sessionId,
-          days: finalState.finalItinerary.days?.length || 0,
+          days: totalDays,
         })
 
         // 发送完成事件
@@ -367,12 +416,26 @@ async function handleStreamingResponse(
             destination: formData.destination,
             start_date: formData.start_date,
             end_date: formData.end_date,
-            total_days: finalState.finalItinerary.days?.length || 0,
+            total_days: totalDays,
           },
           timestamp: Date.now(),
         })
       } catch (error) {
         logger.error('对话内行程生成失败', error as Error)
+
+        // 更新历史记录为失败
+        if (historyId) {
+          try {
+            await TripHistoryService.update(supabase, historyId, {
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : '未知错误',
+              generationDurationMs: Date.now() - startTime,
+            })
+            logger.info('历史记录更新为失败', { historyId })
+          } catch (updateError) {
+            logger.warn('更新历史记录失败', { error: (updateError as Error).message })
+          }
+        }
 
         // 发送错误事件
         sendSSEEvent(controller, encoder, {
@@ -400,46 +463,110 @@ async function handleStreamingResponse(
  */
 async function handleNormalResponse(
   formData: TripFormData,
+  chatFormData: ChatTripFormData,
   workflowConfig: any,
   user: any,
   supabase: any,
   sessionId?: string
 ) {
   const { executeTripPlanningWorkflow } = await import('@/lib/agents')
+  const startTime = Date.now()
 
-  // 执行工作流
-  const finalState = await executeTripPlanningWorkflow(formData, {
-    thread_id: `chat-trip-${user.id}-${Date.now()}`,
-    config: workflowConfig,
-  })
-
-  // 检查是否成功生成行程
-  if (!finalState?.finalItinerary) {
-    throw new Error('工作流执行完成但未生成有效行程')
+  // 创建历史记录
+  let historyId: string | null = null
+  try {
+    historyId = await TripHistoryService.create(supabase, {
+      userId: user.id,
+      sessionId: sessionId,
+      formData: chatFormData,
+      workflowVersion: 'v2',
+    })
+    logger.info('创建历史记录', { historyId })
+  } catch (historyError) {
+    logger.warn('创建历史记录失败，继续生成行程', { error: (historyError as Error).message })
   }
 
-  // 保存到数据库
-  const trip = await saveTripToDatabase(supabase, user.id, formData, finalState.finalItinerary)
+  try {
+    // 执行工作流
+    const finalState = await executeTripPlanningWorkflow(formData, {
+      thread_id: `chat-trip-${user.id}-${Date.now()}`,
+      config: workflowConfig,
+    })
 
-  // 关联到会话
-  if (sessionId) {
-    await linkTripToSession(supabase, sessionId, trip.id)
+    // 检查是否成功生成行程
+    if (!finalState?.finalItinerary) {
+      throw new Error('工作流执行完成但未生成有效行程')
+    }
+
+    // 保存到数据库
+    const trip = await saveTripToDatabase(supabase, user.id, formData, finalState.finalItinerary)
+
+    // 关联到会话
+    if (sessionId) {
+      await linkTripToSession(supabase, sessionId, trip.id)
+    }
+
+    // 计算结果摘要
+    const itinerary = finalState.finalItinerary
+    const totalDays = itinerary.days?.length || 0
+    const attractionCount = itinerary.days?.reduce(
+      (acc, day) => acc + (day.activities?.length || 0),
+      0
+    ) || 0
+    const hotelCount = itinerary.accommodation?.length || 0
+
+    // 更新历史记录为成功
+    if (historyId) {
+      const resultSummary: TripResultSummary = {
+        destination: formData.destination,
+        totalDays,
+        totalBudget: formData.budget,
+        attractionCount,
+        hotelCount,
+        highlights: itinerary.days?.slice(0, 3).map(
+          day => day.activities?.[0]?.name || `第${day.day}天`
+        ).filter(Boolean) || [],
+      }
+
+      await TripHistoryService.update(supabase, historyId, {
+        status: 'completed',
+        tripId: trip.id,
+        resultSummary,
+        generationDurationMs: Date.now() - startTime,
+      })
+      logger.info('历史记录更新为成功', { historyId, tripId: trip.id })
+    }
+
+    logger.info('对话内行程生成成功', {
+      tripId: trip.id,
+      sessionId,
+      days: totalDays,
+    })
+
+    return successResponse(
+      {
+        trip_id: trip.id,
+        destination: formData.destination,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        total_days: totalDays,
+      },
+      '行程生成成功'
+    )
+  } catch (error) {
+    // 更新历史记录为失败
+    if (historyId) {
+      try {
+        await TripHistoryService.update(supabase, historyId, {
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : '未知错误',
+          generationDurationMs: Date.now() - startTime,
+        })
+        logger.info('历史记录更新为失败', { historyId })
+      } catch (updateError) {
+        logger.warn('更新历史记录失败', { error: (updateError as Error).message })
+      }
+    }
+    throw error
   }
-
-  logger.info('对话内行程生成成功', {
-    tripId: trip.id,
-    sessionId,
-    days: finalState.finalItinerary.days?.length || 0,
-  })
-
-  return successResponse(
-    {
-      trip_id: trip.id,
-      destination: formData.destination,
-      start_date: formData.start_date,
-      end_date: formData.end_date,
-      total_days: finalState.finalItinerary.days?.length || 0,
-    },
-    '行程生成成功'
-  )
 }

@@ -1,6 +1,6 @@
 /**
  * ChatSidebar 组件
- * 会话列表侧边栏
+ * 会话列表侧边栏 - 支持对话历史和生成记录两个选项卡
  */
 
 'use client'
@@ -15,15 +15,19 @@ import {
   MapPin,
   MoreVertical,
   X,
-  ChevronLeft,
   Loader2,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { HistoryTab } from './HistoryTab'
 import type { ChatSessionListItem } from '@/lib/chat'
+import type { TripFormData } from '@/lib/chat'
 
 // ============================================================================
 // 类型定义
 // ============================================================================
+
+type TabType = 'conversations' | 'history'
 
 interface ChatSidebarProps {
   /** 会话列表 */
@@ -42,6 +46,8 @@ interface ChatSidebarProps {
   onDeleteSession: (sessionId: string) => void
   /** 关闭侧边栏（移动端） */
   onClose?: () => void
+  /** 复用历史记录回调 */
+  onReuseHistory?: (formData: TripFormData) => void
 }
 
 // ============================================================================
@@ -160,6 +166,70 @@ function SessionItem({ session, isActive, onSelect, onDelete }: SessionItemProps
 }
 
 // ============================================================================
+// 对话列表内容组件
+// ============================================================================
+
+interface ConversationsContentProps {
+  sessions: ChatSessionListItem[]
+  currentSessionId?: string | null
+  isLoading: boolean
+  onSelectSession: (sessionId: string) => void
+  onNewSession: () => void
+  onDeleteSession: (sessionId: string) => void
+}
+
+function ConversationsContent({
+  sessions,
+  currentSessionId,
+  isLoading,
+  onSelectSession,
+  onNewSession,
+  onDeleteSession,
+}: ConversationsContentProps) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  if (sessions.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <MessageSquare className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          暂无对话记录
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-4"
+          onClick={onNewSession}
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          开始新对话
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      {sessions.map((session) => (
+        <SessionItem
+          key={session.id}
+          session={session}
+          isActive={session.id === currentSessionId}
+          onSelect={() => onSelectSession(session.id)}
+          onDelete={() => onDeleteSession(session.id)}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ============================================================================
 // 主组件实现
 // ============================================================================
 
@@ -172,7 +242,19 @@ export function ChatSidebar({
   onNewSession,
   onDeleteSession,
   onClose,
+  onReuseHistory,
 }: ChatSidebarProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('conversations')
+
+  // 处理复用历史记录
+  const handleReuseHistory = (formData: TripFormData) => {
+    if (onReuseHistory) {
+      onReuseHistory(formData)
+    }
+    // 切换到对话选项卡
+    setActiveTab('conversations')
+  }
+
   return (
     <>
       {/* 移动端遮罩 */}
@@ -196,7 +278,7 @@ export function ChatSidebar({
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-white">
-            对话历史
+            对话助手
           </h2>
           <div className="flex items-center gap-2">
             {/* 新建按钮 */}
@@ -222,53 +304,64 @@ export function ChatSidebar({
           </div>
         </div>
 
-        {/* 会话列表 */}
-        <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'thin' }}>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                暂无对话记录
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-4"
-                onClick={onNewSession}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                开始新对话
-              </Button>
+        {/* 选项卡切换 */}
+        <div className="flex border-b dark:border-gray-700">
+          <button
+            type="button"
+            onClick={() => setActiveTab('conversations')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'conversations'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            对话
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'history'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            历史行程
+          </button>
+        </div>
+
+        {/* 内容区域 */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'conversations' ? (
+            <div className="h-full overflow-y-auto p-2" style={{ scrollbarWidth: 'thin' }}>
+              <ConversationsContent
+                sessions={sessions}
+                currentSessionId={currentSessionId}
+                isLoading={isLoading}
+                onSelectSession={onSelectSession}
+                onNewSession={onNewSession}
+                onDeleteSession={onDeleteSession}
+              />
             </div>
           ) : (
-            <div className="space-y-1">
-              {sessions.map((session) => (
-                <SessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === currentSessionId}
-                  onSelect={() => onSelectSession(session.id)}
-                  onDelete={() => onDeleteSession(session.id)}
-                />
-              ))}
-            </div>
+            <HistoryTab onReuse={handleReuseHistory} />
           )}
         </div>
 
-        {/* 底部 */}
-        <div className="p-4 border-t dark:border-gray-700">
-          <Button
-            className="w-full"
-            onClick={onNewSession}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            新建对话
-          </Button>
-        </div>
+        {/* 底部 - 仅在对话选项卡显示 */}
+        {activeTab === 'conversations' && (
+          <div className="p-4 border-t dark:border-gray-700">
+            <Button
+              className="w-full"
+              onClick={onNewSession}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              新建对话
+            </Button>
+          </div>
+        )}
       </aside>
     </>
   )

@@ -13,3 +13,8 @@ export { default as TripFormCard } from './TripFormCard'
 export { default as TripFormModal } from './TripFormModal'
 export { default as TripGenerationProgress } from './TripGenerationProgress'
 export { default as TripCompletionCard } from './TripCompletionCard'
+
+// 历史记录组件
+export { HistoryItem } from './HistoryItem'
+export { HistoryList } from './HistoryList'
+export { HistoryTab } from './HistoryTab'
