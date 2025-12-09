@@ -78,12 +78,21 @@ export interface UseChatAgentReturn {
   pendingModification: ModificationPreview | null
   /** 是否正在处理修改 */
   isModificationProcessing: boolean
-  /** 确认修改 */
-  confirmModification: (modificationId: string) => Promise<void>
+  /** 确认修改（支持用户微调） */
+  confirmModification: (modificationId: string, userAdjustments?: UserAdjustments) => Promise<void>
   /** 取消修改 */
   cancelModification: (modificationId: string) => void
   /** 清除修改预览 */
   clearModification: () => void
+}
+
+/** 用户微调数据类型 */
+export interface UserAdjustments {
+  time_adjustments?: Array<{
+    day_index: number
+    activity_index: number
+    new_time: string
+  }>
 }
 
 // ============================================================================
@@ -735,8 +744,9 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
   /**
    * 确认修改
    * 通过发送一条特殊消息让 AI 调用 confirm_itinerary_modification 工具
+   * 支持用户微调（如时间调整）
    */
-  const confirmModification = useCallback(async (modificationId: string) => {
+  const confirmModification = useCallback(async (modificationId: string, userAdjustments?: UserAdjustments) => {
     if (!pendingModification || pendingModification.id !== modificationId) {
       console.warn('修改预览不存在或 ID 不匹配')
       return
@@ -745,8 +755,17 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setIsModificationProcessing(true)
 
     try {
+      // 构建确认消息
+      let confirmMessage = `确认修改行程（修改ID：${modificationId}）`
+
+      // 如果有用户微调，添加到消息中
+      if (userAdjustments && userAdjustments.time_adjustments && userAdjustments.time_adjustments.length > 0) {
+        const adjustmentsJson = JSON.stringify(userAdjustments)
+        confirmMessage += `，用户微调：${adjustmentsJson}`
+      }
+
       // 发送确认消息，触发 AI 调用确认工具
-      await sendMessage(`确认修改行程（修改ID：${modificationId}）`)
+      await sendMessage(confirmMessage)
     } catch (err) {
       console.error('确认修改失败:', err)
       setError(err instanceof Error ? err.message : '确认修改失败')

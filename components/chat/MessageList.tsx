@@ -24,6 +24,7 @@ import type {
   GenerationStage,
   ModificationPreview,
 } from '@/lib/chat'
+import type { UserAdjustments } from '@/hooks/useChatAgent'
 
 // ============================================================================
 // 类型定义
@@ -68,8 +69,8 @@ interface MessageListProps {
   // 行程修改预览相关
   /** 待确认的修改预览 */
   pendingModification?: ModificationPreview | null
-  /** 修改预览确认回调 */
-  onModificationConfirm?: (modificationId: string) => void
+  /** 修改预览确认回调（支持用户微调） */
+  onModificationConfirm?: (modificationId: string, userAdjustments?: UserAdjustments) => void
   /** 修改预览取消回调 */
   onModificationCancel?: (modificationId: string) => void
   /** 是否正在处理修改 */

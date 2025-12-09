@@ -16,6 +16,8 @@ export { default as TripCompletionCard } from './TripCompletionCard'
 
 // 对话式行程修改组件
 export { default as ModificationPreviewCard } from './ModificationPreviewCard'
+export { default as ModificationDiffView } from './ModificationDiffView'
+export { default as ModificationImpactSummary } from './ModificationImpactSummary'
 
 // 历史记录组件
 export { HistoryItem } from './HistoryItem'
