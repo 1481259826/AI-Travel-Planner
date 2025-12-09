@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MCPClient, getMCPClient } from '../agents/mcp-client'
+import { modificationCache, generateModificationId, calculateExpiresAt } from './modification-cache'
 import type {
   ToolCall,
   ToolResult,
@@ -20,7 +21,13 @@ import type {
   TripFormData,
   TripFormValidation,
   TripFormState,
+  PrepareItineraryModificationParams,
+  ConfirmItineraryModificationParams,
+  ModificationPreview,
+  ModificationChange,
+  DayPlanSummary,
 } from './types'
+import type { Itinerary, DayPlan, Activity } from '@/types'
 
 // ============================================================================
 // 类型定义
@@ -130,6 +137,15 @@ export class ToolExecutor {
           break
         case 'get_recommendations':
           result = await this.getRecommendations(args)
+          break
+        case 'prepare_itinerary_modification':
+          result = await this.prepareItineraryModification(args)
+          break
+        case 'confirm_itinerary_modification':
+          result = await this.confirmItineraryModification(args)
+          break
+        case 'cancel_itinerary_modification':
+          result = await this.cancelItineraryModification(args)
           break
         default:
           throw new Error(`Unknown tool: ${name}`)
@@ -851,6 +867,479 @@ export class ToolExecutor {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.round((seconds % 3600) / 60)
     return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}`
+  }
+
+  // --------------------------------------------------------------------------
+  // 行程修改预览（新增）
+  // --------------------------------------------------------------------------
+
+  /**
+   * 准备行程修改预览
+   * 生成 before/after 对比，等待用户确认
+   */
+  private async prepareItineraryModification(
+    params: PrepareItineraryModificationParams
+  ): Promise<ModificationPreview | { success: false; message: string }> {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    const { trip_id, operation, params: opParams, reason } = params
+
+    // 1. 加载当前行程
+    const { data: trip, error } = await this.supabase
+      .from('trips')
+      .select('*')
+      .eq('id', trip_id)
+      .eq('user_id', this.userId)
+      .single()
+
+    if (error || !trip) {
+      return { success: false, message: '行程不存在或无权访问' }
+    }
+
+    const itinerary = trip.itinerary as Itinerary
+    if (!itinerary || !itinerary.days) {
+      return { success: false, message: '行程数据格式错误' }
+    }
+
+    // 2. 深拷贝行程作为工作副本
+    const beforeItinerary: Itinerary = JSON.parse(JSON.stringify(itinerary))
+    const afterItinerary: Itinerary = JSON.parse(JSON.stringify(itinerary))
+
+    // 3. 根据操作类型计算修改
+    const changes: ModificationChange[] = []
+    let modified = false
+
+    switch (operation) {
+      case 'remove_attraction': {
+        const { day_index, activity_index } = opParams
+        if (
+          day_index !== undefined &&
+          day_index >= 0 &&
+          day_index < afterItinerary.days.length
+        ) {
+          const day = afterItinerary.days[day_index]
+          // 如果没有指定 activity_index，尝试通过名称查找
+          let targetIndex = activity_index
+          if (targetIndex === undefined && opParams.attraction?.name) {
+            targetIndex = day.activities.findIndex(
+              (a) => a.name.includes(opParams.attraction!.name) || opParams.attraction!.name.includes(a.name)
+            )
+          }
+          if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < day.activities.length) {
+            const removed = day.activities.splice(targetIndex, 1)[0]
+            changes.push({
+              type: 'remove',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: removed.name,
+              description: `从第 ${day_index + 1} 天删除「${removed.name}」`,
+              before: removed,
+            })
+            modified = true
+          }
+        }
+        break
+      }
+
+      case 'add_attraction': {
+        const { day_index = 0, attraction } = opParams
+        if (attraction && day_index >= 0 && day_index < afterItinerary.days.length) {
+          const newActivity: Activity = {
+            time: attraction.preferred_time || '10:00',
+            name: attraction.name,
+            type: 'attraction',
+            location: {
+              name: attraction.name,
+              address: attraction.location || '',
+              lat: 0,
+              lng: 0,
+            },
+            duration: attraction.duration || '2小时',
+            description: attraction.description || '',
+          }
+          afterItinerary.days[day_index].activities.push(newActivity)
+          changes.push({
+            type: 'add',
+            dayIndex: day_index,
+            itemType: 'attraction',
+            itemName: attraction.name,
+            description: `添加「${attraction.name}」到第 ${day_index + 1} 天`,
+            after: newActivity,
+          })
+          modified = true
+        }
+        break
+      }
+
+      case 'change_time': {
+        const { day_index, activity_index, new_time } = opParams
+        if (
+          day_index !== undefined &&
+          activity_index !== undefined &&
+          new_time &&
+          day_index >= 0 &&
+          day_index < afterItinerary.days.length
+        ) {
+          const day = afterItinerary.days[day_index]
+          if (activity_index >= 0 && activity_index < day.activities.length) {
+            const activity = day.activities[activity_index]
+            const oldTime = activity.time
+            activity.time = new_time
+            changes.push({
+              type: 'modify',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: activity.name,
+              description: `将「${activity.name}」的时间从 ${oldTime} 改为 ${new_time}`,
+              before: oldTime,
+              after: new_time,
+            })
+            modified = true
+          }
+        }
+        break
+      }
+
+      case 'reorder': {
+        const { from_day, from_index, to_day, to_index } = opParams
+        if (
+          from_day !== undefined &&
+          from_index !== undefined &&
+          to_day !== undefined &&
+          to_index !== undefined &&
+          from_day >= 0 &&
+          from_day < afterItinerary.days.length &&
+          to_day >= 0 &&
+          to_day < afterItinerary.days.length
+        ) {
+          const fromDayPlan = afterItinerary.days[from_day]
+          if (from_index >= 0 && from_index < fromDayPlan.activities.length) {
+            const [activity] = fromDayPlan.activities.splice(from_index, 1)
+            afterItinerary.days[to_day].activities.splice(to_index, 0, activity)
+            const moveDesc =
+              from_day === to_day
+                ? `在第 ${from_day + 1} 天内调整「${activity.name}」的顺序`
+                : `将「${activity.name}」从第 ${from_day + 1} 天移动到第 ${to_day + 1} 天`
+            changes.push({
+              type: 'reorder',
+              dayIndex: to_day,
+              itemType: 'attraction',
+              itemName: activity.name,
+              description: moveDesc,
+              before: { day: from_day, index: from_index },
+              after: { day: to_day, index: to_index },
+            })
+            modified = true
+          }
+        }
+        break
+      }
+
+      case 'add_day': {
+        const { day_index } = opParams
+        const insertIndex = day_index !== undefined ? day_index : afterItinerary.days.length
+        const newDay: DayPlan = {
+          day: insertIndex + 1,
+          date: '', // 需要根据现有日期计算
+          activities: [],
+          meals: [],
+        }
+        afterItinerary.days.splice(insertIndex, 0, newDay)
+        // 重新编号
+        afterItinerary.days.forEach((day, i) => {
+          day.day = i + 1
+        })
+        changes.push({
+          type: 'add',
+          dayIndex: insertIndex,
+          itemType: 'attraction',
+          itemName: `第 ${insertIndex + 1} 天`,
+          description: `添加新的一天（第 ${insertIndex + 1} 天）`,
+        })
+        modified = true
+        break
+      }
+
+      case 'remove_day': {
+        const { day_index } = opParams
+        if (day_index !== undefined && day_index >= 0 && day_index < afterItinerary.days.length) {
+          const removedDay = afterItinerary.days.splice(day_index, 1)[0]
+          // 重新编号
+          afterItinerary.days.forEach((day, i) => {
+            day.day = i + 1
+          })
+          changes.push({
+            type: 'remove',
+            dayIndex: day_index,
+            itemType: 'attraction',
+            itemName: `第 ${day_index + 1} 天`,
+            description: `删除第 ${day_index + 1} 天（包含 ${removedDay.activities.length} 个活动）`,
+            before: removedDay,
+          })
+          modified = true
+        }
+        break
+      }
+
+      // Phase 3 实现的操作（暂时返回提示）
+      case 'optimize_route':
+      case 'replan_day':
+      case 'adjust_for_weather':
+      case 'regenerate_day':
+      case 'regenerate_trip_segment':
+        return {
+          success: false,
+          message: `「${operation}」操作将在后续版本中支持，敬请期待`,
+        }
+
+      default:
+        return { success: false, message: `不支持的操作类型: ${operation}` }
+    }
+
+    if (!modified) {
+      return { success: false, message: '修改失败，请检查参数是否正确' }
+    }
+
+    // 4. 生成预览摘要
+    const beforeSummary = this.generateDaySummary(beforeItinerary, changes, 'before')
+    const afterSummary = this.generateDaySummary(afterItinerary, changes, 'after')
+
+    // 5. 计算影响评估
+    const impact = this.calculateModificationImpact(beforeItinerary, afterItinerary, changes)
+
+    // 6. 创建预览对象
+    const now = Date.now()
+    const preview: ModificationPreview = {
+      id: generateModificationId(),
+      tripId: trip_id,
+      operation,
+      before: {
+        days: beforeSummary,
+        totalCost: this.calculateTotalCost(beforeItinerary),
+      },
+      after: {
+        days: afterSummary,
+        totalCost: this.calculateTotalCost(afterItinerary),
+      },
+      changes,
+      impact,
+      createdAt: now,
+      expiresAt: calculateExpiresAt(now),
+      status: 'pending',
+    }
+
+    // 7. 缓存 pending 修改
+    modificationCache.set(preview.id, {
+      preview,
+      afterItinerary,
+    })
+
+    return preview
+  }
+
+  /**
+   * 确认并应用行程修改
+   */
+  private async confirmItineraryModification(
+    params: ConfirmItineraryModificationParams
+  ): Promise<{ success: boolean; message: string; itinerary?: Itinerary; tripId?: string }> {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    const { modification_id, user_adjustments } = params
+
+    // 1. 从缓存获取 pending 修改
+    const cached = modificationCache.get(modification_id)
+    if (!cached) {
+      return { success: false, message: '修改预览已过期或不存在，请重新发起修改' }
+    }
+
+    let { afterItinerary } = cached
+    const { preview } = cached
+
+    // 2. 应用用户微调（如果有）
+    if (user_adjustments?.time_adjustments) {
+      for (const adj of user_adjustments.time_adjustments) {
+        if (
+          adj.day_index >= 0 &&
+          adj.day_index < afterItinerary.days.length &&
+          adj.activity_index >= 0 &&
+          adj.activity_index < afterItinerary.days[adj.day_index].activities.length
+        ) {
+          afterItinerary.days[adj.day_index].activities[adj.activity_index].time = adj.new_time
+        }
+      }
+    }
+
+    // 3. 保存到数据库
+    const { error } = await this.supabase
+      .from('trips')
+      .update({
+        itinerary: afterItinerary,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', preview.tripId)
+      .eq('user_id', this.userId)
+
+    if (error) {
+      return { success: false, message: '保存失败: ' + error.message }
+    }
+
+    // 4. 更新缓存状态并清除
+    modificationCache.updateStatus(modification_id, 'confirmed')
+    modificationCache.delete(modification_id)
+
+    // 5. 生成确认消息
+    const changesSummary = preview.changes.map((c) => c.description).join('；')
+
+    return {
+      success: true,
+      message: `行程修改已保存：${changesSummary}`,
+      itinerary: afterItinerary,
+      tripId: preview.tripId,
+    }
+  }
+
+  /**
+   * 取消行程修改
+   */
+  private async cancelItineraryModification(params: { modification_id: string }): Promise<{
+    success: boolean
+    message: string
+  }> {
+    const { modification_id } = params
+
+    const cached = modificationCache.get(modification_id)
+    if (!cached) {
+      return { success: false, message: '修改预览已过期或不存在' }
+    }
+
+    modificationCache.updateStatus(modification_id, 'cancelled')
+    modificationCache.delete(modification_id)
+
+    return {
+      success: true,
+      message: '已取消修改',
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 修改预览辅助方法
+  // --------------------------------------------------------------------------
+
+  /**
+   * 生成天计划摘要
+   */
+  private generateDaySummary(
+    itinerary: Itinerary,
+    changes: ModificationChange[],
+    type: 'before' | 'after'
+  ): DayPlanSummary[] {
+    return itinerary.days.map((day, dayIndex) => {
+      const dayChanges = changes.filter((c) => c.dayIndex === dayIndex)
+
+      return {
+        day: day.day,
+        date: day.date,
+        activities: day.activities.map((activity, actIndex) => {
+          // 检查该活动是否有变更
+          let isChanged = false
+          let changeType: 'added' | 'removed' | 'modified' | undefined
+
+          for (const change of dayChanges) {
+            if (change.itemName === activity.name) {
+              isChanged = true
+              if (change.type === 'add' && type === 'after') {
+                changeType = 'added'
+              } else if (change.type === 'remove' && type === 'before') {
+                changeType = 'removed'
+              } else if (change.type === 'modify') {
+                changeType = 'modified'
+              }
+            }
+          }
+
+          return {
+            time: activity.time,
+            name: activity.name,
+            type: activity.type,
+            isChanged,
+            changeType,
+          }
+        }),
+      }
+    })
+  }
+
+  /**
+   * 计算修改影响
+   */
+  private calculateModificationImpact(
+    before: Itinerary,
+    after: Itinerary,
+    changes: ModificationChange[]
+  ): ModificationPreview['impact'] {
+    // 收集受影响的天数
+    const affectedDays = [...new Set(changes.map((c) => c.dayIndex))]
+
+    // 计算成本变化
+    const beforeCost = this.calculateTotalCost(before)
+    const afterCost = this.calculateTotalCost(after)
+    const costDelta = afterCost - beforeCost
+
+    // 计算时间影响
+    let timeImpact = ''
+    const addedActivities = changes.filter((c) => c.type === 'add').length
+    const removedActivities = changes.filter((c) => c.type === 'remove').length
+    if (addedActivities > 0) {
+      timeImpact += `增加 ${addedActivities} 个活动`
+    }
+    if (removedActivities > 0) {
+      timeImpact += (timeImpact ? '，' : '') + `删除 ${removedActivities} 个活动`
+    }
+    if (!timeImpact) {
+      timeImpact = '时间安排有所调整'
+    }
+
+    // 生成警告信息
+    const warnings: string[] = []
+    for (const dayIndex of affectedDays) {
+      const dayAfter = after.days[dayIndex]
+      if (dayAfter && dayAfter.activities.length === 0) {
+        warnings.push(`第 ${dayIndex + 1} 天将没有任何活动安排`)
+      }
+      if (dayAfter && dayAfter.activities.length > 6) {
+        warnings.push(`第 ${dayIndex + 1} 天活动较多（${dayAfter.activities.length} 个），行程可能较紧张`)
+      }
+    }
+
+    return {
+      affectedDays,
+      costDelta,
+      timeImpact,
+      warnings,
+    }
+  }
+
+  /**
+   * 计算行程总成本（估算）
+   */
+  private calculateTotalCost(itinerary: Itinerary): number {
+    let total = 0
+
+    for (const day of itinerary.days) {
+      for (const activity of day.activities) {
+        // 使用 ticket_price 字段
+        if (activity.ticket_price) {
+          total += activity.ticket_price
+        }
+      }
+    }
+
+    return total
   }
 }
 

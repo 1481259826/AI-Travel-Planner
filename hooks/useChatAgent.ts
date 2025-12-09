@@ -1,7 +1,7 @@
 /**
  * useChatAgent Hook
  * 管理对话状态和 SSE 流式通信
- * 支持对话式行程生成
+ * 支持对话式行程生成和行程修改预览
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -15,6 +15,7 @@ import type {
   TripFormValidation,
   TripGenerationState,
   GenerationStage,
+  ModificationPreview,
 } from '@/lib/chat'
 
 // ============================================================================
@@ -71,6 +72,18 @@ export interface UseChatAgentReturn {
   cancelTripGeneration: () => void
   /** 重置行程生成状态 */
   resetTripGeneration: () => void
+
+  // 行程修改预览相关
+  /** 待确认的修改预览 */
+  pendingModification: ModificationPreview | null
+  /** 是否正在处理修改 */
+  isModificationProcessing: boolean
+  /** 确认修改 */
+  confirmModification: (modificationId: string) => Promise<void>
+  /** 取消修改 */
+  cancelModification: (modificationId: string) => void
+  /** 清除修改预览 */
+  clearModification: () => void
 }
 
 // ============================================================================
@@ -128,6 +141,10 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
 
   // 待自动触发生成的表单数据
   const [autoGenerateForm, setAutoGenerateForm] = useState<TripFormData | null>(null)
+
+  // 行程修改预览状态
+  const [pendingModification, setPendingModification] = useState<ModificationPreview | null>(null)
+  const [isModificationProcessing, setIsModificationProcessing] = useState(false)
 
   // 中止控制器
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -340,6 +357,17 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
                     // 设置待生成表单数据，由 effect 触发实际生成
                     setAutoGenerateForm(result.formData as TripFormData)
                   }
+                  // 检查是否是 prepare_itinerary_modification 的结果（修改预览）
+                  if (result.preview && result.preview.id && result.preview.operation) {
+                    // 设置修改预览
+                    setPendingModification(result.preview as ModificationPreview)
+                  }
+                  // 检查是否是 confirm_itinerary_modification 的结果（修改确认成功）
+                  if (result.success && result.modificationId) {
+                    // 清除修改预览
+                    setPendingModification(null)
+                    setIsModificationProcessing(false)
+                  }
                 }
                 break
 
@@ -393,6 +421,9 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setIsGenerating(false)
     setIsLoading(false)
     setTripGenerationState(initialTripGenerationState)
+    // 重置修改预览状态
+    setPendingModification(null)
+    setIsModificationProcessing(false)
   }, [])
 
   // ==========================================================================
@@ -697,6 +728,56 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setAutoGenerateForm(null)
   }, [])
 
+  // ==========================================================================
+  // 行程修改相关方法
+  // ==========================================================================
+
+  /**
+   * 确认修改
+   * 通过发送一条特殊消息让 AI 调用 confirm_itinerary_modification 工具
+   */
+  const confirmModification = useCallback(async (modificationId: string) => {
+    if (!pendingModification || pendingModification.id !== modificationId) {
+      console.warn('修改预览不存在或 ID 不匹配')
+      return
+    }
+
+    setIsModificationProcessing(true)
+
+    try {
+      // 发送确认消息，触发 AI 调用确认工具
+      await sendMessage(`确认修改行程（修改ID：${modificationId}）`)
+    } catch (err) {
+      console.error('确认修改失败:', err)
+      setError(err instanceof Error ? err.message : '确认修改失败')
+      setIsModificationProcessing(false)
+    }
+  }, [pendingModification, sendMessage])
+
+  /**
+   * 取消修改
+   */
+  const cancelModification = useCallback((modificationId: string) => {
+    if (pendingModification?.id === modificationId) {
+      // 更新预览状态为已取消
+      setPendingModification((prev) =>
+        prev ? { ...prev, status: 'cancelled' } : null
+      )
+      // 短暂延迟后清除
+      setTimeout(() => {
+        setPendingModification(null)
+      }, 500)
+    }
+  }, [pendingModification])
+
+  /**
+   * 清除修改预览
+   */
+  const clearModification = useCallback(() => {
+    setPendingModification(null)
+    setIsModificationProcessing(false)
+  }, [])
+
   // 自动触发行程生成（当 confirm_and_generate_trip 工具被调用后）
   useEffect(() => {
     if (autoGenerateForm) {
@@ -738,6 +819,12 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     startTripGeneration,
     cancelTripGeneration,
     resetTripGeneration,
+    // 行程修改预览相关
+    pendingModification,
+    isModificationProcessing,
+    confirmModification,
+    cancelModification,
+    clearModification,
   }
 }
 

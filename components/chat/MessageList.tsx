@@ -15,12 +15,14 @@ import { ToolCallCard } from './ToolCallCard'
 import TripFormCard from './TripFormCard'
 import TripGenerationProgress from './TripGenerationProgress'
 import TripCompletionCard from './TripCompletionCard'
+import ModificationPreviewCard from './ModificationPreviewCard'
 import type {
   ChatMessage,
   ToolCall,
   TripFormData,
   TripFormValidation,
   GenerationStage,
+  ModificationPreview,
 } from '@/lib/chat'
 
 // ============================================================================
@@ -63,6 +65,15 @@ interface MessageListProps {
   onFormCancel?: () => void
   /** 取消生成回调 */
   onCancelGeneration?: () => void
+  // 行程修改预览相关
+  /** 待确认的修改预览 */
+  pendingModification?: ModificationPreview | null
+  /** 修改预览确认回调 */
+  onModificationConfirm?: (modificationId: string) => void
+  /** 修改预览取消回调 */
+  onModificationCancel?: (modificationId: string) => void
+  /** 是否正在处理修改 */
+  isModificationProcessing?: boolean
 }
 
 // ============================================================================
@@ -263,6 +274,11 @@ export function MessageList({
   onFormConfirm,
   onFormCancel,
   onCancelGeneration,
+  // 行程修改预览相关
+  pendingModification = null,
+  onModificationConfirm,
+  onModificationCancel,
+  isModificationProcessing = false,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -284,7 +300,7 @@ export function MessageList({
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight
     }
-  }, [messages, streamingContent, pendingForm, isTripGenerating, generationResult])
+  }, [messages, streamingContent, pendingForm, isTripGenerating, generationResult, pendingModification])
 
   // 加载状态
   if (isLoading) {
@@ -299,7 +315,7 @@ export function MessageList({
   }
 
   // 空状态
-  if (messages.length === 0 && !isGenerating && !pendingForm && !isTripGenerating) {
+  if (messages.length === 0 && !isGenerating && !pendingForm && !isTripGenerating && !pendingModification) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -401,6 +417,23 @@ export function MessageList({
               endDate={pendingForm?.endDate || ''}
               totalDays={calculateDays(pendingForm?.startDate, pendingForm?.endDate)}
             />
+          </div>
+        )}
+
+        {/* 行程修改预览卡片 */}
+        {pendingModification && pendingModification.status === 'pending' && (
+          <div className="flex gap-3 py-4 justify-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <div className="max-w-[90%]">
+              <ModificationPreviewCard
+                preview={pendingModification}
+                onConfirm={onModificationConfirm || (() => {})}
+                onCancel={onModificationCancel || (() => {})}
+                isProcessing={isModificationProcessing}
+              />
+            </div>
           </div>
         )}
       </div>

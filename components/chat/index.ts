@@ -14,6 +14,9 @@ export { default as TripFormModal } from './TripFormModal'
 export { default as TripGenerationProgress } from './TripGenerationProgress'
 export { default as TripCompletionCard } from './TripCompletionCard'
 
+// 对话式行程修改组件
+export { default as ModificationPreviewCard } from './ModificationPreviewCard'
+
 // 历史记录组件
 export { HistoryItem } from './HistoryItem'
 export { HistoryList } from './HistoryList'

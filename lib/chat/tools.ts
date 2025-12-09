@@ -428,6 +428,159 @@ export const CHAT_TOOLS: ChatTool[] = [
       },
     },
   },
+
+  // 准备行程修改（带预览确认）
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_itinerary_modification',
+      description: `准备行程修改预览。分析修改影响，生成前后对比，等待用户确认后才保存。
+
+支持的操作类型：
+- 基础修改：add_attraction, remove_attraction, reorder, change_time, change_hotel, change_restaurant
+- 结构变更：add_day, remove_day, split_day, merge_days
+- 智能重规划：optimize_route, replan_day, adjust_for_weather
+- 重生成：regenerate_day, regenerate_trip_segment
+
+使用场景：
+- 用户说"删除第二天的西湖" → operation: remove_attraction
+- 用户说"把灵隐寺移到上午" → operation: change_time
+- 用户说"帮我优化一下路线" → operation: optimize_route
+- 用户说"博物馆闭馆了重新规划" → operation: replan_day
+
+注意：此工具只生成预览，不会立即保存。用户需要确认后才会执行修改。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          trip_id: {
+            type: 'string',
+            description: '要修改的行程 ID',
+          },
+          operation: {
+            type: 'string',
+            enum: [
+              'add_attraction', 'remove_attraction', 'reorder', 'change_time',
+              'change_hotel', 'change_restaurant',
+              'add_day', 'remove_day', 'split_day', 'merge_days',
+              'optimize_route', 'replan_day', 'adjust_for_weather',
+              'regenerate_day', 'regenerate_trip_segment',
+            ],
+            description: '操作类型',
+          },
+          params: {
+            type: 'object',
+            description: '操作参数',
+            properties: {
+              day_index: { type: 'number', description: '天数索引（从 0 开始）' },
+              activity_index: { type: 'number', description: '活动索引' },
+              attraction: {
+                type: 'object',
+                description: '新增景点信息',
+                properties: {
+                  name: { type: 'string', description: '景点名称' },
+                  location: { type: 'string', description: '景点位置' },
+                  duration: { type: 'string', description: '游玩时长' },
+                  preferred_time: { type: 'string', description: '偏好时间段' },
+                },
+              },
+              new_time: { type: 'string', description: '新时间，如 "09:00"' },
+              from_day: { type: 'number', description: '源天数索引' },
+              from_index: { type: 'number', description: '源活动索引' },
+              to_day: { type: 'number', description: '目标天数索引' },
+              to_index: { type: 'number', description: '目标活动索引' },
+              regeneration_hints: {
+                type: 'object',
+                description: '重生成提示',
+                properties: {
+                  keep_attractions: { type: 'array', items: { type: 'string', description: '景点名称' }, description: '保留的景点' },
+                  exclude_attractions: { type: 'array', items: { type: 'string', description: '景点名称' }, description: '排除的景点' },
+                  preferences: { type: 'array', items: { type: 'string', description: '偏好' }, description: '新偏好' },
+                },
+              },
+              day_range: {
+                type: 'object',
+                description: '天数范围',
+                properties: {
+                  start_day: { type: 'number', description: '起始天' },
+                  end_day: { type: 'number', description: '结束天' },
+                },
+              },
+            },
+          },
+          reason: {
+            type: 'string',
+            description: '用户说明的修改原因（用于 AI 上下文理解）',
+          },
+        },
+        required: ['trip_id', 'operation', 'params'],
+      },
+    },
+  },
+
+  // 确认行程修改
+  {
+    type: 'function',
+    function: {
+      name: 'confirm_itinerary_modification',
+      description: `确认并应用行程修改。
+
+仅在以下情况调用此工具：
+1. 用户明确确认要执行修改
+2. 用户点击了"确认修改"按钮
+
+此工具会将 prepare_itinerary_modification 生成的预览修改保存到数据库。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          modification_id: {
+            type: 'string',
+            description: '修改预览 ID（由 prepare_itinerary_modification 返回）',
+          },
+          user_adjustments: {
+            type: 'object',
+            description: '用户在确认前的微调（可选）',
+            properties: {
+              time_adjustments: {
+                type: 'array',
+                description: '时间调整列表',
+                items: {
+                  type: 'object',
+                  description: '单个时间调整项',
+                  properties: {
+                    day_index: { type: 'number', description: '天数索引' },
+                    activity_index: { type: 'number', description: '活动索引' },
+                    new_time: { type: 'string', description: '新时间' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        required: ['modification_id'],
+      },
+    },
+  },
+
+  // 取消行程修改
+  {
+    type: 'function',
+    function: {
+      name: 'cancel_itinerary_modification',
+      description: `取消待确认的行程修改。
+
+当用户明确表示不想执行修改时调用此工具。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          modification_id: {
+            type: 'string',
+            description: '要取消的修改预览 ID',
+          },
+        },
+        required: ['modification_id'],
+      },
+    },
+  },
 ]
 
 /**
@@ -445,6 +598,9 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
   confirm_and_generate_trip: '生成行程',
   calculate_route: '计算路线',
   get_recommendations: '获取推荐',
+  prepare_itinerary_modification: '准备修改预览',
+  confirm_itinerary_modification: '确认修改',
+  cancel_itinerary_modification: '取消修改',
 }
 
 /**
@@ -462,6 +618,9 @@ export const TOOL_ICONS: Record<string, string> = {
   confirm_and_generate_trip: '🚀',
   calculate_route: '🗺️',
   get_recommendations: '⭐',
+  prepare_itinerary_modification: '👀',
+  confirm_itinerary_modification: '✅',
+  cancel_itinerary_modification: '❌',
 }
 
 /**

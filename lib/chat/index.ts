@@ -61,6 +61,17 @@ export type {
   TripGenerationProgressData,
   TripCompletionData,
   ChatCardData,
+
+  // 对话式行程修改类型
+  ItineraryModificationOperation,
+  ModificationPreview,
+  ModificationChange,
+  DayPlanSummary,
+  PrepareItineraryModificationParams,
+  ConfirmItineraryModificationParams,
+  ModificationPreviewData,
+  ModificationConfirmData,
+  ChatCardDataExtended,
 } from './types'
 
 // 工具定义
@@ -78,3 +89,10 @@ export { ToolExecutor } from './executor'
 
 // Agent 类
 export { TravelChatAgent, createChatAgent } from './agent'
+
+// 修改缓存管理
+export {
+  modificationCache,
+  generateModificationId,
+  calculateExpiresAt,
+} from './modification-cache'

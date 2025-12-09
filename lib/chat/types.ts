@@ -593,3 +593,223 @@ export interface ToolExecutionContext {
   /** MCP 客户端 */
   mcpClient: unknown
 }
+
+// ============================================================
+// 行程修改预览相关类型（对话式行程修改）
+// ============================================================
+
+/**
+ * 行程修改操作类型（扩展版）
+ * 包含基础修改、结构变更、智能重规划和完整重生成
+ */
+export type ItineraryModificationOperation =
+  // 基础修改
+  | 'add_attraction'
+  | 'remove_attraction'
+  | 'reorder'
+  | 'change_time'
+  | 'change_hotel'
+  | 'change_restaurant'
+  // 结构变更
+  | 'add_day'
+  | 'remove_day'
+  | 'split_day'
+  | 'merge_days'
+  // 智能重规划
+  | 'optimize_route'
+  | 'replan_day'
+  | 'adjust_for_weather'
+  // 完整重生成
+  | 'regenerate_day'
+  | 'regenerate_trip_segment'
+
+/**
+ * 修改预览数据
+ * 用于在用户确认前展示修改的预览
+ */
+export interface ModificationPreview {
+  /** 唯一修改 ID，用于确认时引用 */
+  id: string
+
+  /** 行程 ID */
+  tripId: string
+
+  /** 操作类型 */
+  operation: ItineraryModificationOperation
+
+  /** 修改前的行程摘要 */
+  before: {
+    days: DayPlanSummary[]
+    totalCost: number
+  }
+
+  /** 修改后的行程摘要 */
+  after: {
+    days: DayPlanSummary[]
+    totalCost: number
+  }
+
+  /** 变更列表 */
+  changes: ModificationChange[]
+
+  /** 影响评估 */
+  impact: {
+    /** 受影响的天数（索引） */
+    affectedDays: number[]
+    /** 成本变化（正数表示增加） */
+    costDelta: number
+    /** 时间影响描述 */
+    timeImpact: string
+    /** 警告信息 */
+    warnings: string[]
+  }
+
+  /** 创建时间 */
+  createdAt: number
+
+  /** 过期时间（10分钟后） */
+  expiresAt: number
+
+  /** 状态 */
+  status: 'pending' | 'confirmed' | 'cancelled' | 'expired'
+}
+
+/**
+ * 单个变更项
+ */
+export interface ModificationChange {
+  /** 变更类型 */
+  type: 'add' | 'remove' | 'modify' | 'reorder'
+
+  /** 天数索引 */
+  dayIndex: number
+
+  /** 项目类型 */
+  itemType: 'attraction' | 'meal' | 'hotel' | 'transport'
+
+  /** 项目名称 */
+  itemName: string
+
+  /** 变更描述 */
+  description: string
+
+  /** 变更前的值（可选） */
+  before?: unknown
+
+  /** 变更后的值（可选） */
+  after?: unknown
+}
+
+/**
+ * 天计划摘要（用于预览显示）
+ */
+export interface DayPlanSummary {
+  day: number
+  date: string
+  activities: Array<{
+    time: string
+    name: string
+    type: string
+    /** 是否有变更 */
+    isChanged?: boolean
+    /** 变更类型 */
+    changeType?: 'added' | 'removed' | 'modified'
+  }>
+}
+
+/**
+ * prepare_itinerary_modification 工具参数
+ */
+export interface PrepareItineraryModificationParams {
+  /** 行程 ID */
+  trip_id: string
+
+  /** 操作类型 */
+  operation: ItineraryModificationOperation
+
+  /** 操作参数 */
+  params: {
+    // 目标定位
+    day_index?: number
+    activity_index?: number
+
+    // 新增项数据
+    attraction?: {
+      name: string
+      location?: string
+      duration?: string
+      preferred_time?: string
+      description?: string
+    }
+
+    // 重排序参数
+    from_day?: number
+    from_index?: number
+    to_day?: number
+    to_index?: number
+
+    // 时间修改
+    new_time?: string
+
+    // 重生成选项
+    regeneration_hints?: {
+      keep_attractions?: string[]    // 保留的景点
+      exclude_attractions?: string[] // 排除的景点
+      preferences?: string[]         // 新增偏好
+      budget_adjustment?: number     // 预算调整
+    }
+
+    // 多天操作范围
+    day_range?: {
+      start_day: number
+      end_day: number
+    }
+  }
+
+  /** 修改原因（AI 上下文） */
+  reason?: string
+}
+
+/**
+ * confirm_itinerary_modification 工具参数
+ */
+export interface ConfirmItineraryModificationParams {
+  /** 修改预览 ID */
+  modification_id: string
+
+  /** 用户调整（可选） */
+  user_adjustments?: {
+    // 允许在确认时微调
+    time_adjustments?: Array<{
+      day_index: number
+      activity_index: number
+      new_time: string
+    }>
+  }
+}
+
+/**
+ * 修改预览卡片数据
+ */
+export interface ModificationPreviewData {
+  cardType: 'modification_preview'
+  preview: ModificationPreview
+}
+
+/**
+ * 修改确认卡片数据
+ */
+export interface ModificationConfirmData {
+  cardType: 'modification_confirm'
+  success: boolean
+  message: string
+  tripId: string
+}
+
+/**
+ * 扩展特殊卡片数据联合类型
+ */
+export type ChatCardDataExtended =
+  | ChatCardData
+  | ModificationPreviewData
+  | ModificationConfirmData
