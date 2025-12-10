@@ -78,12 +78,16 @@ export interface UseChatAgentReturn {
   pendingModification: ModificationPreview | null
   /** 是否正在处理修改 */
   isModificationProcessing: boolean
+  /** 最后一次确认成功的修改信息 */
+  lastConfirmedModification: { modificationId: string; affectedDays: number[]; itinerary?: any } | null
   /** 确认修改（支持用户微调） */
   confirmModification: (modificationId: string, userAdjustments?: UserAdjustments) => Promise<void>
   /** 取消修改 */
   cancelModification: (modificationId: string) => void
   /** 清除修改预览 */
   clearModification: () => void
+  /** 清除最后确认的修改信息 */
+  clearLastConfirmedModification: () => void
 }
 
 /** 用户微调数据类型 */
@@ -154,6 +158,12 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
   // 行程修改预览状态
   const [pendingModification, setPendingModification] = useState<ModificationPreview | null>(null)
   const [isModificationProcessing, setIsModificationProcessing] = useState(false)
+  // 最后一次确认成功的修改信息（用于触发页面刷新和滚动）
+  const [lastConfirmedModification, setLastConfirmedModification] = useState<{
+    modificationId: string
+    affectedDays: number[]
+    itinerary?: any
+  } | null>(null)
 
   // 中止控制器
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -373,6 +383,12 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
                   }
                   // 检查是否是 confirm_itinerary_modification 的结果（修改确认成功）
                   if (result.success && result.modificationId) {
+                    // 设置最后确认的修改信息（包含受影响的天数，用于页面刷新和滚动）
+                    setLastConfirmedModification({
+                      modificationId: result.modificationId,
+                      affectedDays: result.affectedDays || [],
+                      itinerary: result.itinerary,
+                    })
                     // 清除修改预览
                     setPendingModification(null)
                     setIsModificationProcessing(false)
@@ -433,6 +449,7 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     // 重置修改预览状态
     setPendingModification(null)
     setIsModificationProcessing(false)
+    setLastConfirmedModification(null)
   }, [])
 
   // ==========================================================================
@@ -797,6 +814,13 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setIsModificationProcessing(false)
   }, [])
 
+  /**
+   * 清除最后确认的修改信息
+   */
+  const clearLastConfirmedModification = useCallback(() => {
+    setLastConfirmedModification(null)
+  }, [])
+
   // 自动触发行程生成（当 confirm_and_generate_trip 工具被调用后）
   useEffect(() => {
     if (autoGenerateForm) {
@@ -841,9 +865,11 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     // 行程修改预览相关
     pendingModification,
     isModificationProcessing,
+    lastConfirmedModification,
     confirmModification,
     cancelModification,
     clearModification,
+    clearLastConfirmedModification,
   }
 }
 

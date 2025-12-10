@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud, MessageCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -23,6 +23,7 @@ import WeatherCard from '@/components/WeatherCard'
 import FullScreenMapModal from '@/components/FullScreenMapModal'
 import TripInfoPanel from '@/components/TripInfoPanel'
 import TripOverviewMap from '@/components/TripOverviewMap'
+import { TripChatPanel } from '@/components/chat'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -66,6 +67,11 @@ export default function TripDetailPage() {
 
   // 全屏地图状态
   const [fullScreenMapDay, setFullScreenMapDay] = useState<{ dayNumber: number; activities: Activity[] } | null>(null)
+
+  // 对话侧边栏状态
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
+  // 高亮修改的天数
+  const [highlightedDays, setHighlightedDays] = useState<number[]>([])
 
   // 自动加载照片的状态
   const autoEnrichStarted = useRef(false)
@@ -485,6 +491,31 @@ export default function TripDetailPage() {
     await refetch()
   }
 
+  // 处理对话侧边栏中修改确认成功
+  const handleModificationConfirmed = useCallback(async (modificationId: string, affectedDays: number[]) => {
+    // 1. 刷新行程数据
+    await refetch()
+
+    // 2. 设置高亮天数
+    setHighlightedDays(affectedDays)
+
+    // 3. 滚动到第一个受影响的天数
+    if (affectedDays.length > 0) {
+      const firstAffectedDay = Math.min(...affectedDays) + 1 // affectedDays 是索引，+1 变成天数
+      setTimeout(() => {
+        const dayElement = document.getElementById(`day-${firstAffectedDay}`)
+        if (dayElement) {
+          dayElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 300)
+    }
+
+    // 4. 3秒后清除高亮
+    setTimeout(() => {
+      setHighlightedDays([])
+    }, 3000)
+  }, [refetch])
+
   // 计算总开销
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
 
@@ -539,15 +570,15 @@ export default function TripDetailPage() {
                 </div>
               )}
               <EditModeControls trip={trip} onSaveSuccess={handleSaveSuccess} />
-              {/* 对话助手入口 - 关联当前行程，根据 Feature Flag 控制显示 */}
+              {/* 对话助手入口 - 打开侧边栏，根据 Feature Flag 控制显示 */}
               {appConfig.features.useChatAgent && (
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/dashboard/chat?tripId=${tripId}`)}
+                  onClick={() => setIsChatPanelOpen(true)}
                   className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30"
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  对话助手
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  AI 修改
                 </Button>
               )}
               <SyncToAmapButton trip={trip} />
@@ -678,7 +709,11 @@ export default function TripDetailPage() {
                       key={day.day}
                       id={`day-${day.day}`}
                       data-day={day.day}
-                      className="scroll-mt-20"
+                      className={`scroll-mt-20 transition-all duration-300 ${
+                        highlightedDays.includes(day.day - 1)
+                          ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900 bg-blue-50/50 dark:bg-blue-900/20'
+                          : ''
+                      }`}
                     >
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
@@ -841,6 +876,28 @@ export default function TripDetailPage() {
           onClose={() => setFullScreenMapDay(null)}
           activities={fullScreenMapDay.activities}
           dayNumber={fullScreenMapDay.dayNumber}
+        />
+      )}
+
+      {/* 悬浮 AI 助手按钮 - 在移动端和桌面端都显示 */}
+      {appConfig.features.useChatAgent && !isChatPanelOpen && (
+        <button
+          onClick={() => setIsChatPanelOpen(true)}
+          className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center group"
+          title="AI 行程助手"
+        >
+          <Sparkles className="w-6 h-6 group-hover:animate-pulse" />
+        </button>
+      )}
+
+      {/* 对话侧边栏 */}
+      {appConfig.features.useChatAgent && (
+        <TripChatPanel
+          tripId={tripId}
+          destination={trip.destination}
+          isOpen={isChatPanelOpen}
+          onClose={() => setIsChatPanelOpen(false)}
+          onModificationConfirmed={handleModificationConfirmed}
         />
       )}
     </div>

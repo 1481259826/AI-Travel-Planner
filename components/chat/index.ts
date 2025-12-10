@@ -23,3 +23,6 @@ export { default as ModificationImpactSummary } from './ModificationImpactSummar
 export { HistoryItem } from './HistoryItem'
 export { HistoryList } from './HistoryList'
 export { HistoryTab } from './HistoryTab'
+
+// 行程详情页对话侧边栏
+export { default as TripChatPanel } from './TripChatPanel'

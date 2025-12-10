@@ -1290,7 +1290,14 @@ export class ToolExecutor {
    */
   private async confirmItineraryModification(
     params: ConfirmItineraryModificationParams
-  ): Promise<{ success: boolean; message: string; itinerary?: Itinerary; tripId?: string }> {
+  ): Promise<{
+    success: boolean
+    message: string
+    modificationId?: string
+    affectedDays?: number[]
+    itinerary?: Itinerary
+    tripId?: string
+  }> {
     if (!this.supabase) {
       return { success: false, message: '数据库连接不可用' }
     }
@@ -1343,6 +1350,8 @@ export class ToolExecutor {
     return {
       success: true,
       message: `行程修改已保存：${changesSummary}`,
+      modificationId: modification_id,
+      affectedDays: preview.impact.affectedDays,
       itinerary: afterItinerary,
       tripId: preview.tripId,
     }

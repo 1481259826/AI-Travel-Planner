@@ -102,6 +102,9 @@ components/                       # React 组件（已优化，Phase 3 重构）
 │   ├── ChatSidebar.tsx           # 会话列表侧边栏
 │   ├── MessageList.tsx           # 消息列表展示
 │   ├── ToolCallCard.tsx          # 工具调用卡片
+│   ├── TripChatPanel.tsx         # 行程详情页对话侧边栏
+│   ├── ModificationPreviewCard.tsx # 行程修改预览卡片
+│   ├── ModificationDiffView.tsx  # 修改前后对比视图
 │   └── index.ts                  # 统一导出
 ├── hitl/                         # Human-in-the-Loop 组件
 │   ├── InterruptModal.tsx        # 中断模态框
