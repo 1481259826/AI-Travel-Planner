@@ -6,6 +6,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MCPClient, getMCPClient } from '../agents/mcp-client'
 import { modificationCache, generateModificationId, calculateExpiresAt } from './modification-cache'
+import {
+  optimizeRoute,
+  replanDay,
+  adjustForWeather,
+  type ReplanConstraints,
+} from './modification-workflow'
 import type {
   ToolCall,
   ToolResult,
@@ -1083,10 +1089,150 @@ export class ToolExecutor {
         break
       }
 
-      // Phase 3 实现的操作（暂时返回提示）
-      case 'optimize_route':
-      case 'replan_day':
-      case 'adjust_for_weather':
+      // Phase 3: 智能重规划操作
+      case 'optimize_route': {
+        // 路线优化 - 使用贪心算法最小化交通时间
+        const { day_index } = opParams
+        if (day_index === undefined || day_index < 0 || day_index >= afterItinerary.days.length) {
+          return { success: false, message: '请指定要优化的天数' }
+        }
+
+        try {
+          const result = await optimizeRoute(
+            afterItinerary.days[day_index],
+            trip.destination || '',
+            { mcpClient: this.mcpClient }
+          )
+
+          afterItinerary.days[day_index] = result.optimizedDay
+
+          changes.push({
+            type: 'modify',
+            dayIndex: day_index,
+            itemType: 'attraction',
+            itemName: '路线优化',
+            description: `优化第 ${day_index + 1} 天路线，节省约 ${Math.round(result.totalDistanceSaved / 1000)} 公里、${Math.round(result.totalTimeSaved)} 分钟`,
+          })
+          modified = true
+        } catch (error) {
+          return {
+            success: false,
+            message: `路线优化失败: ${error instanceof Error ? error.message : '未知错误'}`,
+          }
+        }
+        break
+      }
+
+      case 'replan_day': {
+        // AI 重新规划某天
+        const { day_index, regeneration_hints } = opParams
+        if (day_index === undefined || day_index < 0 || day_index >= afterItinerary.days.length) {
+          return { success: false, message: '请指定要重新规划的天数' }
+        }
+
+        try {
+          const constraints: ReplanConstraints = {
+            keepAttractions: regeneration_hints?.keep_attractions,
+            excludeAttractions: regeneration_hints?.exclude_attractions,
+            preferences: regeneration_hints?.preferences,
+            budgetAdjustment: regeneration_hints?.budget_adjustment,
+            reason: reason,
+          }
+
+          const result = await replanDay(
+            afterItinerary.days[day_index],
+            beforeItinerary,
+            constraints
+          )
+
+          afterItinerary.days[day_index] = result.replannedDay
+
+          // 记录变更
+          if (result.removedActivities.length > 0) {
+            changes.push({
+              type: 'remove',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: result.removedActivities.join('、'),
+              description: `从第 ${day_index + 1} 天移除: ${result.removedActivities.join('、')}`,
+            })
+          }
+
+          if (result.newActivities.length > 0) {
+            changes.push({
+              type: 'add',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: result.newActivities.map((a) => a.name).join('、'),
+              description: `为第 ${day_index + 1} 天添加: ${result.newActivities.map((a) => a.name).join('、')}`,
+            })
+          }
+
+          if (changes.length === 0) {
+            changes.push({
+              type: 'modify',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: '行程重规划',
+              description: `重新规划第 ${day_index + 1} 天: ${result.reason}`,
+            })
+          }
+
+          modified = true
+        } catch (error) {
+          return {
+            success: false,
+            message: `重新规划失败: ${error instanceof Error ? error.message : '未知错误'}`,
+          }
+        }
+        break
+      }
+
+      case 'adjust_for_weather': {
+        // 根据天气调整行程
+        const { day_index } = opParams
+        if (day_index === undefined || day_index < 0 || day_index >= afterItinerary.days.length) {
+          return { success: false, message: '请指定要调整的天数' }
+        }
+
+        try {
+          const result = await adjustForWeather(
+            afterItinerary.days[day_index],
+            beforeItinerary
+          )
+
+          if (result.replacements.length === 0) {
+            return {
+              success: false,
+              message: `第 ${day_index + 1} 天天气${result.weatherContext.condition}，当前行程无需调整`,
+            }
+          }
+
+          afterItinerary.days[day_index] = result.adjustedDay
+
+          for (const replacement of result.replacements) {
+            changes.push({
+              type: 'modify',
+              dayIndex: day_index,
+              itemType: 'attraction',
+              itemName: replacement.original,
+              description: `因天气(${result.weatherContext.condition})将「${replacement.original}」替换为「${replacement.replacement}」`,
+              before: replacement.original,
+              after: replacement.replacement,
+            })
+          }
+
+          modified = true
+        } catch (error) {
+          return {
+            success: false,
+            message: `天气调整失败: ${error instanceof Error ? error.message : '未知错误'}`,
+          }
+        }
+        break
+      }
+
+      // Phase 4: 完整重生成操作（暂不支持，需要调用完整 LangGraph 工作流）
       case 'regenerate_day':
       case 'regenerate_trip_segment':
         return {
@@ -1157,8 +1303,7 @@ export class ToolExecutor {
       return { success: false, message: '修改预览已过期或不存在，请重新发起修改' }
     }
 
-    let { afterItinerary } = cached
-    const { preview } = cached
+    const { afterItinerary, preview } = cached
 
     // 2. 应用用户微调（如果有）
     if (user_adjustments?.time_adjustments) {

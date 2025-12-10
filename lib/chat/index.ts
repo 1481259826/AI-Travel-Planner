@@ -96,3 +96,17 @@ export {
   generateModificationId,
   calculateExpiresAt,
 } from './modification-cache'
+
+// 智能重规划工作流
+export {
+  optimizeRoute,
+  replanDay,
+  adjustForWeather,
+} from './modification-workflow'
+
+export type {
+  RouteOptimizationResult,
+  ReplanDayResult,
+  WeatherAdjustmentResult,
+  ReplanConstraints,
+} from './modification-workflow'
