@@ -15,6 +15,8 @@ export interface Itinerary {
   accommodation: Accommodation[]
   transportation: Transportation
   estimated_cost: CostBreakdown
+  /** 别名，与 estimated_cost 相同 */
+  cost_breakdown?: CostBreakdown
   summary: string
 }
 

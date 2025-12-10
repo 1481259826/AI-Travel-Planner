@@ -280,6 +280,7 @@ export interface ModifyItineraryParams {
       location?: string
       duration?: string
       description?: string
+      ticket_price?: number
     }
 
     // remove_attraction
@@ -741,6 +742,7 @@ export interface PrepareItineraryModificationParams {
       duration?: string
       preferred_time?: string
       description?: string
+      ticket_price?: number
     }
 
     // 更换酒店

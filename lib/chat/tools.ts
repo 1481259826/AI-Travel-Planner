@@ -482,6 +482,8 @@ export const CHAT_TOOLS: ChatTool[] = [
                   location: { type: 'string', description: '景点位置' },
                   duration: { type: 'string', description: '游玩时长' },
                   preferred_time: { type: 'string', description: '偏好时间段' },
+                  ticket_price: { type: 'number', description: '门票价格（元）' },
+                  description: { type: 'string', description: '景点描述' },
                 },
               },
               hotel: {

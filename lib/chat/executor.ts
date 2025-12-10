@@ -913,6 +913,12 @@ export class ToolExecutor {
     const beforeItinerary: Itinerary = JSON.parse(JSON.stringify(itinerary))
     const afterItinerary: Itinerary = JSON.parse(JSON.stringify(itinerary))
 
+    // 兼容 cost_breakdown 和 estimated_cost 两种字段名
+    // AI 生成的字段名是 estimated_cost，但代码使用 cost_breakdown
+    if (!afterItinerary.cost_breakdown && (afterItinerary as any).estimated_cost) {
+      afterItinerary.cost_breakdown = (afterItinerary as any).estimated_cost
+    }
+
     // 3. 根据操作类型计算修改
     const changes: ModificationChange[] = []
     let modified = false
@@ -935,12 +941,21 @@ export class ToolExecutor {
           }
           if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < day.activities.length) {
             const removed = day.activities.splice(targetIndex, 1)[0]
+
+            // 更新 cost_breakdown.attractions
+            if (removed.ticket_price && afterItinerary.cost_breakdown) {
+              afterItinerary.cost_breakdown.attractions =
+                (afterItinerary.cost_breakdown.attractions || 0) - removed.ticket_price
+              afterItinerary.cost_breakdown.total =
+                (afterItinerary.cost_breakdown.total || 0) - removed.ticket_price
+            }
+
             changes.push({
               type: 'remove',
               dayIndex: day_index,
               itemType: 'attraction',
               itemName: removed.name,
-              description: `从第 ${day_index + 1} 天删除「${removed.name}」`,
+              description: `从第 ${day_index + 1} 天删除「${removed.name}」${removed.ticket_price ? `（门票 -¥${removed.ticket_price}）` : ''}`,
               before: removed,
             })
             modified = true
@@ -964,14 +979,24 @@ export class ToolExecutor {
             },
             duration: attraction.duration || '2小时',
             description: attraction.description || '',
+            ticket_price: attraction.ticket_price,
           }
           afterItinerary.days[day_index].activities.push(newActivity)
+
+          // 更新 cost_breakdown.attractions
+          if (attraction.ticket_price && afterItinerary.cost_breakdown) {
+            afterItinerary.cost_breakdown.attractions =
+              (afterItinerary.cost_breakdown.attractions || 0) + attraction.ticket_price
+            afterItinerary.cost_breakdown.total =
+              (afterItinerary.cost_breakdown.total || 0) + attraction.ticket_price
+          }
+
           changes.push({
             type: 'add',
             dayIndex: day_index,
             itemType: 'attraction',
             itemName: attraction.name,
-            description: `添加「${attraction.name}」到第 ${day_index + 1} 天`,
+            description: `添加「${attraction.name}」到第 ${day_index + 1} 天${attraction.ticket_price ? `（门票 +¥${attraction.ticket_price}）` : ''}`,
             after: newActivity,
           })
           modified = true
@@ -1070,21 +1095,40 @@ export class ToolExecutor {
           const day = afterItinerary.days[day_index]
           if (day.meals && meal_index >= 0 && meal_index < day.meals.length) {
             const oldMeal = day.meals[meal_index]
+            const newAvgPrice = restaurant.avg_price || oldMeal.avg_price
             const newMeal = {
               ...oldMeal,
               restaurant: restaurant.name || oldMeal.restaurant,
               cuisine: restaurant.cuisine || oldMeal.cuisine,
-              avg_price: restaurant.avg_price || oldMeal.avg_price,
+              avg_price: newAvgPrice,
               recommended_dishes: restaurant.recommended_dishes || oldMeal.recommended_dishes,
             }
             day.meals[meal_index] = newMeal
+
+            // 更新 cost_breakdown.food
+            // 餐饮费用按人均价格 * 出行人数计算
+            const travelers = trip.travelers || 1
+            const oldMealCost = (oldMeal.avg_price || 0) * travelers
+            const newMealCost = newAvgPrice * travelers
+            const priceDiff = newMealCost - oldMealCost
+
+            if (priceDiff !== 0 && afterItinerary.cost_breakdown) {
+              afterItinerary.cost_breakdown.food =
+                (afterItinerary.cost_breakdown.food || 0) + priceDiff
+              afterItinerary.cost_breakdown.total =
+                (afterItinerary.cost_breakdown.total || 0) + priceDiff
+            }
+
+            const priceChangeText = priceDiff !== 0
+              ? `（人均 ¥${oldMeal.avg_price || 0} → ¥${newAvgPrice}，${priceDiff > 0 ? '+' : ''}¥${priceDiff}）`
+              : ''
 
             changes.push({
               type: 'modify',
               dayIndex: day_index,
               itemType: 'meal',
               itemName: newMeal.restaurant,
-              description: `将第 ${day_index + 1} 天的「${oldMeal.restaurant}」更换为「${newMeal.restaurant}」`,
+              description: `将第 ${day_index + 1} 天的「${oldMeal.restaurant}」更换为「${newMeal.restaurant}」${priceChangeText}`,
               before: oldMeal,
               after: newMeal,
             })
@@ -1568,17 +1612,23 @@ export class ToolExecutor {
    * 计算行程总成本（估算）
    */
   private calculateTotalCost(itinerary: Itinerary): number {
-    let total = 0
+    // 兼容 cost_breakdown 和 estimated_cost 两种字段名
+    const costData = itinerary.cost_breakdown || (itinerary as any).estimated_cost
 
+    // 优先使用 cost_breakdown.total（包含所有费用）
+    if (costData?.total) {
+      return costData.total
+    }
+
+    // 回退：只计算景点门票费用
+    let total = 0
     for (const day of itinerary.days) {
       for (const activity of day.activities) {
-        // 使用 ticket_price 字段
         if (activity.ticket_price) {
           total += activity.ticket_price
         }
       }
     }
-
     return total
   }
 }
