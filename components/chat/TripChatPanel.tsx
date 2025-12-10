@@ -197,8 +197,8 @@ export function TripChatPanel({
           </div>
         )}
 
-        {/* 消息列表 */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        {/* 消息列表区域 - MessageList 内部自带滚动 */}
+        <div className="flex-1 min-h-0 flex flex-col">
           <MessageList
             messages={messages}
             streamingContent={streamingContent}

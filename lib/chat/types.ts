@@ -732,6 +732,7 @@ export interface PrepareItineraryModificationParams {
     // 目标定位
     day_index?: number
     activity_index?: number
+    meal_index?: number  // 用于 change_restaurant
 
     // 新增项数据
     attraction?: {
@@ -740,6 +741,24 @@ export interface PrepareItineraryModificationParams {
       duration?: string
       preferred_time?: string
       description?: string
+    }
+
+    // 更换酒店
+    hotel?: {
+      name: string
+      type?: string
+      price_per_night?: number
+      description?: string
+      location?: { lat: number; lng: number }
+      photos?: string[]
+    }
+
+    // 更换餐厅
+    restaurant?: {
+      name: string
+      cuisine?: string
+      avg_price?: number
+      recommended_dishes?: string[]
     }
 
     // 重排序参数

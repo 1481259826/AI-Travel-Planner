@@ -1008,6 +1008,78 @@ export class ToolExecutor {
         break
       }
 
+      case 'change_hotel': {
+        // 更换酒店
+        const { hotel } = opParams
+        if (hotel && afterItinerary.accommodation && afterItinerary.accommodation.length > 0) {
+          const oldHotel = afterItinerary.accommodation[0]
+          const newHotel = {
+            ...oldHotel,
+            name: hotel.name || oldHotel.name,
+            type: hotel.type || oldHotel.type,
+            price_per_night: hotel.price_per_night || oldHotel.price_per_night,
+            description: hotel.description || oldHotel.description,
+            location: hotel.location || oldHotel.location,
+            photos: hotel.photos || oldHotel.photos || [],
+          }
+          afterItinerary.accommodation[0] = newHotel
+
+          // 计算价格变化
+          const oldTotal = oldHotel.price_per_night * (afterItinerary.days?.length || 1)
+          const newTotal = newHotel.price_per_night * (afterItinerary.days?.length || 1)
+          const priceDiff = newTotal - oldTotal
+
+          changes.push({
+            type: 'modify',
+            dayIndex: -1, // 酒店不属于特定天数
+            itemType: 'hotel',
+            itemName: newHotel.name,
+            description: `将酒店从「${oldHotel.name}」更换为「${newHotel.name}」${priceDiff !== 0 ? `（${priceDiff > 0 ? '+' : ''}¥${priceDiff}）` : ''}`,
+            before: oldHotel,
+            after: newHotel,
+          })
+          modified = true
+        }
+        break
+      }
+
+      case 'change_restaurant': {
+        // 更换餐厅
+        const { day_index, meal_index, restaurant } = opParams
+        if (
+          day_index !== undefined &&
+          meal_index !== undefined &&
+          restaurant &&
+          day_index >= 0 &&
+          day_index < afterItinerary.days.length
+        ) {
+          const day = afterItinerary.days[day_index]
+          if (day.meals && meal_index >= 0 && meal_index < day.meals.length) {
+            const oldMeal = day.meals[meal_index]
+            const newMeal = {
+              ...oldMeal,
+              restaurant: restaurant.name || oldMeal.restaurant,
+              cuisine: restaurant.cuisine || oldMeal.cuisine,
+              avg_price: restaurant.avg_price || oldMeal.avg_price,
+              recommended_dishes: restaurant.recommended_dishes || oldMeal.recommended_dishes,
+            }
+            day.meals[meal_index] = newMeal
+
+            changes.push({
+              type: 'modify',
+              dayIndex: day_index,
+              itemType: 'meal',
+              itemName: newMeal.restaurant,
+              description: `将第 ${day_index + 1} 天的「${oldMeal.restaurant}」更换为「${newMeal.restaurant}」`,
+              before: oldMeal,
+              after: newMeal,
+            })
+            modified = true
+          }
+        }
+        break
+      }
+
       case 'reorder': {
         const { from_day, from_index, to_day, to_index } = opParams
         if (

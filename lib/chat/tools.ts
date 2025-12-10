@@ -473,6 +473,7 @@ export const CHAT_TOOLS: ChatTool[] = [
             properties: {
               day_index: { type: 'number', description: '天数索引（从 0 开始）' },
               activity_index: { type: 'number', description: '活动索引' },
+              meal_index: { type: 'number', description: '餐食索引（用于 change_restaurant）' },
               attraction: {
                 type: 'object',
                 description: '新增景点信息',
@@ -482,6 +483,28 @@ export const CHAT_TOOLS: ChatTool[] = [
                   duration: { type: 'string', description: '游玩时长' },
                   preferred_time: { type: 'string', description: '偏好时间段' },
                 },
+              },
+              hotel: {
+                type: 'object',
+                description: '新酒店信息（用于 change_hotel）',
+                properties: {
+                  name: { type: 'string', description: '酒店名称' },
+                  type: { type: 'string', description: '酒店类型，如 经济型、舒适型、豪华型' },
+                  price_per_night: { type: 'number', description: '每晚价格' },
+                  description: { type: 'string', description: '酒店描述' },
+                },
+                required: ['name'],
+              },
+              restaurant: {
+                type: 'object',
+                description: '新餐厅信息（用于 change_restaurant）',
+                properties: {
+                  name: { type: 'string', description: '餐厅名称' },
+                  cuisine: { type: 'string', description: '菜系类型' },
+                  avg_price: { type: 'number', description: '人均消费' },
+                  recommended_dishes: { type: 'array', items: { type: 'string' }, description: '推荐菜品' },
+                },
+                required: ['name'],
               },
               new_time: { type: 'string', description: '新时间，如 "09:00"' },
               from_day: { type: 'number', description: '源天数索引' },
