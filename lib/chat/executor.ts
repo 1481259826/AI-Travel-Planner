@@ -1013,28 +1013,42 @@ export class ToolExecutor {
         const { hotel } = opParams
         if (hotel && afterItinerary.accommodation && afterItinerary.accommodation.length > 0) {
           const oldHotel = afterItinerary.accommodation[0]
+
+          // 计算入住天数
+          const checkIn = new Date(oldHotel.check_in)
+          const checkOut = new Date(oldHotel.check_out)
+          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+
+          // 计算新的每晚价格和总价
+          const newPricePerNight = hotel.price_per_night || oldHotel.price_per_night
+          const newTotalPrice = newPricePerNight * nights
+          const oldTotalPrice = oldHotel.total_price || (oldHotel.price_per_night * nights)
+
           const newHotel = {
             ...oldHotel,
             name: hotel.name || oldHotel.name,
             type: hotel.type || oldHotel.type,
-            price_per_night: hotel.price_per_night || oldHotel.price_per_night,
+            price_per_night: newPricePerNight,
+            total_price: newTotalPrice,
             description: hotel.description || oldHotel.description,
             location: hotel.location || oldHotel.location,
             photos: hotel.photos || oldHotel.photos || [],
           }
           afterItinerary.accommodation[0] = newHotel
 
-          // 计算价格变化
-          const oldTotal = oldHotel.price_per_night * (afterItinerary.days?.length || 1)
-          const newTotal = newHotel.price_per_night * (afterItinerary.days?.length || 1)
-          const priceDiff = newTotal - oldTotal
+          // 更新 cost_breakdown
+          if (afterItinerary.cost_breakdown) {
+            const priceDiff = newTotalPrice - oldTotalPrice
+            afterItinerary.cost_breakdown.accommodation = newTotalPrice
+            afterItinerary.cost_breakdown.total = (afterItinerary.cost_breakdown.total || 0) + priceDiff
+          }
 
           changes.push({
             type: 'modify',
             dayIndex: -1, // 酒店不属于特定天数
             itemType: 'hotel',
             itemName: newHotel.name,
-            description: `将酒店从「${oldHotel.name}」更换为「${newHotel.name}」${priceDiff !== 0 ? `（${priceDiff > 0 ? '+' : ''}¥${priceDiff}）` : ''}`,
+            description: `将酒店从「${oldHotel.name}」更换为「${newHotel.name}」（${nights}晚：¥${oldTotalPrice} → ¥${newTotalPrice}）`,
             before: oldHotel,
             after: newHotel,
           })
