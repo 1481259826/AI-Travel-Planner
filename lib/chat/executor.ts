@@ -33,7 +33,7 @@ import type {
   ModificationChange,
   DayPlanSummary,
 } from './types'
-import type { Itinerary, DayPlan, Activity } from '@/types'
+import type { Itinerary, DayPlan, Activity, Accommodation } from '@/types'
 
 // ============================================================================
 // 类型定义
@@ -1049,14 +1049,16 @@ export class ToolExecutor {
           const newTotalPrice = newPricePerNight * nights
           const oldTotalPrice = oldHotel.total_price || (oldHotel.price_per_night * nights)
 
-          const newHotel = {
+          const newHotel: Accommodation = {
             ...oldHotel,
             name: hotel.name || oldHotel.name,
-            type: hotel.type || oldHotel.type,
+            type: (hotel.type || oldHotel.type) as Accommodation['type'],
             price_per_night: newPricePerNight,
             total_price: newTotalPrice,
             description: hotel.description || oldHotel.description,
-            location: hotel.location || oldHotel.location,
+            location: hotel.location
+              ? { ...oldHotel.location, ...hotel.location }
+              : oldHotel.location,
             photos: hotel.photos || oldHotel.photos || [],
           }
           afterItinerary.accommodation[0] = newHotel
@@ -1272,7 +1274,8 @@ export class ToolExecutor {
           const result = await replanDay(
             afterItinerary.days[day_index],
             beforeItinerary,
-            constraints
+            constraints,
+            trip.destination
           )
 
           afterItinerary.days[day_index] = result.replannedDay
@@ -1328,7 +1331,7 @@ export class ToolExecutor {
         try {
           const result = await adjustForWeather(
             afterItinerary.days[day_index],
-            beforeItinerary
+            trip.destination
           )
 
           if (result.replacements.length === 0) {

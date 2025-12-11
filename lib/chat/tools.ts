@@ -504,7 +504,7 @@ export const CHAT_TOOLS: ChatTool[] = [
                   name: { type: 'string', description: '餐厅名称' },
                   cuisine: { type: 'string', description: '菜系类型' },
                   avg_price: { type: 'number', description: '人均消费' },
-                  recommended_dishes: { type: 'array', items: { type: 'string' }, description: '推荐菜品' },
+                  recommended_dishes: { type: 'array', items: { type: 'string', description: '菜品名称' }, description: '推荐菜品' },
                 },
                 required: ['name'],
               },

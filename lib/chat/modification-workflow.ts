@@ -323,6 +323,7 @@ export async function replanDay(
   day: DayPlan,
   itinerary: Itinerary,
   constraints: ReplanConstraints,
+  destination: string,
   aiConfig?: Partial<AIConfig>
 ): Promise<ReplanDayResult> {
   const config = { ...DEFAULT_AI_CONFIG, ...aiConfig }
@@ -340,7 +341,7 @@ export async function replanDay(
   const systemPrompt = buildReplanSystemPrompt()
 
   // 构建用户消息
-  const userMessage = buildReplanUserMessage(day, itinerary, constraints)
+  const userMessage = buildReplanUserMessage(day, constraints, destination)
 
   console.log('[ReplanDay] Calling AI for day replanning...')
 
@@ -363,7 +364,7 @@ export async function replanDay(
   const mcpClient = getMCPClient()
   const enrichedActivities = await enrichActivitiesWithCoordinates(
     result.replannedDay.activities,
-    itinerary.destination || ''
+    destination
   )
 
   return {
@@ -413,12 +414,12 @@ function buildReplanSystemPrompt(): string {
  */
 function buildReplanUserMessage(
   day: DayPlan,
-  itinerary: Itinerary,
-  constraints: ReplanConstraints
+  constraints: ReplanConstraints,
+  destination: string
 ): string {
   let message = `请重新规划以下行程的第 ${day.day} 天（${day.date}）：
 
-**目的地**: ${itinerary.destination || '未知'}
+**目的地**: ${destination || '未知'}
 
 **当前行程**:
 ${day.activities.map((a) => `- ${a.time} ${a.name} (${a.duration || '2小时'})`).join('\n')}
@@ -514,13 +515,13 @@ function parseReplanResponse(
  */
 export async function adjustForWeather(
   day: DayPlan,
-  itinerary: Itinerary,
+  destination: string,
   aiConfig?: Partial<AIConfig>
 ): Promise<WeatherAdjustmentResult> {
   const mcpClient = getMCPClient()
 
   // 获取天气预报
-  const weather = await mcpClient.getWeatherForecast(itinerary.destination || '')
+  const weather = await mcpClient.getWeatherForecast(destination || '')
 
   if (!weather || !weather.forecasts.length) {
     return {
@@ -605,7 +606,7 @@ export async function adjustForWeather(
 }
 \`\`\``
 
-  const userMessage = `目的地：${itinerary.destination}
+  const userMessage = `目的地：${destination}
 天气：${dayWeather.dayweather}，${dayWeather.daytemp}°C
 
 需要替换的户外景点：
@@ -633,7 +634,7 @@ ${outdoorActivities.map((a) => `- ${a.name}`).join('\n')}
     // 补充坐标
     const enrichedActivities = await enrichActivitiesWithCoordinates(
       adjustedActivities,
-      itinerary.destination || ''
+      destination || ''
     )
 
     return {
