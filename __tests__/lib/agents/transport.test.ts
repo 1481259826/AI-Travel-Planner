@@ -30,6 +30,10 @@ vi.mock('@/lib/agents/mcp-client', () => ({
       taxi_cost: 25,
       polyline: 'encoded_polyline_data',
     }),
+    getBicyclingRoute: vi.fn().mockResolvedValue({
+      distance: 6000,
+      duration: 1000, // 约 16 分钟
+    }),
   })),
 }))
 
@@ -95,6 +99,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
     },
     weather: null,
     draftItinerary: mockDraftItinerary,
+    attractionEnrichment: null,
     accommodation: mockAccommodation,
     transport: null,
     dining: null,
@@ -197,6 +202,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
         }),
         getTransitRoute: vi.fn().mockResolvedValue(null),
         getDrivingRoute: vi.fn().mockResolvedValue(null),
+        getBicyclingRoute: vi.fn().mockResolvedValue(null),
       })) as any
 
       const shortDistanceState: TripState = {
@@ -255,6 +261,10 @@ describe('Transport Logistician Agent Unit Tests', () => {
           duration: 480,
           taxi_cost: 15,
         }),
+        getBicyclingRoute: vi.fn().mockResolvedValue({
+          distance: 3000,
+          duration: 720,
+        }),
       })) as any
 
       const agent = createTransportAgent()
@@ -278,6 +288,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
           duration: 1200,
           taxi_cost: 35,
         }),
+        getBicyclingRoute: vi.fn().mockResolvedValue(null),
       })) as any
 
       const agent = createTransportAgent()
@@ -303,6 +314,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
           duration: 600,
           // 不提供 taxi_cost，让 Agent 估算
         }),
+        getBicyclingRoute: vi.fn().mockResolvedValue(null),
       })) as any
 
       const agent = createTransportAgent()
@@ -328,6 +340,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
           duration: 900,
           // 不提供 taxi_cost，让 Agent 估算
         }),
+        getBicyclingRoute: vi.fn().mockResolvedValue(null),
       })) as any
 
       const agent = createTransportAgent()
@@ -366,6 +379,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
         getWalkingRoute: vi.fn().mockRejectedValue(new Error('API Error')),
         getTransitRoute: vi.fn().mockRejectedValue(new Error('API Error')),
         getDrivingRoute: vi.fn().mockRejectedValue(new Error('API Error')),
+        getBicyclingRoute: vi.fn().mockRejectedValue(new Error('API Error')),
       })) as any
 
       const agent = createTransportAgent()
@@ -384,6 +398,7 @@ describe('Transport Logistician Agent Unit Tests', () => {
         }),
         getTransitRoute: vi.fn().mockRejectedValue(new Error('API Error')),
         getDrivingRoute: vi.fn().mockRejectedValue(new Error('API Error')),
+        getBicyclingRoute: vi.fn().mockRejectedValue(new Error('API Error')),
       })) as any
 
       const agent = createTransportAgent()

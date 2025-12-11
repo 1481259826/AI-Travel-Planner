@@ -110,6 +110,7 @@ describe('Dining Recommender Agent Unit Tests', () => {
     },
     weather: null,
     draftItinerary: mockDraftItinerary,
+    attractionEnrichment: null,
     accommodation: null,
     transport: null,
     dining: null,

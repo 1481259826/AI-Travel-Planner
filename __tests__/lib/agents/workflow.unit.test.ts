@@ -159,10 +159,11 @@ describe('LangGraph Workflow Unit Tests', () => {
     it('应该返回正确的节点列表', () => {
       const nodes = getWorkflowNodes()
 
-      expect(nodes).toHaveLength(7)
+      expect(nodes).toHaveLength(8)
       expect(nodes.map(n => n.id)).toEqual([
         'weather_scout',
         'itinerary_planner',
+        'attraction_enricher',
         'accommodation_agent',
         'transport_agent',
         'dining_agent',

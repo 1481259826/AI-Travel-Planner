@@ -59,10 +59,11 @@ describe('LangGraph 工作流模块', () => {
     it('应该返回所有工作流节点', () => {
       const nodes = getWorkflowNodes()
 
-      expect(nodes).toHaveLength(7)
+      expect(nodes).toHaveLength(8)
       expect(nodes.map((n) => n.id)).toEqual([
         'weather_scout',
         'itinerary_planner',
+        'attraction_enricher',
         'accommodation_agent',
         'transport_agent',
         'dining_agent',
@@ -90,7 +91,7 @@ describe('LangGraph 工作流模块', () => {
     it('节点名称应该是中文', () => {
       const nodes = getWorkflowNodes()
 
-      const chineseNames = ['天气分析', '行程规划', '住宿推荐', '交通规划', '餐饮推荐', '预算审计', '生成行程']
+      const chineseNames = ['天气分析', '行程规划', '景点详情', '住宿推荐', '交通规划', '餐饮推荐', '预算审计', '生成行程']
 
       nodes.forEach((node, index) => {
         expect(node.name).toBe(chineseNames[index])
@@ -136,7 +137,7 @@ describe('LangGraph 工作流模块', () => {
   describe('工作流结构验证', () => {
     it('应该定义正确的节点执行顺序', () => {
       // 工作流应该按以下顺序执行：
-      // START -> weather_scout -> itinerary_planner
+      // START -> weather_scout -> itinerary_planner -> attraction_enricher
       // -> [accommodation_agent, transport_agent, dining_agent] (并行)
       // -> budget_critic -> finalize (或重试) -> END
 
@@ -148,17 +149,20 @@ describe('LangGraph 工作流模块', () => {
       // 第二个节点应该是行程规划
       expect(nodes[1].id).toBe('itinerary_planner')
 
+      // 第三个节点应该是景点详情增强
+      expect(nodes[2].id).toBe('attraction_enricher')
+
       // 接下来是三个并行的资源节点
-      const resourceNodes = nodes.slice(2, 5).map((n) => n.id)
+      const resourceNodes = nodes.slice(3, 6).map((n) => n.id)
       expect(resourceNodes).toContain('accommodation_agent')
       expect(resourceNodes).toContain('transport_agent')
       expect(resourceNodes).toContain('dining_agent')
 
       // 预算审计
-      expect(nodes[5].id).toBe('budget_critic')
+      expect(nodes[6].id).toBe('budget_critic')
 
       // 最后是生成行程
-      expect(nodes[6].id).toBe('finalize')
+      expect(nodes[7].id).toBe('finalize')
     })
   })
 })
