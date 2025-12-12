@@ -12,6 +12,7 @@ import {
   adjustForWeather,
   type ReplanConstraints,
 } from './modification-workflow'
+import { TemplateService, type TemplateCategory } from '../templates'
 import type {
   ToolCall,
   ToolResult,
@@ -152,6 +153,18 @@ export class ToolExecutor {
           break
         case 'cancel_itinerary_modification':
           result = await this.cancelItineraryModification(args)
+          break
+        case 'list_templates':
+          result = await this.listTemplates(args)
+          break
+        case 'save_template':
+          result = await this.saveTemplate(args)
+          break
+        case 'apply_template':
+          result = await this.applyTemplate(args)
+          break
+        case 'delete_template':
+          result = await this.deleteTemplate(args)
           break
         default:
           throw new Error(`Unknown tool: ${name}`)
@@ -1633,6 +1646,169 @@ export class ToolExecutor {
       }
     }
     return total
+  }
+
+  // --------------------------------------------------------------------------
+  // 模板功能相关方法
+  // --------------------------------------------------------------------------
+
+  /**
+   * 列出用户的模板
+   */
+  private async listTemplates(params: {
+    category?: TemplateCategory
+    search?: string
+    limit?: number
+  }) {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    try {
+      const templates = await TemplateService.list(this.userId, this.supabase, {
+        category: params.category,
+        search: params.search,
+        page: 1,
+        pageSize: params.limit || 10,
+      })
+
+      if (templates.data.length === 0) {
+        return {
+          success: true,
+          message: '您还没有保存任何模板。您可以在行程详情页点击「保存为模板」来创建模板。',
+          templates: [],
+          total: 0,
+        }
+      }
+
+      return {
+        success: true,
+        message: `找到 ${templates.total} 个模板`,
+        templates: templates.data.map((t) => ({
+          id: t.id,
+          name: t.name,
+          category: t.category,
+          destination: t.destination,
+          duration_days: t.duration_days,
+          use_count: t.use_count,
+          created_at: t.created_at,
+        })),
+        total: templates.total,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `获取模板列表失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      }
+    }
+  }
+
+  /**
+   * 将行程保存为模板
+   */
+  private async saveTemplate(params: {
+    trip_id: string
+    name: string
+    description?: string
+    category?: TemplateCategory
+  }) {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    try {
+      const template = await TemplateService.createFromTrip(
+        params.trip_id,
+        this.userId,
+        this.supabase,
+        {
+          name: params.name,
+          description: params.description,
+          category: params.category || 'other',
+        }
+      )
+
+      return {
+        success: true,
+        message: `模板「${template.name}」保存成功！您可以在设置页面的「旅行模板」中查看和管理您的模板。`,
+        template: {
+          id: template.id,
+          name: template.name,
+          category: template.category,
+          destination: template.destination,
+          duration_days: template.duration_days,
+        },
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `保存模板失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      }
+    }
+  }
+
+  /**
+   * 应用模板创建新行程
+   */
+  private async applyTemplate(params: { template_id: string }) {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    try {
+      const result = await TemplateService.apply(
+        params.template_id,
+        this.userId,
+        this.supabase
+      )
+
+      return {
+        success: true,
+        action: 'navigate_to_trip',
+        message: `已基于模板创建新行程！`,
+        tripId: result.tripId,
+        destination: result.destination,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `应用模板失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      }
+    }
+  }
+
+  /**
+   * 删除模板
+   */
+  private async deleteTemplate(params: { template_id: string }) {
+    if (!this.supabase) {
+      return { success: false, message: '数据库连接不可用' }
+    }
+
+    try {
+      // 先获取模板名称用于确认信息
+      const template = await TemplateService.getById(
+        params.template_id,
+        this.userId,
+        this.supabase
+      )
+
+      if (!template) {
+        return { success: false, message: '模板不存在或无权访问' }
+      }
+
+      await TemplateService.delete(params.template_id, this.userId, this.supabase)
+
+      return {
+        success: true,
+        message: `模板「${template.name}」已删除`,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `删除模板失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      }
+    }
   }
 }
 

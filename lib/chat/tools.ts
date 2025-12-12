@@ -606,6 +606,131 @@ export const CHAT_TOOLS: ChatTool[] = [
       },
     },
   },
+
+  // ============================================================================
+  // 模板功能相关工具
+  // ============================================================================
+
+  // 列出模板
+  {
+    type: 'function',
+    function: {
+      name: 'list_templates',
+      description: `列出用户保存的旅行模板。
+
+使用场景：
+- 用户询问"我有哪些模板"
+- 用户说"查看我的模板"
+- 用户想从模板创建行程时先查看可用模板`,
+      parameters: {
+        type: 'object',
+        properties: {
+          category: {
+            type: 'string',
+            enum: ['family', 'couple', 'friends', 'solo', 'business', 'other'],
+            description: '按分类筛选：family(亲子)、couple(情侣)、friends(朋友)、solo(独行)、business(商务)、other(其他)',
+          },
+          search: {
+            type: 'string',
+            description: '搜索关键词（搜索模板名称）',
+          },
+          limit: {
+            type: 'number',
+            description: '返回数量限制，默认 10',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+
+  // 保存为模板
+  {
+    type: 'function',
+    function: {
+      name: 'save_template',
+      description: `将当前行程保存为模板，方便以后复用。
+
+使用场景：
+- 用户说"把这个行程保存为模板"
+- 用户说"保存这个行程模板"
+- 用户完成行程规划后想要保存
+
+注意：需要提供行程 ID。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          trip_id: {
+            type: 'string',
+            description: '要保存为模板的行程 ID',
+          },
+          name: {
+            type: 'string',
+            description: '模板名称，如"杭州三日游-亲子版"',
+          },
+          description: {
+            type: 'string',
+            description: '模板描述（可选）',
+          },
+          category: {
+            type: 'string',
+            enum: ['family', 'couple', 'friends', 'solo', 'business', 'other'],
+            description: '模板分类：family(亲子)、couple(情侣)、friends(朋友)、solo(独行)、business(商务)、other(其他)',
+          },
+        },
+        required: ['trip_id', 'name'],
+      },
+    },
+  },
+
+  // 应用模板
+  {
+    type: 'function',
+    function: {
+      name: 'apply_template',
+      description: `使用模板创建新行程。
+
+使用场景：
+- 用户说"用杭州模板创建新行程"
+- 用户说"应用这个模板"
+- 用户从模板列表中选择一个要使用
+
+应用模板会基于模板内容创建新的行程。`,
+      parameters: {
+        type: 'object',
+        properties: {
+          template_id: {
+            type: 'string',
+            description: '要应用的模板 ID',
+          },
+        },
+        required: ['template_id'],
+      },
+    },
+  },
+
+  // 删除模板
+  {
+    type: 'function',
+    function: {
+      name: 'delete_template',
+      description: `删除一个旅行模板。
+
+使用场景：
+- 用户说"删除这个模板"
+- 用户说"把这个模板删掉"`,
+      parameters: {
+        type: 'object',
+        properties: {
+          template_id: {
+            type: 'string',
+            description: '要删除的模板 ID',
+          },
+        },
+        required: ['template_id'],
+      },
+    },
+  },
 ]
 
 /**
@@ -626,6 +751,10 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
   prepare_itinerary_modification: '准备修改预览',
   confirm_itinerary_modification: '确认修改',
   cancel_itinerary_modification: '取消修改',
+  list_templates: '查看模板列表',
+  save_template: '保存为模板',
+  apply_template: '应用模板',
+  delete_template: '删除模板',
 }
 
 /**
@@ -646,6 +775,10 @@ export const TOOL_ICONS: Record<string, string> = {
   prepare_itinerary_modification: '👀',
   confirm_itinerary_modification: '✅',
   cancel_itinerary_modification: '❌',
+  list_templates: '📚',
+  save_template: '💾',
+  apply_template: '📥',
+  delete_template: '🗑️',
 }
 
 /**

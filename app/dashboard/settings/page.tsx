@@ -2,14 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, User, Shield, Settings2, Key } from 'lucide-react'
+import { ArrowLeft, User, Shield, Settings2, Key, FileStack } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ProfileForm from '@/components/settings/ProfileForm'
 import PasswordChangeForm from '@/components/settings/PasswordChangeForm'
 import PreferencesForm from '@/components/settings/PreferencesForm'
 import ApiKeyManager from '@/components/settings/ApiKeyManager'
+import { TemplateManager } from '@/components/templates'
 
-type TabId = 'profile' | 'security' | 'preferences' | 'api-keys'
+type TabId = 'profile' | 'security' | 'preferences' | 'api-keys' | 'templates'
 
 interface Tab {
   id: TabId
@@ -26,6 +27,7 @@ export default function SettingsPage() {
     { id: 'security', label: '安全', icon: <Shield className="w-4 h-4" /> },
     { id: 'preferences', label: '偏好设置', icon: <Settings2 className="w-4 h-4" /> },
     { id: 'api-keys', label: 'API Keys', icon: <Key className="w-4 h-4" /> },
+    { id: 'templates', label: '旅行模板', icon: <FileStack className="w-4 h-4" /> },
   ]
 
   return (
@@ -122,6 +124,8 @@ export default function SettingsPage() {
               )}
 
               {activeTab === 'api-keys' && <ApiKeyManager />}
+
+              {activeTab === 'templates' && <TemplateManager />}
             </div>
           </div>
         </div>

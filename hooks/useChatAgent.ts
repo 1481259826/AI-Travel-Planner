@@ -88,6 +88,12 @@ export interface UseChatAgentReturn {
   clearModification: () => void
   /** 清除最后确认的修改信息 */
   clearLastConfirmedModification: () => void
+
+  // 模板功能相关
+  /** 最后一次应用模板的结果（包含新创建的 tripId） */
+  lastAppliedTemplate: { tripId: string; destination: string } | null
+  /** 清除最后应用的模板信息 */
+  clearLastAppliedTemplate: () => void
 }
 
 /** 用户微调数据类型 */
@@ -163,6 +169,12 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     modificationId: string
     affectedDays: number[]
     itinerary?: any
+  } | null>(null)
+
+  // 最后一次应用模板的结果（用于导航到新行程）
+  const [lastAppliedTemplate, setLastAppliedTemplate] = useState<{
+    tripId: string
+    destination: string
   } | null>(null)
 
   // 中止控制器
@@ -392,6 +404,14 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
                     // 清除修改预览
                     setPendingModification(null)
                     setIsModificationProcessing(false)
+                  }
+                  // 检查是否是 apply_template 的结果（应用模板创建新行程）
+                  if (result.action === 'navigate_to_trip' && result.tripId) {
+                    // 设置最后应用的模板信息（用于导航到新行程）
+                    setLastAppliedTemplate({
+                      tripId: result.tripId,
+                      destination: result.destination || '',
+                    })
                   }
                 }
                 break
@@ -821,6 +841,13 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     setLastConfirmedModification(null)
   }, [])
 
+  /**
+   * 清除最后应用的模板信息
+   */
+  const clearLastAppliedTemplate = useCallback(() => {
+    setLastAppliedTemplate(null)
+  }, [])
+
   // 自动触发行程生成（当 confirm_and_generate_trip 工具被调用后）
   useEffect(() => {
     if (autoGenerateForm) {
@@ -870,6 +897,10 @@ export function useChatAgent(options: UseChatAgentOptions = {}): UseChatAgentRet
     cancelModification,
     clearModification,
     clearLastConfirmedModification,
+
+    // 模板功能相关
+    lastAppliedTemplate,
+    clearLastAppliedTemplate,
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud, MessageCircle, Sparkles } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, MapPin, DollarSign, Loader2, Trash2, Receipt, BarChart3, Database, Cloud, MessageCircle, Sparkles, FileStack } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
@@ -24,6 +24,7 @@ import FullScreenMapModal from '@/components/FullScreenMapModal'
 import TripInfoPanel from '@/components/TripInfoPanel'
 import TripOverviewMap from '@/components/TripOverviewMap'
 import { TripChatPanel } from '@/components/chat'
+import { TemplateSaveModal } from '@/components/templates'
 import { Expense } from '@/types/expense'
 import { useOfflineTrip } from '@/hooks/useOfflineTrip'
 import { offlineExpenses, offlineData } from '@/lib/offline'
@@ -72,6 +73,8 @@ export default function TripDetailPage() {
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
   // 高亮修改的天数
   const [highlightedDays, setHighlightedDays] = useState<number[]>([])
+  // 保存为模板的模态框状态
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false)
 
   // 自动加载照片的状态
   const autoEnrichStarted = useRef(false)
@@ -584,6 +587,14 @@ export default function TripDetailPage() {
               <SyncToAmapButton trip={trip} />
               <ShareButton trip={trip} onShareUpdate={handleShareUpdate} />
               <ExportPdfButton trip={trip} />
+              <Button
+                variant="outline"
+                onClick={() => setShowSaveTemplateModal(true)}
+                className="text-green-600 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/30"
+              >
+                <FileStack className="w-4 h-4 mr-2" />
+                保存为模板
+              </Button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
@@ -900,6 +911,18 @@ export default function TripDetailPage() {
           onModificationConfirmed={handleModificationConfirmed}
         />
       )}
+
+      {/* 保存为模板模态框 */}
+      <TemplateSaveModal
+        isOpen={showSaveTemplateModal}
+        onClose={() => setShowSaveTemplateModal(false)}
+        tripId={tripId}
+        tripDestination={trip.destination}
+        onSuccess={() => {
+          setShowSaveTemplateModal(false)
+          alert('模板保存成功！您可以在设置页面的「旅行模板」中查看。')
+        }}
+      />
     </div>
   )
 }
