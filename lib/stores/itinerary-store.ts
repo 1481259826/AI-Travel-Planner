@@ -61,7 +61,7 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
 
     try {
       // 动态导入 supabase 客户端
-      const { supabase } = await import('@/lib/supabase')
+      const { supabase } = await import('@/lib/database')
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {

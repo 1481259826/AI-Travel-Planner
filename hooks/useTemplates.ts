@@ -393,7 +393,7 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
 
       // 增加使用次数（本地更新）
       setTemplates(prev => prev.map(t =>
-        t.id === id ? { ...t, use_count: t.use_count + 1 } : t
+        t.id === id ? { ...t, useCount: t.useCount + 1 } : t
       ))
 
       return result.data

@@ -41,7 +41,7 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
       setIsCheckingXFYun(true)
       try {
         // 获取认证令牌
-        const { supabase } = await import('@/lib/supabase')
+        const { supabase } = await import('@/lib/database')
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.access_token) {
@@ -190,7 +190,7 @@ export default function VoiceInput({ onTranscript, className = '', mode }: Voice
   const startXFYun = async () => {
     try {
       // 获取认证令牌
-      const { supabase } = await import('@/lib/supabase')
+      const { supabase } = await import('@/lib/database')
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session?.access_token) {

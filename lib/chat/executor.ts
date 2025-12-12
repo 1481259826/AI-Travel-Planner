@@ -1665,14 +1665,16 @@ export class ToolExecutor {
     }
 
     try {
-      const templates = await TemplateService.list(this.userId, this.supabase, {
-        category: params.category,
-        search: params.search,
+      const templates = await TemplateService.list(this.supabase, this.userId, {
+        filters: {
+          category: params.category,
+          query: params.search,
+        },
         page: 1,
         pageSize: params.limit || 10,
       })
 
-      if (templates.data.length === 0) {
+      if (templates.templates.length === 0) {
         return {
           success: true,
           message: '您还没有保存任何模板。您可以在行程详情页点击「保存为模板」来创建模板。',
@@ -1684,14 +1686,14 @@ export class ToolExecutor {
       return {
         success: true,
         message: `找到 ${templates.total} 个模板`,
-        templates: templates.data.map((t) => ({
+        templates: templates.templates.map((t) => ({
           id: t.id,
           name: t.name,
           category: t.category,
           destination: t.destination,
-          duration_days: t.duration_days,
-          use_count: t.use_count,
-          created_at: t.created_at,
+          duration_days: t.durationDays,
+          use_count: t.useCount,
+          created_at: t.createdAt,
         })),
         total: templates.total,
       }
@@ -1718,13 +1720,13 @@ export class ToolExecutor {
 
     try {
       const template = await TemplateService.createFromTrip(
-        params.trip_id,
-        this.userId,
         this.supabase,
+        this.userId,
         {
+          tripId: params.trip_id,
           name: params.name,
           description: params.description,
-          category: params.category || 'other',
+          category: params.category,
         }
       )
 
@@ -1735,8 +1737,8 @@ export class ToolExecutor {
           id: template.id,
           name: template.name,
           category: template.category,
-          destination: template.destination,
-          duration_days: template.duration_days,
+          destination: template.formData.destination,
+          duration_days: template.formData.durationDays,
         },
       }
     } catch (error) {
@@ -1757,17 +1759,24 @@ export class ToolExecutor {
 
     try {
       const result = await TemplateService.apply(
-        params.template_id,
+        this.supabase,
         this.userId,
-        this.supabase
+        params.template_id
       )
+
+      if (!result.success || !result.formData) {
+        return {
+          success: false,
+          message: result.message || '应用模板失败',
+        }
+      }
 
       return {
         success: true,
-        action: 'navigate_to_trip',
-        message: `已基于模板创建新行程！`,
-        tripId: result.tripId,
-        destination: result.destination,
+        action: 'prefill_form',
+        message: `已加载模板「${result.template?.name}」的数据！请前往创建行程页面查看。`,
+        formData: result.formData,
+        destination: result.formData.destination,
       }
     } catch (error) {
       return {
@@ -1787,17 +1796,17 @@ export class ToolExecutor {
 
     try {
       // 先获取模板名称用于确认信息
-      const template = await TemplateService.getById(
-        params.template_id,
+      const template = await TemplateService.get(
+        this.supabase,
         this.userId,
-        this.supabase
+        params.template_id
       )
 
       if (!template) {
         return { success: false, message: '模板不存在或无权访问' }
       }
 
-      await TemplateService.delete(params.template_id, this.userId, this.supabase)
+      await TemplateService.delete(this.supabase, this.userId, params.template_id)
 
       return {
         success: true,

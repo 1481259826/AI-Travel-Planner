@@ -77,7 +77,7 @@ export const useThemeStore = create<ThemeState>()(
           // 动态导入 supabase 客户端（避免在服务端导入）
           if (typeof window === 'undefined') return
 
-          const { supabase } = await import('@/lib/supabase')
+          const { supabase } = await import('@/lib/database')
           const { data: { session } } = await supabase.auth.getSession()
 
           if (!session) {

@@ -15,7 +15,7 @@ import { startSync } from '@/lib/sync'
 import type { Trip, Expense } from '@/types'
 
 // Mock Supabase
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/database', () => ({
   db: {
     trips: {
       getById: vi.fn(async (id: string) => ({ data: null, error: null })),
@@ -170,7 +170,7 @@ describe('离线同步完整流程集成测试', () => {
     await offlineTrips.save(localVersion)
 
     // 模拟从服务器获取远程版本
-    const { db } = await import('@/lib/supabase')
+    const { db } = await import('@/lib/database')
     vi.mocked(db.trips.getById).mockResolvedValue({ data: remoteVersion, error: null })
 
     // 获取远程版本
@@ -289,7 +289,7 @@ describe('离线同步完整流程集成测试', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
 
     // Mock Supabase 返回错误（在 startSync 之前）
-    const { db } = await import('@/lib/supabase')
+    const { db } = await import('@/lib/database')
     vi.mocked(db.trips.update).mockResolvedValueOnce({
       data: null,
       error: { code: '23503', message: 'Foreign key violation' } as any
