@@ -1,13 +1,15 @@
 /**
- * LangGraph 工作流测试
- * 验证工作流可以正常执行
+ * LangGraph 工作流端到端测试
+ * 验证工作流可以正常执行（实际调用 AI API）
+ *
+ * 注意：此测试会消耗 AI API 配额，建议仅在必要时运行
  */
 
 import { describe, it, expect } from 'vitest'
-import { executeTripPlanningWorkflow } from '../workflow'
+import { executeTripPlanningWorkflow } from '@/lib/agents'
 import type { TripFormData } from '@/types'
 
-describe('LangGraph Workflow', () => {
+describe('LangGraph Workflow E2E', () => {
   it('should execute workflow with valid input', async () => {
     // 准备测试数据
     const userInput: TripFormData = {

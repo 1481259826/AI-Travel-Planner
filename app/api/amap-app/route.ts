@@ -10,28 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMCPTools, type IExtendedMCPTools } from '@/lib/agents/mcp-factory'
 import { createAmapMCPClient } from '@/lib/agents/mcp-sse-client'
-import { supabase } from '@/lib/supabase'
 import { appConfig } from '@/lib/config'
 import { ApiKeyClient } from '@/lib/api-keys'
-
-/**
- * 获取认证用户
- */
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-  const { data: { user }, error } = await supabase.auth.getUser(token)
-
-  if (error || !user) {
-    return null
-  }
-
-  return user
-}
+import { requireAuth } from '@/app/api/_middleware/auth'
+import { handleApiError } from '@/app/api/_middleware'
 
 /**
  * GET /api/amap-app
@@ -40,13 +22,7 @@ async function getAuthUser(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser(request)
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: '未授权' },
-        { status: 401 }
-      )
-    }
+    const { user, supabase } = await requireAuth(request)
 
     // 获取高德 API Key
     const mapConfig = await ApiKeyClient.getUserConfig(user.id, 'map', supabase)
@@ -75,11 +51,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('[API] amap-app GET error:', error)
-    const errorMessage = error instanceof Error ? error.message : '服务器错误'
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -94,14 +66,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[API] amap-app: 收到请求')
 
-    const user = await getAuthUser(request)
-    if (!user) {
-      console.log('[API] amap-app: 用户未授权')
-      return NextResponse.json(
-        { success: false, error: '未授权' },
-        { status: 401 }
-      )
-    }
+    const { user, supabase } = await requireAuth(request)
     console.log('[API] amap-app: 用户已认证', user.id)
 
     const body = await request.json()
@@ -210,10 +175,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('[API] amap-app error:', error)
-    const errorMessage = error instanceof Error ? error.message : '服务器错误'
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
