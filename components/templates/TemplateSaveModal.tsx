@@ -12,14 +12,20 @@ import {
   type TemplateCategory,
   type TemplateFormData,
 } from '@/lib/templates'
+import { supabase } from '@/lib/supabase'
 
+// 支持两种使用模式的 props
 interface TemplateSaveModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: SaveTemplateData) => Promise<void>
+  // 模式1: 外部提供保存函数
+  onSave?: (data: SaveTemplateData) => Promise<void>
   initialData?: Partial<TemplateFormData>
-  tripId?: string // 如果从行程保存
   defaultName?: string
+  // 模式2: 从行程保存（内部调用 API）
+  tripId?: string
+  tripDestination?: string
+  onSuccess?: () => void
 }
 
 export interface SaveTemplateData {
@@ -31,13 +37,15 @@ export interface SaveTemplateData {
   tripId?: string
 }
 
-export default function TemplateSaveModal({
+export function TemplateSaveModal({
   isOpen,
   onClose,
   onSave,
   initialData,
-  tripId,
   defaultName,
+  tripId,
+  tripDestination,
+  onSuccess,
 }: TemplateSaveModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -46,18 +54,58 @@ export default function TemplateSaveModal({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 计算默认名称
+  const computedDefaultName = defaultName || tripDestination
+    ? `${tripDestination || defaultName}之旅`
+    : (initialData?.destination ? `${initialData.destination}之旅` : '')
+
   // 重置表单
   useEffect(() => {
     if (isOpen) {
-      setName(defaultName || (initialData?.destination ? `${initialData.destination}之旅` : ''))
+      setName(computedDefaultName)
       setDescription('')
       setCategory('custom')
       setTagsInput('')
       setError(null)
     }
-  }, [isOpen, defaultName, initialData?.destination])
+  }, [isOpen, computedDefaultName])
 
   if (!isOpen) return null
+
+  // 从行程保存模板（内部 API 调用）
+  const saveFromTrip = async (data: {
+    name: string
+    description?: string
+    category?: TemplateCategory
+    tags?: string[]
+  }) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      throw new Error('请先登录')
+    }
+
+    const response = await fetch('/api/templates/from-trip', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        trip_id: tripId,
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        tags: data.tags,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || '保存模板失败')
+    }
+
+    return response.json()
+  }
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -79,16 +127,35 @@ export default function TemplateSaveModal({
         .map((t) => t.trim())
         .filter(Boolean)
 
-      await onSave({
+      const saveData = {
         name: name.trim(),
         description: description.trim() || undefined,
         category,
         tags: tags.length > 0 ? tags : undefined,
-        formData: initialData as TemplateFormData,
-        tripId,
-      })
+      }
 
-      onClose()
+      // 模式2: 从行程保存（有 tripId 但没有 onSave）
+      if (tripId && !onSave) {
+        await saveFromTrip(saveData)
+        onClose()
+        onSuccess?.()
+        return
+      }
+
+      // 模式1: 使用外部提供的 onSave 函数
+      if (onSave) {
+        await onSave({
+          ...saveData,
+          formData: initialData as TemplateFormData,
+          tripId,
+        })
+        onClose()
+        onSuccess?.()
+        return
+      }
+
+      // 没有提供任何保存方式
+      throw new Error('未配置保存方式')
     } catch (err) {
       console.error('保存模板失败:', err)
       setError(err instanceof Error ? err.message : '保存失败，请重试')
@@ -106,6 +173,9 @@ export default function TemplateSaveModal({
       onClose()
     }
   }
+
+  // 用于预览的目的地名称
+  const previewDestination = tripDestination || initialData?.destination
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -150,7 +220,7 @@ export default function TemplateSaveModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={`如：${initialData?.destination || '杭州'}周末游`}
+              placeholder={`如：${previewDestination || '杭州'}周末游`}
               maxLength={100}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoFocus
@@ -214,7 +284,7 @@ export default function TemplateSaveModal({
             />
           </div>
 
-          {/* 预览 */}
+          {/* 预览 - 仅在有 initialData 时显示 */}
           {initialData && (
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -244,6 +314,15 @@ export default function TemplateSaveModal({
                   </p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* 从行程保存时的提示 */}
+          {tripId && !initialData && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                将从当前行程提取配置保存为可复用的模板，方便下次快速创建相似行程。
+              </p>
             </div>
           )}
         </div>

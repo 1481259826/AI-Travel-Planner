@@ -21,7 +21,7 @@ interface TemplateEditModalProps {
   onSave: (id: string, data: UpdateTemplateParams) => Promise<void>
 }
 
-export default function TemplateEditModal({
+export function TemplateEditModal({
   isOpen,
   template,
   onClose,

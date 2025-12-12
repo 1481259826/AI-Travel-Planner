@@ -31,7 +31,7 @@ interface TemplateCardProps {
   showActions?: boolean
 }
 
-export default function TemplateCard({
+export function TemplateCard({
   template,
   onEdit,
   onDelete,
