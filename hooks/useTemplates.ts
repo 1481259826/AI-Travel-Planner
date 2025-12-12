@@ -10,6 +10,7 @@ import type {
   TemplateListItem,
   TemplateCategory,
   TemplateFormData,
+  UpdateTemplateParams,
 } from '@/lib/templates'
 
 // ============================================================================
@@ -62,7 +63,7 @@ export interface UseTemplatesReturn {
   /** 从行程创建模板 */
   createFromTrip: (tripId: string, data: Omit<TemplateFormData, 'itinerary_template'>) => Promise<TripTemplate>
   /** 更新模板 */
-  updateTemplate: (id: string, data: Partial<TemplateFormData>) => Promise<TripTemplate>
+  updateTemplate: (id: string, data: UpdateTemplateParams) => Promise<TripTemplate>
   /** 删除模板 */
   deleteTemplate: (id: string) => Promise<void>
   /** 获取模板详情 */
@@ -278,7 +279,7 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRet
    */
   const updateTemplate = useCallback(async (
     id: string,
-    data: Partial<TemplateFormData>
+    data: UpdateTemplateParams
   ): Promise<TripTemplate> => {
     try {
       const token = await getToken()

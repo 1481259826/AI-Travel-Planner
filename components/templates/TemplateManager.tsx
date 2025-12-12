@@ -7,8 +7,8 @@
 
 import React, { useState, useCallback } from 'react'
 import { RefreshCw, Search, Filter, BookTemplate } from 'lucide-react'
-import TemplateCard from './TemplateCard'
-import TemplateEditModal from './TemplateEditModal'
+import { TemplateCard } from './TemplateCard'
+import { TemplateEditModal } from './TemplateEditModal'
 import { useTemplates } from '@/hooks/useTemplates'
 import {
   TEMPLATE_CATEGORY_CONFIG,
@@ -17,7 +17,7 @@ import {
   type UpdateTemplateParams,
 } from '@/lib/templates'
 
-export default function TemplateManager() {
+export function TemplateManager() {
   const {
     templates,
     total,
@@ -37,7 +37,7 @@ export default function TemplateManager() {
 
   const handleSearch = useCallback(() => {
     setFilters({
-      query: searchQuery || undefined,
+      search: searchQuery || undefined,
       category: selectedCategory !== 'all' ? selectedCategory : undefined,
     })
   }, [searchQuery, selectedCategory, setFilters])
@@ -143,10 +143,10 @@ export default function TemplateManager() {
             <BookTemplate className="w-12 h-12 mx-auto" />
           </div>
           <p className="text-gray-500 dark:text-gray-400 mb-2">
-            {filters.query || filters.category ? '没有找到匹配的模板' : '您还没有保存任何模板'}
+            {filters.search || filters.category ? '没有找到匹配的模板' : '您还没有保存任何模板'}
           </p>
           <p className="text-sm text-gray-400">
-            {filters.query || filters.category
+            {filters.search || filters.category
               ? '尝试调整搜索条件'
               : '在创建行程后，可以将常用配置保存为模板，方便下次快速使用'}
           </p>
