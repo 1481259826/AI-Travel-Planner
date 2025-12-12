@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useThemeStore, initializeTheme } from '@/lib/stores/theme-store'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 
 /**
  * 主题提供者

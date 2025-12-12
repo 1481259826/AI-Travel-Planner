@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { User, Loader2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 import type { UserProfile } from '@/types'
 
 export default function ProfileForm() {

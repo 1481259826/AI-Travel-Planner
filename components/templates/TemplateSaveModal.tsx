@@ -12,7 +12,7 @@ import {
   type TemplateCategory,
   type TemplateFormData,
 } from '@/lib/templates'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 
 // 支持两种使用模式的 props
 interface TemplateSaveModalProps {

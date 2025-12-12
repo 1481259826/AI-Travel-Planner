@@ -6,7 +6,7 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import VoiceInput from './VoiceInput'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 import type { VoiceParseResult, TripFormData } from '@/types'
 
 interface SmartVoiceFillFormProps {

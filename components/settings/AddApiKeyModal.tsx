@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 import type { ApiKeyService } from '@/types'
 
 interface AddApiKeyModalProps {

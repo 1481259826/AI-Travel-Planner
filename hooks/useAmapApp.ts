@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 
 interface UseAmapAppOptions {
   onError?: (error: string) => void

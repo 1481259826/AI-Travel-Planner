@@ -11,7 +11,7 @@ import ApiKeyManager from '@/components/settings/ApiKeyManager'
 import type { ApiKey, ApiKeyService } from '@/types'
 
 // Mock supabase
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/database', () => ({
   supabase: {
     auth: {
       getSession: vi.fn()
@@ -19,7 +19,7 @@ vi.mock('@/lib/supabase', () => ({
   }
 }))
 
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 
 // 测试数据
 const mockSession = {

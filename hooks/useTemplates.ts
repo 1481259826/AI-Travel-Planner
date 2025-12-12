@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { auth } from '@/lib/supabase'
+import { auth } from '@/lib/database'
 import type {
   TripTemplate,
   TemplateListItem,

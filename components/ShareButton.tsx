@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Trip } from '@/types'
 import { getShareUrl, copyToClipboard, formatShareText, generateShareToken } from '@/lib/share'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 
 interface ShareButtonProps {
   trip: Trip

@@ -18,7 +18,7 @@ import {
 import type { Trip, Expense } from '@/types'
 
 // Mock dependencies
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/database', () => ({
   db: {
     trips: {
       getAll: vi.fn(),
@@ -59,7 +59,7 @@ vi.mock('@/lib/offline', () => ({
   }),
 }))
 
-import { db } from '@/lib/supabase'
+import { db } from '@/lib/database'
 import { syncQueue, offlineTrips, offlineExpenses } from '@/lib/offline'
 
 describe('sync', () => {

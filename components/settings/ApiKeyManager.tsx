@@ -7,7 +7,7 @@ import ApiKeyHeader from './api-keys/ApiKeyHeader'
 import ConfigurationWarnings from './api-keys/ConfigurationWarnings'
 import ServiceGroup from './api-keys/ServiceGroup'
 import InfoBox from './api-keys/InfoBox'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 import type { ApiKey, ApiKeyService } from '@/types'
 
 interface SystemApiKey {

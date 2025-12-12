@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
 import { ChatSidebar, ChatInput, MessageList, TripFormModal } from '@/components/chat'
 import { useChatAgent, useChatSessions } from '@/hooks/useChatAgent'
 import type { TripFormData } from '@/lib/chat'
-import { auth, supabase } from '@/lib/supabase'
+import { auth, supabase } from '@/lib/database'
 import type { Trip } from '@/types'
 
 /**

@@ -156,6 +156,7 @@ lib/
 │   ├── client.ts                 # 客户端初始化
 │   ├── auth.ts                   # 认证操作
 │   ├── schema.ts                 # 类型定义
+│   ├── crud.ts                   # CRUD 操作（trips, expenses）
 │   └── index.ts                  # 统一导出
 ├── api-keys/                     # API Key 管理模块化目录（重构后）
 │   ├── types.ts                  # 类型定义和常量
@@ -163,9 +164,6 @@ lib/
 │   ├── validator.ts              # API Key 测试
 │   ├── checker.ts                # 可用性检查
 │   └── index.ts                  # 统一导出
-├── supabase.ts                   # Supabase 向后兼容层（推荐使用 database/）
-├── api-keys.ts                   # API Keys 向后兼容层（推荐使用 api-keys/）
-├── check-api-keys.ts             # API Key 检查向后兼容层
 ├── models.ts                     # AI 模型配置
 ├── config.ts                     # 环境变量配置管理
 ├── encryption.ts                 # AES-256 加密（用于 API Keys）
@@ -286,21 +284,23 @@ if (!result.available) {
 - `client.ts` - Supabase 客户端初始化
 - `auth.ts` - 认证操作（signUp, signIn, signOut）
 - `schema.ts` - 数据库类型定义
+- `crud.ts` - CRUD 操作（trips, expenses）
 - `index.ts` - 统一导出
 
 **推荐用法**：
 ```typescript
-import { supabase, signIn, signOut } from '@/lib/database'
+import { supabase, signIn, signOut, db } from '@/lib/database'
 import type { Trip, TripInsert } from '@/lib/database'
 
 // 认证
 await signIn('user@example.com', 'password')
 
-// 数据库操作
+// 数据库操作（方式一：使用 db 对象）
+const { data, error } = await db.trips.getAll(userId)
+
+// 数据库操作（方式二：直接使用 supabase）
 const { data } = await supabase.from('trips').select('*')
 ```
-
-**向后兼容**：`lib/supabase.ts` 重新导出所有功能，保留 `db.trips` 和 `db.expenses` CRUD 操作。
 
 ### API Key 管理模块 (`lib/api-keys/`)
 
@@ -324,8 +324,6 @@ const isValid = await ApiKeyValidator.testDeepSeekKey(apiKey)
 // 检查可用性
 const result = await ApiKeyChecker.checkDeepSeekRequired(userId, token)
 ```
-
-**向后兼容**：`lib/api-keys.ts` 和 `lib/check-api-keys.ts` 导出便捷函数。
 
 ## LangGraph 多智能体架构
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/database';
 
 // 费用类别定义
 const CATEGORIES = [

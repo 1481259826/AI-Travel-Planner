@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Trip } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/database';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 

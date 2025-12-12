@@ -1,22 +1,18 @@
 /**
- * Supabase 模块（向后兼容层）
+ * 数据库 CRUD 操作
  *
- * ⚠️ 弃用警告：此文件仅用于向后兼容，推荐使用新的模块化导入
+ * 提供 Trips 和 Expenses 表的便捷操作方法
  *
- * 旧的用法（仍然支持）：
+ * @example
  * ```typescript
- * import { supabase, auth, db } from '@/lib/supabase'
- * await auth.signIn('user@example.com', 'password')
- * await db.trips.getAll(userId)
- * ```
+ * import { db } from '@/lib/database'
  *
- * 推荐的新用法：
- * ```typescript
- * import { supabase, signIn } from '@/lib/database'
- * await signIn('user@example.com', 'password')
- * ```
+ * // 获取用户所有行程
+ * const { data, error } = await db.trips.getAll(userId)
  *
- * 计划：一周后将逐步迁移所有代码到新模块，然后删除此文件
+ * // 创建新行程
+ * const { data: newTrip } = await db.trips.create({ ... })
+ * ```
  */
 
 import type {
@@ -30,51 +26,10 @@ import type {
   SupabaseArrayResponse,
 } from '@/types/supabase'
 
-// ==================== 重新导出新模块 ====================
-
-// 客户端
-export {
-  supabase,
-  createClient,
-  createServerSupabaseClient,
-  createAdminClient,
-} from '@/lib/database/client'
-
-// 认证
-export { auth } from '@/lib/database/auth'
-
-// 类型
-export type {
-  Profile,
-  TripStatus,
-  ApiKey,
-  ApiKeyService,
-  ProfileInsert,
-  ProfileUpdate,
-  ApiKeyInsert,
-  ApiKeyUpdate,
-  SupabaseSuccess,
-  SupabaseError,
-  SupabaseResponse,
-  TripFilter,
-  ExpenseFilter,
-  ApiKeyFilter,
-  TripWithExpenses,
-  TripWithProfile,
-  ExpenseStats,
-  ShareToken,
-  IndexedFields,
-  AuthContext,
-} from '@/lib/database'
-
-// ==================== 数据库 CRUD 操作（保留） ====================
-
-import { supabase } from '@/lib/database/client'
+import { supabase } from './client'
 
 /**
  * 数据库操作对象
- *
- * @deprecated 未来将拆分为独立的 repository 模块
  *
  * 包含 Trips 和 Expenses 的 CRUD 操作
  */

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Trip } from '@/types'
-import { db } from '@/lib/supabase'
+import { db } from '@/lib/database'
 import { offlineTrips } from '@/lib/offline'
 import { cacheTripsFromServer, prefetchAllTripDetails } from '@/lib/sync'
 

@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { auth } from '@/lib/supabase'
+import { auth } from '@/lib/database'
 import type {
   ChatMessage,
   ChatStreamEvent,

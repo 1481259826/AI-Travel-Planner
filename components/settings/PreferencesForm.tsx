@@ -5,7 +5,7 @@ import { Loader2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ThemeToggle from '@/components/ThemeToggle'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/database'
 import { AI_MODELS } from '@/lib/config'
 import type { UserProfile, AIModel } from '@/types'
 
